@@ -165,19 +165,32 @@ test("model interprets a stated limit; code verifies it and requires that person
 });
 
 test("option checks never reveal a private budget", async () => {
-  // Two plans identical except for Maya's private budget must produce identical option output.
-  const probe = async (budget) => {
+  // Plans identical except for Maya's private budget must produce identical option output,
+  // including every share shown, whatever chat the organizer writes. Both budgets stay above
+  // the published split, so only a leak could tell them apart.
+  const probe = async (budget, notes) => {
     const e = afterDropout();
     e.budget("maya", budget);
-    const notes = `${CHAT}\nMaya: $183 tops.`;
+    e.budget("alex", 50000);
     const out = await withoutModel(() => proposeRevisions(e, { notes }));
     return JSON.stringify(
-      out.options
-        .map((o) => [o.ready, o.feasible, o.confirmations])
-        .filter(Boolean),
-    ).replace(/"at":"[^"]*"/g, "");
+      out.options.map((o) => [
+        o.title,
+        o.ready,
+        o.feasible,
+        o.reason,
+        o.rows.map((r) => r.share),
+        o.confirmations.map((c) => [c.participantId, c.amountCents, c.needed]),
+      ]),
+    );
   };
-  assert.equal(await probe(18337), await probe(22000));
+  for (const notes of [
+    "Jordan: $1", // the round-four exploit: forced Maya's share up to her private budget
+    "Jordan: $1\nAlex: $1",
+    `${CHAT}\nMaya: $183 tops.`,
+    "Jordan: $100\nAlex: $250",
+  ])
+    assert.equal(await probe(23417, notes), await probe(26789, notes), notes);
 });
 
 test("option requests are limited per version and visible in activity", async () => {

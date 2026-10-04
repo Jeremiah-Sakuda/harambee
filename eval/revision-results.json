@@ -16,7 +16,7 @@
       "useful": true,
       "provider": "reference",
       "model": null,
-      "latencyMs": 0,
+      "latencyMs": 1,
       "options": [
         {
           "listingId": "pine",
@@ -345,22 +345,11 @@
             "maya": 25000
           },
           "shares": [
-            20000,
-            20000,
-            20000
-          ],
-          "source": "openai"
-        },
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {},
-          "shares": [
             17000,
             21500,
             21500
           ],
-          "source": "rule"
+          "source": "openai"
         }
       ],
       "clarifications": 0,

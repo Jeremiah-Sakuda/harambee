@@ -202,20 +202,16 @@ export default function RevisionOptions({
                 Publish this option <ArrowRight size={16} />
               </button>
             )}
-            {o.budgetsDiffer && (
-              <small className="rev-wait">
-                Doesn’t match everyone’s saved budgets, so it can’t be published
-                as shown.
-              </small>
-            )}
-            {o.feasible && !o.ready && !o.budgetsDiffer && (
+            {o.feasible && !o.ready && (
               <small className="rev-wait">
                 Waiting for{" "}
                 {o.confirmations
                   .filter((c) => c.needed)
                   .map((c) => first(c.name))
                   .join(" and ")}{" "}
-                to save that limit as their own budget.
+                to confirm that limit. Until then these shares use only limits
+                stated in the chat; everyone’s saved budgets apply once it’s
+                confirmed.
               </small>
             )}
           </article>

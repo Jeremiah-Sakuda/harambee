@@ -144,56 +144,63 @@ function evaluate(engine, ctx, lines, option) {
     caps.set(person.id, { ...c, amountCents: money(c.amountCents) });
   }
   const confirmations = [];
-  const people = ctx.active.map((p) => {
+  // Preview A uses public information only: stated limits from the chat and the cabin total.
+  // Nobody's saved budget enters it, so organizer-written chat can't steer it into revealing one.
+  const stated = ctx.active.map((p) => {
     const cap = caps.get(p.id);
-    if (!cap) return { id: p.id, budget: p.budget };
-    // Only an explicit confirmation of this exact amount counts. Never compare against the private
-    // budget here: that comparison would let the organizer search out someone's budget.
-    const confirmed = engine.limitConfirmed(p.id, cap.amountCents);
+    if (!cap) return { id: p.id, budget: null };
+    // Only an explicit confirmation of this exact amount counts, never a budget comparison.
     confirmations.push({
       participantId: p.id,
       name: p.name,
       amountCents: cap.amountCents,
       line: cap.line,
       quote: lines[cap.line - 1],
-      confirmed,
+      confirmed: engine.limitConfirmed(p.id, cap.amountCents),
     });
     return { id: p.id, budget: cap.amountCents };
   });
-  let shares;
-  try {
-    shares = allocate(listing.total, people);
-  } catch (error) {
-    if (!(error instanceof DomainError)) throw error;
+  const tryAllocate = (people) => {
+    try {
+      return allocate(listing.total, people);
+    } catch (error) {
+      if (!(error instanceof DomainError)) throw error;
+      return null;
+    }
+  };
+  const preview = tryAllocate(stated);
+  if (!preview)
     return {
       listing,
       caps,
       confirmations,
       feasible: false,
-      reason: "The group’s saved and stated limits cannot cover this cabin.",
+      reason: "The limits people stated in the chat cannot cover this cabin.",
     };
-  }
-  // Someone confirms only if their own stated limit sets their share in this option.
+  // Someone confirms only if their own stated limit sets their share in the public preview.
   for (const c of confirmations)
     c.needed =
       !c.confirmed &&
-      shares.find((s) => s.id === c.participantId).share === c.amountCents;
-  // Publishing recomputes from saved budgets, so an option is only publishable if they agree.
-  let publishable = false;
-  try {
-    publishable = allocate(listing.total, ctx.active).every(
-      (s, i) => s.share === shares[i].share,
-    );
-  } catch (error) {
-    if (!(error instanceof DomainError)) throw error;
-  }
+      preview.find((s) => s.id === c.participantId).share === c.amountCents;
+  const waiting = confirmations.some((c) => c.needed);
+  // With nothing left to confirm, show exactly what publishing produces from saved budgets.
+  // That split is fixed for each cabin, so no chat input can probe it.
+  const shares = waiting ? preview : tryAllocate(ctx.active);
+  if (!shares)
+    return {
+      listing,
+      caps,
+      confirmations,
+      feasible: false,
+      reason: "Everyone’s saved budgets cannot cover this cabin.",
+    };
   const sameCabin = listing.id === ctx.listingId;
   return {
     listing,
     caps,
     confirmations,
     feasible: true,
-    publishable,
+    publishable: !waiting,
     rows: ctx.active.map((p) => {
       const share = shares.find((s) => s.id === p.id).share;
       const held = sameCabin ? engine.held(p.id) : 0;
@@ -285,11 +292,6 @@ function finish(engine, ctx, lines, proposed, meta) {
       ready:
         result.feasible &&
         result.publishable &&
-        result.confirmations.every((c) => c.confirmed || !c.needed),
-      // Waiting on a saved budget rather than a confirmation; never says whose or by how much.
-      budgetsDiffer:
-        result.feasible &&
-        !result.publishable &&
         result.confirmations.every((c) => c.confirmed || !c.needed),
     });
   }
@@ -453,11 +455,9 @@ export function resolveOption(engine, optionId) {
   if (!option) throw new DomainError("That option no longer exists.", 409);
   if (!option.ready)
     throw new DomainError(
-      !option.feasible
-        ? option.reason
-        : option.budgetsDiffer
-          ? "This option doesn’t match everyone’s saved budgets. Ask for options again."
-          : "Everyone this option depends on must confirm their limit first.",
+      option.feasible
+        ? "Everyone this option depends on must confirm their limit first."
+        : option.reason,
     );
   return {
     listingId: option.listingId,
