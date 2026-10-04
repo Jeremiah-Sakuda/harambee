@@ -10,9 +10,11 @@
     "build": "vite build",
     "start": "node server/index.mjs",
     "test": "node --test test/*.test.mjs",
-    "eval": "node scripts/evaluate.mjs",
+    "eval": "node scripts/evaluate.mjs && node scripts/evaluate-revisions.mjs >/dev/null",
     "eval:live": "node --env-file-if-exists=.env scripts/evaluate.mjs --live",
-    "paypal:check": "node scripts/paypal-check.mjs"
+    "paypal:check": "node scripts/paypal-check.mjs",
+    "eval:revisions": "node scripts/evaluate-revisions.mjs",
+    "eval:revisions:live": "node --env-file-if-exists=.env scripts/evaluate-revisions.mjs --live"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

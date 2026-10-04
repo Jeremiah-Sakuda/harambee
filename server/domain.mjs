@@ -39,6 +39,31 @@ export const catalog = [
       "Full fixture refund before check-in. No actual lodging is purchased.",
   },
 ];
+// Publishing an option must reproduce exactly the shares the organizer reviewed.
+export function assertExpectedShares(shares, expected) {
+  if (expected === undefined) return;
+  ensure(
+    Array.isArray(expected) &&
+      expected.length === shares.length &&
+      shares.every(
+        (s) => expected.find((e) => e?.id === s.id)?.share === s.share,
+      ),
+    "Budgets or the group changed since this option was shown. Refresh the options before publishing.",
+  );
+}
+const provenance = (proposal) =>
+  proposal && typeof proposal.title === "string"
+    ? {
+        title: proposal.title.slice(0, 120),
+        source: ["openai", "local-planner", "rule"].includes(proposal.source)
+          ? proposal.source
+          : "rule",
+        model:
+          typeof proposal.model === "string"
+            ? proposal.model.slice(0, 80)
+            : null,
+      }
+    : null;
 export function allocate(total, people) {
   money(total);
   ensure(
@@ -321,7 +346,10 @@ export class Engine {
       "revision",
     );
   }
-  revise(actor, { listingId = this.state.listingId } = {}) {
+  revise(
+    actor,
+    { listingId = this.state.listingId, expectedShares, proposal } = {},
+  ) {
     this.assertOrganizer(actor);
     this.assertOpen();
     const listing = catalog.find((l) => l.id === listingId);
@@ -331,6 +359,7 @@ export class Engine {
       "This cabin cannot fit the full group. Choose a larger cabin.",
     );
     const shares = allocate(listing.total, this.active);
+    assertExpectedShares(shares, expectedShares);
     const old = this.current;
     for (const p of this.active) {
       if (
@@ -354,10 +383,22 @@ export class Engine {
           ? "A different cabin, a fresh agreement"
           : "Updated group, refreshed shares",
       rule: "Equal shares, capped by confirmed budgets; leftover cents assigned in roster order.",
+      proposal: provenance(proposal),
     });
     this.state.status = "collecting";
+    const origin = provenance(proposal);
     this.log(
-      `Version ${this.state.version} published. Everyone must approve the new allocation before booking.`,
+      `Version ${this.state.version} published${
+        origin
+          ? ` from the option “${origin.title}” (${
+              origin.source === "openai"
+                ? `suggested by ${origin.model || "the model"}, verified by code`
+                : origin.source === "local-planner"
+                  ? "local planner"
+                  : "standard rebalance"
+            })`
+          : ""
+      }. Everyone must approve the new allocation before booking.`,
       "revision",
     );
   }

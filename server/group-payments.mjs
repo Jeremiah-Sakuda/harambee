@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { DomainError, allocate, catalog } from "./domain.mjs";
+import {
+  DomainError,
+  allocate,
+  assertExpectedShares,
+  catalog,
+} from "./domain.mjs";
 const need = (ok, message) => {
   if (!ok) throw new DomainError(message);
 };
@@ -228,6 +233,8 @@ export class GroupPayments {
       "Choose a cabin that fits the group.",
     );
     const shares = allocate(listing.total, e.active);
+    // Check before releasing any real authorization.
+    assertExpectedShares(shares, input.expectedShares);
     for (const p of this.s.payments.filter((p) => !terminal(p))) {
       if (
         p.status !== "authorized" ||

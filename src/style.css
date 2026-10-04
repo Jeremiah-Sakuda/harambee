@@ -1966,3 +1966,180 @@ dialog .terms {
     margin-bottom: 12px;
   }
 }
+/* Revision options after the group changes */
+.rev-panel {
+  border: 1px solid var(--line);
+  background: var(--white);
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.rev-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.rev-head h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  color: var(--deep);
+}
+.rev-head p {
+  margin: 0;
+  color: var(--muted);
+}
+.rev-head button {
+  flex: none;
+  min-height: 44px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rev-provenance {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px !important;
+  font-size: 13px;
+  color: var(--forest) !important;
+}
+.rev-provenance.local {
+  color: var(--warn) !important;
+}
+.link-button {
+  background: none;
+  border: 0;
+  padding: 8px 0 0;
+  color: var(--forest);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+}
+.rev-questions {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--cream);
+  border-radius: 6px;
+}
+.rev-questions strong {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.rev-questions ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+.rev-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.rev-option {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rev-option.ready {
+  border-color: var(--forest);
+}
+.rev-option header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+.rev-option h4 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--deep);
+}
+.rev-tag {
+  flex: none;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--deep);
+}
+.rev-option p {
+  margin: 0;
+}
+.rev-tradeoff,
+.rev-note,
+.rev-wait {
+  color: var(--muted);
+  font-size: 13px;
+}
+.rev-infeasible {
+  color: var(--danger);
+}
+.rev-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.rev-table th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+  padding-bottom: 4px;
+}
+.rev-table td {
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+.rev-table small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.rev-confirm {
+  padding: 10px 12px;
+  background: #f0f4e6;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rev-confirm p {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.rev-confirm button,
+.rev-option > .primary {
+  min-height: 44px;
+  font-size: 14px;
+}
+.rev-option > .primary {
+  margin-top: auto;
+}
+.rev-discarded {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.rev-discarded summary {
+  cursor: pointer;
+  min-height: 32px;
+}
+@media (max-width: 640px) {
+  .rev-head {
+    flex-direction: column;
+  }
+  .rev-head button {
+    width: 100%;
+    justify-content: center;
+  }
+}

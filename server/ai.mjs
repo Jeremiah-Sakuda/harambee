@@ -1,3 +1,4 @@
+import { DomainError } from "./domain.mjs";
 // Conservative USD source grounding. This rejects ambiguous values instead of guessing.
 export function groundLine(source) {
   const person = /^\s*([^:]{1,60}):/.exec(source)?.[1].trim() || "Unassigned";
@@ -11,7 +12,7 @@ export function groundLine(source) {
     matches.length !== 1 ||
     !valid ||
     (source.match(/:/g) || []).length > 1 ||
-    /\bnot\b|can't|cannot|\$[\d,.]+\s*[-–]|\$[\d,.]+[a-z]/i.test(source) ||
+    /\bnot\b|can['’]t|cannot|\$[\d,.]+\s*[-–]|\$[\d,.]+[a-z]/i.test(source) ||
     /maybe|might|not sure|either|\bor\b|\bbut\b|ignore|override|not my|per night|each night|EUR|GBP|€|£|\$\d[\d,.]*[kKmM]\b/.test(
       source,
     );
@@ -47,7 +48,10 @@ export const localInterpret = (text) => ({
 });
 export async function interpret(text) {
   if (typeof text !== "string" || text.length < 3 || text.length > 8000)
-    throw new Error("Enter 3–8,000 characters of consented planning notes.");
+    throw new DomainError(
+      "Enter 3–8,000 characters of consented planning notes.",
+      400,
+    );
   if (!process.env.OPENAI_API_KEY) return localInterpret(text);
   const start = Date.now();
   const schema = {

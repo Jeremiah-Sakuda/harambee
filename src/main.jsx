@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import "./style.css";
 import SandboxLab from "./SandboxLab.jsx";
+import RevisionOptions from "./RevisionOptions.jsx";
 const usd = (n) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -121,9 +122,20 @@ function App() {
     [modal, setModal] = useState(null),
     [fault, setFault] = useState("none"),
     [notes, setNotes] = useState(
-      "Maya: I can spend up to $220. A quiet room would be lovely.\nJordan: My budget is $220. I’m happy to share a room.\nAlex: Up to $220 works for me. I might arrive late Friday.\nSam: $220 maximum. I need to leave Sunday morning.",
+      [
+        "Maya: I can spend up to $220. A quiet room would be lovely.",
+        "Jordan: My budget is $220. I’m happy to share a room.",
+        "Alex: Up to $220 works for me. I might arrive late Friday.",
+        "Sam: $220 maximum. I need to leave Sunday morning.",
+        "Sam: Bad news, work moved my deadline. I have to drop out, sorry!",
+        "Maya: Honestly my rent just went up, I can’t go above $170 now.",
+        "Alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+        "Jordan: I can stretch a bit if that keeps us at Pine & Still.",
+      ].join("\n"),
     ),
     [insight, setInsight] = useState(null),
+    [revOptions, setRevOptions] = useState(null),
+    [revBusy, setRevBusy] = useState(false),
     [title, setTitle] = useState("A weekend off the grid"),
     [names, setNames] = useState(
       "Maya Chen, Jordan Ellis, Alex Rivera, Sam Taylor",
@@ -180,6 +192,12 @@ function App() {
       );
   }, [state]);
   useEffect(() => {
+    // After someone confirms a limit, re-verify the shown options (no model call).
+    if (!revOptions || !state) return;
+    if (state.status !== "revision_required") return setRevOptions(null);
+    if (actor === "organizer" && !modal) suggestOptions(true);
+  }, [actor, modal, state?.status, state?.audit.length]);
+  useEffect(() => {
     if (modal) {
       dialog.current?.showModal();
     } else dialog.current?.close();
@@ -205,6 +223,51 @@ function App() {
       return false;
     } finally {
       setBusy(false);
+    }
+  }
+  // Proposals come from the model or local planner; `recheck` re-verifies shown options without a model call.
+  async function suggestOptions(recheck = false) {
+    setRevBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/revision-options", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-demo-actor": "organizer",
+        },
+        body: JSON.stringify(
+          recheck
+            ? { notes, recheck: revOptions.options.map((o) => o.proposal) }
+            : { notes },
+        ),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.error);
+      setRevOptions((prev) =>
+        recheck && prev ? { ...prev, options: data.options } : data,
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setRevBusy(false);
+    }
+  }
+  async function publishOption(o) {
+    if (
+      await act("revise", {
+        listingId: o.listingId,
+        expectedShares: o.rows.map((r) => ({
+          id: r.participantId,
+          share: r.share,
+        })),
+        proposal: { ...o.proposal, title: o.title, model: revOptions?.model },
+      })
+    ) {
+      setRevOptions(null);
+      setNotice(
+        "New version published. Each person reviews and approves their own share; no new hold exists until they do.",
+      );
     }
   }
   async function review(p, suggestion = null) {
@@ -546,6 +609,31 @@ function App() {
                       </button>
                     )}
                   </div>
+                )}
+                {state.status === "revision_required" && isOrganizer && (
+                  <RevisionOptions
+                    data={revOptions}
+                    busy={busy || revBusy}
+                    noteLines={notes.split("\n").filter((l) => l.trim()).length}
+                    participants={active}
+                    onSuggest={() => suggestOptions()}
+                    onPublish={publishOption}
+                    onEditNotes={() => setTab("notes")}
+                    onConfirm={(c) => {
+                      setRevOptions((prev) => ({
+                        ...prev,
+                        asked: [...(prev.asked ?? []), c.participantId],
+                      }));
+                      review(
+                        active.find((p) => p.id === c.participantId),
+                        {
+                          source: c.quote,
+                          budgetCents: c.amountCents,
+                          needsReview: false,
+                        },
+                      );
+                    }}
+                  />
                 )}
                 <section
                   className="people-card"

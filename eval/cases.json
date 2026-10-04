@@ -57,7 +57,7 @@
   },
   {
     "id": "foreign",
-    "input": "Maya: \u20ac220 maximum",
+    "input": "Maya: €220 maximum",
     "person": "Maya",
     "budgetCents": null,
     "needsReview": true
@@ -140,7 +140,7 @@
   },
   {
     "id": "range",
-    "input": "Maya: $100\u2013200",
+    "input": "Maya: $100–200",
     "person": "Maya",
     "budgetCents": null,
     "needsReview": true
@@ -148,6 +148,13 @@
   {
     "id": "scientific",
     "input": "Maya: $1e3 maximum",
+    "person": "Maya",
+    "budgetCents": null,
+    "needsReview": true
+  },
+  {
+    "id": "curly-negation",
+    "input": "Maya: Honestly my rent went up, I can’t go above $170 now.",
     "person": "Maya",
     "budgetCents": null,
     "needsReview": true

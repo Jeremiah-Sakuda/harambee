@@ -38,10 +38,11 @@ The native Node test suite covers exact allocations, private budget projection, 
 
 1. Start with four friends and the $600 Pine & Still cabin. Click **Review** beside each person, review their saved private $220 ceiling (use **Save budget only** for edits), and select **Agree & authorize simulated hold**. The demo role switch intentionally lets one judge act as each participant.
 2. Switch to Organizer. Withdraw Sam using the exit icon. Their hold is voided, and the plan requires a revision.
-3. Publish revised shares. Each remaining friend explicitly approves version 2 and a $50 top-up, bringing their total to $200. The original version never grants permission for an increase.
-4. Return to Organizer and book. The system locks the plan, captures each simulated payment, and commits local inventory. Open **Activity & receipts** or export the JSON evidence.
-5. Reset and approve the group again. Under **Demo scenarios**, choose a capture failure or timeout before booking. **Reconcile & recover** returns confirmed captures, voids unused holds, and releases inventory. The pending-refund scenario requires a second recovery pass; it cannot falsely report completion.
-6. For the constrained-budget case, set one remaining person's ceiling to $170 during review, then republish the allocation as Organizer. The deterministic split is $170/$215/$215. **View allocation details** also offers the $480 alternative; a changed cabin requires new consent.
+3. Choose **Suggest options**. Harambee reads the group chat in **Planning notes**. The sample chat includes Sam leaving, Maya saying she “can’t go above $170” now, and Alex preferring the cheaper cabin. It shows verified options with every share and top-up computed by code. See [Revision options](#revision-options-after-a-dropout). The plain **Rebalance** splits within saved budgets ($200 each).
+4. Publish an option. Each remaining friend explicitly approves the new version and their exact top-up. The original version never grants permission for an increase.
+5. Return to Organizer and book. The system locks the plan, captures each simulated payment, and commits local inventory. Open **Activity & receipts** or export the JSON evidence.
+6. Reset and approve the group again. Under **Demo scenarios**, choose a capture failure or timeout before booking. **Reconcile & recover** returns confirmed captures, voids unused holds, and releases inventory. The pending-refund scenario requires a second recovery pass; it cannot falsely report completion.
+7. For the constrained-budget case, set one remaining person's ceiling to $170 during review, then republish the allocation as Organizer. The deterministic split is $170/$215/$215. **View allocation details** also offers the $480 alternative; a changed cabin requires new consent.
 
 New trips accept three to eight distinct names and a fixed fixture stay on November 6–8, 2026. Creekside has capacity for six, Pine & Still for eight. Unknown ceilings require participant confirmation before approval. The demo allows two people to remain after a withdrawal.
 
@@ -55,9 +56,29 @@ Set `OPENAI_API_KEY` and optionally `OPENAI_MODEL`, then restart. In **Planning 
 
 Without a key, or if the model times out or returns unverified content, the app explicitly uses a **local parser**. That fallback is not an AI model. Both paths produce reviewable drafts only: they cannot change budgets, consents, amounts, or payment states. Notes and interpretations are not persisted; they remain in browser memory until reload. If the model is enabled, submitted text is sent to its provider with `store: false`. Do not submit unconsented personal conversations. Latency and token usage are displayed for model responses; provider cost is not calculated. Source-linked drafts now check extracted amounts and names against conservative line-level USD grounding. Contradictions lose their numeric suggestion; discrepant model fields are replaced by source-grounded values and explicitly flagged. This is not a general semantic verifier. Each draft can open a participant review with the source visible; applying a suggestion to the field, saving a budget, and approving a share remain separate actions. No user research or live model accuracy is claimed.
 
-Run `npm run eval` for the frozen 21-case synthetic parser/validator evaluation. `eval/results.json` records 21/21 locally passing cases, including three injected model-output mistakes. This is **not** 100% model accuracy. `npm run eval:live -- --write` explicitly calls the configured provider and records separate live results; it has not been run. Measure real participant correction effort using [the study protocol](docs/VALIDATION_PLAN.md).
+Run `npm run eval` for the frozen 22-case synthetic parser/validator evaluation. `eval/results.json` records 22/22 locally passing cases, including three injected model-output mistakes. This is **not** 100% model accuracy. `npm run eval:live -- --write` explicitly calls the configured provider and records separate live results; it has not been run. Measure real participant correction effort using [the study protocol](docs/VALIDATION_PLAN.md).
 
 Reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+
+## Revision options after a dropout
+
+When someone leaves, the organizer chooses **Suggest options**. With `OPENAI_API_KEY` set, a model reads the group chat and proposes up to three options. Each option picks a cabin and can include a spending limit a person stated about themselves, quoted from their own message. The model interprets meaning, so “I can’t go above $170” counts as a $170 limit. It writes the explanation without figures. It never receives anyone’s saved private budget.
+
+Code then decides what is shown:
+
+- Every quote must appear in that person’s own message.
+- Every amount must be literally written there, as digits or as spoken words such as “two hundred dollars”.
+- The cabin must fit the group.
+- Shares and top-ups are computed by the same allocator that publishes versions.
+- Figures in the model’s prose must match the computed or quoted amounts, or code rewrites the explanation.
+- Failing suggestions are listed as discarded, and ambiguity becomes a clarification question.
+- The plain rebalance is always included for comparison.
+
+An option that depends on a stated limit stays unpublishable until that person saves the limit as their own budget (**Ask Maya to confirm $170**). Publishing recomputes the split and refuses if budgets or the roster changed, before any real authorization is released. Each person then approves their own new share and top-up.
+
+Without a key, or if the model fails, a **local planner (not AI)** shows cabin options and applies only plain “Name: $amount” lines.
+
+`npm run eval:revisions` runs 12 frozen briefs from the PRD acceptance spec (clear, ambiguous, infeasible, adversarial) through the real verifier using hand-written reference answers, two of them deliberately unsafe. [`eval/revision-results.json`](eval/revision-results.json) records 12/12 with no unsafe option shown. That measures the verifier, **not** model quality. `npm run eval:revisions:live -- --write` measures the configured model; it has not been run.
 
 ## Integrated PayPal sandbox group
 

@@ -3,8 +3,8 @@
   "mode": "offline-parser-and-injected-validator",
   "liveProviderRequested": false,
   "liveProviderExecuted": false,
-  "passed": 21,
-  "total": 21,
+  "passed": 22,
+  "total": 22,
   "limitations": "Synthetic labeled cases; injected model errors test validation, not actual model accuracy. No user correction-effort experiment.",
   "results": [
     {
@@ -231,7 +231,7 @@
         "groundingWarning": "The extracted person or amount conflicted with the source. Use the source-grounded draft and confirm manually."
       },
       "model": "injected-evaluation-fixture",
-      "latencyMs": 1
+      "latencyMs": 0
     },
     {
       "id": "wrong-model-person",
@@ -321,6 +321,21 @@
         "budgetCents": null,
         "needsReview": true,
         "preference": "$1e3 maximum"
+      },
+      "model": null,
+      "latencyMs": 0
+    },
+    {
+      "id": "curly-negation",
+      "pass": true,
+      "provider": "local-parser",
+      "observed": {
+        "source": "Maya: Honestly my rent went up, I can’t go above $170 now.",
+        "line": 1,
+        "person": "Maya",
+        "budgetCents": null,
+        "needsReview": true,
+        "preference": "Honestly my rent went up, I can’t go above $170 now."
       },
       "model": null,
       "latencyMs": 0

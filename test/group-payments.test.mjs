@@ -337,3 +337,23 @@ test("checkout return URLs bring each buyer back to their own participant view",
   assert.equal(new URL(seen[0].cancelUrl).searchParams.get("paypal"), "cancel");
   assert.match(seen[0].description, /Maya/);
 });
+
+test("a stale revision option is rejected before any sandbox hold is released", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  await f.g.withdraw("jordan", "jordan");
+  await assert.rejects(
+    f.g.revise("organizer", {
+      expectedShares: [
+        { id: "maya", share: 25000 },
+        { id: "alex", share: 35000 },
+      ],
+    }),
+    /changed since this option/,
+  );
+  assert.equal(f.e.state.version, 1);
+  assert.deepEqual(
+    f.e.state.payments.map((p) => p.status),
+    ["authorized", "voided", "authorized"],
+  );
+});

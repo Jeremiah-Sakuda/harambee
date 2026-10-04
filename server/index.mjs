@@ -8,6 +8,7 @@ import { interpret } from "./ai.mjs";
 import { PayPalSandbox } from "./paypal.mjs";
 import { GroupPayments } from "./group-payments.mjs";
 import { SandboxLab } from "./sandbox-lab.mjs";
+import { proposeRevisions } from "./revision-options.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 try {
   process.loadEnvFile(path.join(root, ".env"));
@@ -102,6 +103,21 @@ const server = http.createServer(async (req, res) => {
           429,
         );
       const input = await body(req);
+      // Read-only model calls run outside the mutation lock so they never block plan changes.
+      if (url.pathname === "/api/interpret")
+        return json(res, 200, await interpret(input.text));
+      if (url.pathname === "/api/revision-options") {
+        engine.assertOrganizer(actor);
+        engine.assertOpen();
+        return json(
+          res,
+          200,
+          await proposeRevisions(engine, {
+            notes: input.notes,
+            recheck: input.recheck,
+          }),
+        );
+      }
       if (mutating)
         throw new DomainError(
           "Another plan operation is in progress. Refresh shortly.",
@@ -276,8 +292,6 @@ const server = http.createServer(async (req, res) => {
         case "/api/expire":
           await payments.expire(actor);
           break;
-        case "/api/interpret":
-          return json(res, 200, await interpret(input.text));
         default:
           throw new DomainError("Not found.", 404);
       }
