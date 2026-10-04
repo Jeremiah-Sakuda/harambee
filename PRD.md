@@ -1,6 +1,6 @@
 # Harambee product requirements
 
-**Version:** 0.1. **Date:** October 3, 2026. **Status:** Proposed MVP; no implementation or validation. See the [proposal index](../README.md) for shared requirements, timeline, and payment sources.
+**Version:** 0.1. **Date:** October 3, 2026. **Status:** Proposed MVP; no implementation or validation. See the [shared requirements](SHARED_REQUIREMENTS.md) for shared requirements, timeline, and payment sources.
 
 Harambee helps a group agree on a purchase, approve individual payment holds, and complete a reservation once the final group is committed. Its primary benefit is removing the organizer's need to front the whole cost. AI turns informal preferences into reviewable constraints and proposes feasible revisions when someone leaves.
 

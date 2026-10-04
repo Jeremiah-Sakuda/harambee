@@ -63,4 +63,4 @@ The supplied rules permit at most one grand prize plus one sponsor prize, or one
 - Interview findings, evaluation results, sandbox operations, recorded demonstrations, and simulations are accurately labeled.
 - Every judging criterion has inspectable evidence; outstanding weaknesses are recorded instead of hidden by a polished pitch.
 
-Use the [shared build schedule](../README.md) and the PRD's acceptance gates to review progress. This document establishes the objective and evaluation lens; it is not evidence of a completed product or a predicted win.
+Use the [shared requirements](SHARED_REQUIREMENTS.md) and the PRD's acceptance gates to review progress. This document establishes the objective and evaluation lens; it is not evidence of a completed product or a predicted win.

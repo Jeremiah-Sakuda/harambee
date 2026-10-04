@@ -1,6 +1,26 @@
 {
-  "name": "harambee", "version": "0.1.0", "private": true, "type": "module",
-  "scripts": { "dev": "node scripts/dev.mjs", "dev:server": "node server/index.mjs", "dev:client": "vite --host 127.0.0.1 --port 5171", "build": "vite build", "start": "node server/index.mjs", "test": "node --test test/*.test.mjs" },
-  "dependencies": { "react": "^19.1.1", "react-dom": "^19.1.1", "lucide-react": "^0.468.0" },
-  "devDependencies": { "vite": "^6.1.0" }
+  "name": "harambee",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "node server/index.mjs",
+    "dev:client": "vite --host 127.0.0.1 --port 5171",
+    "build": "vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9",
+    "vite": "^6.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }
