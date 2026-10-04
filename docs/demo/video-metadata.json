@@ -1,0 +1,10 @@
+{
+  "project": "Harambee",
+  "sourceCommit": "e28bc2a8811465b09166f44064bd2d080b158b76",
+  "captureMethod": "Actual UI screenshots assembled as an edited narrated walkthrough",
+  "simulation": true,
+  "providerVerified": false,
+  "durationSeconds": 145.945996,
+  "sceneCount": 6,
+  "publicUrl": null
+}
