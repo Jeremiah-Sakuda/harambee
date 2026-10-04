@@ -9,7 +9,9 @@
     "dev:client": "vite --host 127.0.0.1 --port 5171",
     "build": "vite build",
     "start": "node server/index.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "eval": "node scripts/evaluate.mjs",
+    "eval:live": "node --env-file-if-exists=.env scripts/evaluate.mjs --live"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

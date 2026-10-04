@@ -10,6 +10,8 @@ export function groundLine(source) {
   const ambiguous =
     matches.length !== 1 ||
     !valid ||
+    (source.match(/:/g) || []).length > 1 ||
+    /\bnot\b|can't|cannot|\$[\d,.]+\s*[-–]|\$[\d,.]+[a-z]/i.test(source) ||
     /maybe|might|not sure|either|\bor\b|\bbut\b|ignore|override|not my|per night|each night|EUR|GBP|€|£|\$\d[\d,.]*[kKmM]\b/.test(
       source,
     );
