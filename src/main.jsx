@@ -110,7 +110,10 @@ function Cabin() {
 }
 function App() {
   const [state, setState] = useState(null),
-    [actor, setActor] = useState("organizer"),
+    [actor, setActor] = useState(
+      () =>
+        new URLSearchParams(location.search).get("participant") || "organizer",
+    ),
     [tab, setTab] = useState("board"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -163,19 +166,31 @@ function App() {
       return true;
     } catch (e) {
       setError(e.message);
+      await load(who);
       return false;
     } finally {
       setBusy(false);
     }
   }
-  function review(p) {
-    setActor(p.id);
-    setBudget(
-      p.budget !== undefined && p.budget !== null
-        ? String(p.budget / 100)
-        : "220",
-    );
-    setModal({ kind: "approve", id: p.id });
+  async function review(p, suggestion = null) {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/state", {
+        headers: { "x-demo-actor": p.id },
+      });
+      const own = await r.json();
+      if (!r.ok) throw Error(own.error);
+      const person = own.participants.find((x) => x.id === p.id);
+      setActor(p.id);
+      setState(own);
+      setBudget(person.budget === null ? "" : String(person.budget / 100));
+      setModal({ kind: "approve", id: p.id, suggestion });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
   }
   const download = () => {
     const blob = new Blob(
@@ -183,7 +198,7 @@ function App() {
         JSON.stringify(
           {
             planId: state.id,
-            provider: "simulated",
+            provider: state.provider,
             version: state.version,
             status: state.status,
             reservation: state.reservation,
@@ -248,7 +263,11 @@ function App() {
         <span className="dot" />
         INTERACTIVE DEMO{" "}
         <span className="strip-detail">
-          Local cabin inventory · Simulated payments · No real money
+          Local cabin inventory ·{" "}
+          {state.provider === "paypal-sandbox"
+            ? "PayPal sandbox group"
+            : "Simulated payments"}{" "}
+          · No real money
         </span>
         <span className="demo-right">
           Built for going together <ArrowUpRight size={13} />
@@ -320,6 +339,94 @@ function App() {
             <span className="group-label">{active.length} going together</span>
           </div>
         </div>
+        <section className="session-panel">
+          <strong>
+            {isOrganizer
+              ? "Participant review links"
+              : `Participant view: ${currentPerson?.name || actor}`}
+          </strong>
+          <p>
+            Local demo links select a participant in this browser tab. They are
+            not authentication; anyone with local access can switch roles.
+          </p>
+          {isOrganizer && (
+            <div className="session-links">
+              {active.map((p) => (
+                <a
+                  key={p.id}
+                  href={`/?participant=${p.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open {p.name.split(" ")[0]}’s review
+                </a>
+              ))}
+            </div>
+          )}
+          {isOrganizer && state.payments.length === 0 && (
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() =>
+                act("provider", {
+                  provider:
+                    state.provider === "paypal-sandbox"
+                      ? "simulated"
+                      : "paypal-sandbox",
+                })
+              }
+            >
+              {state.provider === "paypal-sandbox"
+                ? "Use simulator"
+                : "Use PayPal sandbox for this group"}
+            </button>
+          )}
+          {!isOrganizer &&
+            state.provider === "paypal-sandbox" &&
+            state.payments
+              .filter(
+                (p) =>
+                  p.participantId === actor &&
+                  p.sandboxSessionId &&
+                  !["voided", "refunded", "captured", "authorized"].includes(
+                    p.status,
+                  ),
+              )
+              .map((p) => (
+                <div key={p.id}>
+                  <p>
+                    Version {p.version} · additional {usd(p.amount)} ·{" "}
+                    {label(p.status)}
+                  </p>
+                  {p.approvalUrl && (
+                    <a href={p.approvalUrl} target="_blank" rel="noreferrer">
+                      Approve this exact amount in PayPal sandbox
+                    </a>
+                  )}
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      act("complete-approval", {
+                        paymentId: p.id,
+                        version: state.version,
+                      })
+                    }
+                  >
+                    I approved in PayPal — confirm authorization
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      act("reconcile-payment", { paymentId: p.id })
+                    }
+                  >
+                    Reconcile payment
+                  </button>
+                </div>
+              ))}
+        </section>
         <div className="layout">
           <div className="main-column">
             <section className="trip-hero">
@@ -483,7 +590,15 @@ function App() {
                                 ? "Reconciling"
                                 : charge
                                   ? `${usd(charge)} to return`
-                                  : "Release hold"}
+                                  : payment.every((x) =>
+                                        [
+                                          "voided",
+                                          "refunded",
+                                          "abandoned",
+                                        ].includes(x.status),
+                                      )
+                                    ? "Settled · nothing owed"
+                                    : "Release hold"}
                             </span>
                           ) : approved(p.id) ? (
                             <>
@@ -588,22 +703,37 @@ function App() {
                           onChange={(e) => setFault(e.target.value)}
                         >
                           <option value="none">Successful booking</option>
-                          <option value="capture_failure">
+                          <option
+                            disabled={state.provider === "paypal-sandbox"}
+                            value="capture_failure"
+                          >
                             Second capture fails
                           </option>
-                          <option value="capture_timeout">
+                          <option
+                            disabled={state.provider === "paypal-sandbox"}
+                            value="capture_timeout"
+                          >
                             Capture response times out
                           </option>
                           <option value="reservation_failure">
                             Merchant commit fails
                           </option>
-                          <option value="refund_pending">
+                          <option
+                            disabled={state.provider === "paypal-sandbox"}
+                            value="refund_pending"
+                          >
                             Refund needs a second recovery
                           </option>
-                          <option value="lease_expiry">
+                          <option
+                            disabled={state.provider === "paypal-sandbox"}
+                            value="lease_expiry"
+                          >
                             Inventory lease expires
                           </option>
-                          <option value="commit_timeout">
+                          <option
+                            disabled={state.provider === "paypal-sandbox"}
+                            value="commit_timeout"
+                          >
                             Merchant commit times out
                           </option>
                         </select>
@@ -686,15 +816,53 @@ function App() {
                           </span>
                         </div>
                         <p>{c.preference}</p>
+                        {c.groundingWarning && (
+                          <p role="status">{c.groundingWarning}</p>
+                        )}
                         <blockquote>
                           “{c.source}” <span>Line {c.line}</span>
                         </blockquote>
                         {c.budgetCents !== null && (
                           <small>
-                            Suggested ceiling: {usd(c.budgetCents)} · confirm it
-                            in your participant review
+                            Suggested ceiling: {usd(c.budgetCents)} · not saved
+                            or approved
                           </small>
                         )}
+                        {active
+                          .filter(
+                            (p) =>
+                              p.name.toLowerCase() === c.person.toLowerCase() ||
+                              p.name.split(" ")[0].toLowerCase() ===
+                                c.person.toLowerCase(),
+                          )
+                          .map((p) => (
+                            <button
+                              className="secondary"
+                              key={p.id}
+                              onClick={() => review(p, c)}
+                            >
+                              Review suggestion as {p.name.split(" ")[0]}
+                            </button>
+                          ))}
+                        <label className="field">
+                          Review or clarify with a participant
+                          <select
+                            value=""
+                            onChange={(e) => {
+                              const p = active.find(
+                                (p) => p.id === e.target.value,
+                              );
+                              if (p) review(p, c);
+                            }}
+                          >
+                            <option value="">Choose participant…</option>
+                            {active.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                       </article>
                     ))}
                     {insight.provider === "openai" && (
@@ -715,7 +883,7 @@ function App() {
                   <div>
                     <h2>The whole story, on record.</h2>
                     <p>
-                      Every agreement and simulated money movement, in order.
+                      Every agreement and money movement, labeled by provider.
                     </p>
                   </div>
                   <button className="secondary" onClick={download}>
@@ -845,10 +1013,42 @@ function App() {
                   </strong>
                   <span>
                     {state.status === "confirmed"
-                      ? "charged in simulation"
+                      ? state.provider === "paypal-sandbox"
+                        ? "charged in sandbox"
+                        : "charged in simulation"
                       : "held, not charged"}
                   </span>
                 </div>
+                <dl className="funding-breakdown">
+                  <div>
+                    <dt>Held, not charged</dt>
+                    <dd>{usd(held)}</dd>
+                  </div>
+                  <div>
+                    <dt>Captured, not returned</dt>
+                    <dd>{usd(captured)}</dd>
+                  </div>
+                  <div>
+                    <dt>Refund pending (of captured)</dt>
+                    <dd>
+                      {usd(
+                        state.payments
+                          .filter((p) => p.status === "refund_pending")
+                          .reduce((n, p) => n + p.amount, 0),
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Returned</dt>
+                    <dd>
+                      {usd(
+                        state.payments
+                          .filter((p) => p.status === "refunded")
+                          .reduce((n, p) => n + p.amount, 0),
+                      )}
+                    </dd>
+                  </div>
+                </dl>
               </div>
               <div
                 className={`next-step ${state.status === "confirmed" ? "success" : ""}`}
@@ -1019,7 +1219,9 @@ function App() {
                         .reduce((s, p) => s + p.amount, 0),
                   ),
                 )}{" "}
-                additional simulated hold
+                additional{" "}
+                {state.provider === "paypal-sandbox" ? "sandbox" : "simulated"}{" "}
+                hold
               </small>
             </div>
             <label className="field">
@@ -1043,9 +1245,35 @@ function App() {
                 {error}
               </p>
             )}
+            {modal.suggestion && (
+              <div className="suggestion-review">
+                <strong>Review note suggestion</strong>
+                <p>“{modal.suggestion.source}”</p>
+                <p>
+                  {modal.suggestion.needsReview
+                    ? "Clarification required. Confirm directly with this participant before saving."
+                    : "This is a draft, not consent."}
+                </p>
+                {modal.suggestion.budgetCents !== null && (
+                  <button
+                    className="secondary"
+                    onClick={() =>
+                      setBudget(String(modal.suggestion.budgetCents / 100))
+                    }
+                  >
+                    Use suggested ceiling in this field
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="terms">
+              Split rule: equal shares capped by saved budgets; remaining cents
+              follow roster order. Shares may reveal something about ceilings
+              even though raw budgets are private.
+            </p>
             <button
-              className="primary full"
-              disabled={busy || actor !== modalPerson.id}
+              className="secondary full"
+              disabled={busy || !budget || actor !== modalPerson.id}
               onClick={async () => {
                 if (
                   await act(
@@ -1053,29 +1281,68 @@ function App() {
                     { amount: Math.round(Number(budget) * 100) },
                     modalPerson.id,
                   )
+                )
+                  setNotice(
+                    "Budget saved. No share was approved and no payment was authorized.",
+                  );
+              }}
+            >
+              Save budget only
+            </button>
+            {notice && <p role="status">{notice}</p>}
+            {state.status === "revision_required" && (
+              <p role="status">
+                The saved budget needs a new allocation. Close this dialog and
+                ask the organizer to publish revised shares; then review the new
+                amount.
+              </p>
+            )}
+            <p className="secure-note">
+              Saved ceiling:{" "}
+              {modalPerson.budget == null
+                ? "not yet set"
+                : usd(modalPerson.budget)}
+              . Save edits before approving. A lower ceiling may require a
+              revised plan.
+            </p>
+            <button
+              className="primary full"
+              disabled={
+                busy ||
+                actor !== modalPerson.id ||
+                modalPerson.budget == null ||
+                Math.round(Number(budget) * 100) !== modalPerson.budget ||
+                modalPerson.budget < shareFor(modalPerson.id) ||
+                state.status === "revision_required"
+              }
+              onClick={async () => {
+                if (
+                  await act(
+                    "approve",
+                    { version: state.version },
+                    modalPerson.id,
+                  )
                 ) {
-                  if (
-                    await act(
-                      "approve",
-                      { version: state.version },
-                      modalPerson.id,
-                    )
-                  ) {
-                    setModal(null);
-                    setNotice(
-                      "Your agreement and simulated hold are recorded. Nothing has been charged.",
-                    );
-                  }
+                  setModal(null);
+                  setNotice(
+                    state.provider === "paypal-sandbox"
+                      ? "Consent recorded. Complete your PayPal sandbox checkout below, then confirm the authorization."
+                      : "Your agreement and simulated hold are recorded. Nothing has been charged.",
+                  );
                 }
               }}
             >
               {busy
                 ? "Recording your approval…"
-                : "Agree & authorize simulated hold"}
+                : state.provider === "paypal-sandbox"
+                  ? "Agree & open sandbox checkout"
+                  : "Agree & authorize simulated hold"}
               <Check size={17} />
             </button>
             <p className="secure-note">
-              No PayPal checkout is called in this demo.
+              {state.provider === "paypal-sandbox"
+                ? "Sandbox buyers approve their own exact additional amount in PayPal. No real money."
+                : "No PayPal checkout is called in simulator mode."}
             </p>
           </>
         )}
@@ -1084,8 +1351,9 @@ function App() {
             <span className="eyebrow">PLANS CHANGE. THAT’S OKAY.</span>
             <h2>Withdraw {modalPerson?.name.split(" ")[0]}?</h2>
             <p>
-              Their simulated holds will be voided. The organizer will publish a
-              new version and every remaining person must agree again.
+              Their unused holds will be released through the selected provider.
+              The organizer will publish a new version and every remaining
+              person must agree again.
             </p>
             <button
               className="primary full"
@@ -1113,7 +1381,9 @@ function App() {
             <div className="alert">
               <ShieldCheck size={20} />
               <span>
-                This runs entirely in the payment simulator.{" "}
+                {state.provider === "paypal-sandbox"
+                  ? "This captures sandbox buyer authorizations and commits fixture inventory only."
+                  : "This runs entirely in the payment simulator."}{" "}
                 {fault !== "none" && `Selected scenario: ${label(fault)}.`}
               </span>
             </div>
@@ -1127,7 +1397,10 @@ function App() {
                 }
               }}
             >
-              Confirm simulated booking <ArrowRight size={17} />
+              {state.provider === "paypal-sandbox"
+                ? "Confirm sandbox booking"
+                : "Confirm simulated booking"}{" "}
+              <ArrowRight size={17} />
             </button>
           </>
         )}
@@ -1291,7 +1564,8 @@ function App() {
               </li>
             </ol>
             <p className="terms">
-              This build uses a local merchant and simulated payments. The
+              This build uses local merchant inventory and either simulated
+              payments or explicitly selected PayPal sandbox payments. The
               optional model connection interprets notes; it cannot move money.
             </p>
           </>

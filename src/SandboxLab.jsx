@@ -54,8 +54,8 @@ export default function SandboxLab() {
       <div className="alert">
         <AlertCircle size={18} />
         <span>
-          These sandbox transactions are separate from the simulated trip. They
-          never fund or confirm a cabin booking.
+          Diagnostic transactions stay separate from the trip. For group
+          checkout, use “Use PayPal sandbox for this group” on an unfunded trip.
         </span>
       </div>
       {error && (
@@ -106,6 +106,7 @@ export default function SandboxLab() {
               <p>Order {s.orderId || "response not confirmed"}</p>
               {s.authorizationId && <p>Authorization {s.authorizationId}</p>}
               {s.captureId && <p>Capture {s.captureId}</p>}
+              {s.investigation && <p role="status">{s.investigation}</p>}
               <div className="sandbox-buttons">
                 {s.approvalUrl &&
                   ["approval_required", "buyer_approved"].includes(
@@ -180,8 +181,9 @@ export default function SandboxLab() {
       )}
       <p className="lab-limit">
         Authorization/capture/refund are separate provider operations. Unknown
-        results require reconciliation. Webhooks and full group sandbox
-        orchestration are not enabled in this prototype.
+        results require reconciliation. The trip board now has an integrated
+        group sandbox path. Webhooks and real lodging inventory are not enabled
+        in this prototype.
       </p>
     </section>
   );

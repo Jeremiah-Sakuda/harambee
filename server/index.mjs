@@ -6,6 +6,7 @@ import { Engine, seed, catalog, allocate, DomainError } from "./domain.mjs";
 import { Store } from "./store.mjs";
 import { interpret } from "./ai.mjs";
 import { PayPalSandbox } from "./paypal.mjs";
+import { GroupPayments } from "./group-payments.mjs";
 import { SandboxLab } from "./sandbox-lab.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 try {
@@ -15,13 +16,17 @@ const store = new Store(
   process.env.DATA_FILE || path.join(root, "data", "plan.json"),
 );
 const lab = new SandboxLab(
-  new Store(path.join(root, "data", "sandbox-lab.json")),
+  new Store(
+    process.env.SANDBOX_DATA_FILE ||
+      path.join(root, "data", "sandbox-lab.json"),
+  ),
   process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET
     ? new PayPalSandbox()
     : null,
 );
 let engine = new Engine(store);
 const rates = new Map();
+let mutating = false;
 const json = (res, status, data) => {
   res.writeHead(status, {
     "Content-Type": "application/json",
@@ -43,6 +48,7 @@ const body = async (req) => {
   }
 };
 const server = http.createServer(async (req, res) => {
+  let ownsMutation = false;
   try {
     const url = new URL(req.url, "http://localhost");
     if (url.pathname.startsWith("/api/")) {
@@ -66,10 +72,13 @@ const server = http.createServer(async (req, res) => {
       )
         throw new DomainError("Unknown demo role.", 403);
       if (req.method === "GET" && url.pathname === "/api/health")
-        return json(res, 200, { ok: true, provider: "simulated" });
+        return json(res, 200, { ok: true, provider: engine.state.provider });
       if (req.method === "GET" && url.pathname === "/api/sandbox") {
         engine.assertOrganizer(actor);
-        return json(res, 200, lab.view());
+        return json(res, 200, {
+          ...lab.view(),
+          sessions: lab.state.sessions.filter((s) => !s.groupPlanId),
+        });
       }
       if (req.method === "GET" && url.pathname === "/api/state")
         return json(res, 200, engine.view(actor));
@@ -88,17 +97,70 @@ const server = http.createServer(async (req, res) => {
           429,
         );
       const input = await body(req);
+      if (mutating)
+        throw new DomainError(
+          "Another plan operation is in progress. Refresh shortly.",
+        );
+      mutating = true;
+      ownsMutation = true;
+      const group = new GroupPayments(engine, lab);
+      const payments =
+        engine.state.provider === "paypal-sandbox" ? group : engine;
       if (url.pathname.startsWith("/api/sandbox/")) {
         engine.assertOrganizer(actor);
-        return json(
-          res,
-          200,
-          await lab.run(url.pathname.split("/").at(-1), input),
-        );
+        if (
+          input.groupPlanId ||
+          lab.state.sessions.some((s) => s.id === input.id && s.groupPlanId)
+        )
+          throw new DomainError(
+            "Group payments can only be changed through the versioned trip coordinator.",
+          );
+        return json(res, 200, {
+          ...(await lab.run(url.pathname.split("/").at(-1), input)),
+          sessions: lab.state.sessions.filter((s) => !s.groupPlanId),
+        });
       }
       switch (url.pathname) {
+        case "/api/provider":
+          engine.assertOrganizer(actor);
+          if (
+            engine.state.payments.length ||
+            !["simulated", "paypal-sandbox"].includes(input.provider)
+          )
+            throw new DomainError(
+              "Choose a provider before the first payment.",
+            );
+          if (input.provider === "paypal-sandbox" && !lab.client)
+            throw new DomainError(
+              "Configure PayPal sandbox credentials and restart first.",
+              503,
+            );
+          engine.state.provider = input.provider;
+          engine.log(
+            `Payment execution changed to ${input.provider}. Cabin inventory remains local.`,
+          );
+          break;
+        case "/api/complete-approval":
+          if (engine.state.provider !== "paypal-sandbox")
+            throw new DomainError("Sandbox mode is required.");
+          await group.complete(actor, input);
+          break;
+        case "/api/reconcile-payment":
+          if (engine.state.provider !== "paypal-sandbox")
+            throw new DomainError("Sandbox mode is required.");
+          await group.reconcile(actor, input.paymentId);
+          break;
         case "/api/reset":
           engine.assertOrganizer(actor);
+          if (
+            engine.state.provider === "paypal-sandbox" &&
+            engine.state.payments.some(
+              (p) => !["voided", "refunded", "abandoned"].includes(p.status),
+            )
+          )
+            throw new DomainError(
+              "Resolve all sandbox payments before resetting; provider evidence must be preserved.",
+            );
           store.save(seed());
           engine = new Engine(store);
           break;
@@ -166,25 +228,25 @@ const server = http.createServer(async (req, res) => {
           break;
         }
         case "/api/approve":
-          engine.approve(actor, input.version);
+          await payments.approve(actor, input.version);
           break;
         case "/api/withdraw":
-          engine.withdraw(actor, input.participantId);
+          await payments.withdraw(actor, input.participantId);
           break;
         case "/api/revise":
-          engine.revise(actor, input);
+          await payments.revise(actor, input);
           break;
         case "/api/budget":
           engine.budget(actor, input.amount);
           break;
         case "/api/book":
-          engine.book(actor, input);
+          await payments.book(actor, input);
           break;
         case "/api/recover":
-          engine.recover(actor);
+          await payments.recover(actor);
           break;
         case "/api/expire":
-          engine.expire(actor);
+          await payments.expire(actor);
           break;
         case "/api/interpret":
           return json(res, 200, await interpret(input.text));
@@ -225,10 +287,30 @@ const server = http.createServer(async (req, res) => {
         ? err.message
         : "Something went wrong. Please try again.",
     });
+  } finally {
+    if (ownsMutation) mutating = false;
   }
 });
-engine.sweepExpiry();
-setInterval(() => engine.sweepExpiry(), 30000).unref();
+async function sweep() {
+  if (mutating) return;
+  if (engine.state.provider !== "paypal-sandbox") return engine.sweepExpiry();
+  if (
+    ["collecting", "ready", "revision_required"].includes(
+      engine.state.status,
+    ) &&
+    Date.parse(engine.state.deadline) <= Date.now()
+  ) {
+    mutating = true;
+    try {
+      await new GroupPayments(engine, lab).expire("organizer");
+    } catch {
+    } finally {
+      mutating = false;
+    }
+  }
+}
+sweep();
+setInterval(sweep, 30000).unref();
 server.listen(
   Number(process.env.PORT) || 3101,
   process.env.HOST || "127.0.0.1",

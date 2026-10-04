@@ -1852,3 +1852,117 @@ dialog .terms {
     align-items: stretch;
   }
 }
+
+/* Review fixes: financial state remains readable independently of screen width. */
+.session-panel {
+  background: #f4f6ef;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 0 0 24px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+.session-panel p {
+  margin: 8px 0;
+}
+.session-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 12px 0;
+}
+.session-panel a {
+  color: #31503a;
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.session-panel button {
+  margin: 8px 8px 0 0;
+}
+.funding-breakdown {
+  font-size: 14px;
+  margin: 14px 0 0;
+  line-height: 1.5;
+}
+.funding-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0;
+}
+.funding-breakdown dd {
+  margin: 0;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.suggestion-review {
+  padding: 12px;
+  background: #f5f0e3;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+@media (max-width: 660px) {
+  .table-head {
+    display: none;
+  }
+  .person-row {
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    padding: 18px;
+  }
+  .person-name {
+    grid-column: 1/-1;
+  }
+  .commitment {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .person-share {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .row-action {
+    grid-column: 2;
+    grid-row: 2/4;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .person-row .person-name strong,
+  .person-row .person-share strong {
+    font-size: 16px;
+  }
+  .person-row .status,
+  .person-row small,
+  .person-row .person-name > div > span,
+  .table-foot,
+  .terms,
+  .secure-note,
+  .funding-breakdown {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  button,
+  .icon-button,
+  .review-button,
+  select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .review-button,
+  .field,
+  .field input,
+  .field select,
+  .session-panel {
+    font-size: 16px;
+  }
+  .person-row .status {
+    white-space: normal;
+  }
+  dialog .secondary {
+    margin-bottom: 12px;
+  }
+}

@@ -1,4 +1,4 @@
-// Optional sandbox feasibility adapter. The main demo engine always uses its explicit simulator.
+// Sandbox-only adapter shared by the integrated group coordinator and the diagnostic lab.
 const base = "https://api-m.sandbox.paypal.com";
 export class PayPalSandbox {
   constructor({
