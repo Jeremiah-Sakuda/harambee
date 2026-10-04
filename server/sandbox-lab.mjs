@@ -25,7 +25,10 @@ export class SandboxLab {
   view() {
     return { configured: !!this.client, sessions: this.state.sessions };
   }
-  async run(action, { id, amount, groupPlanId } = {}) {
+  async run(
+    action,
+    { id, amount, groupPlanId, returnUrl, cancelUrl, description } = {},
+  ) {
     if (!this.client)
       throw new DomainError(
         "Add sandbox credentials to .env and restart to enable real sandbox calls.",
@@ -34,15 +37,21 @@ export class SandboxLab {
     let session = this.state.sessions.find((s) => s.id === id);
     if (action === "create" && !session) {
       money(amount);
-      if (amount < 100 || amount > 50000)
+      // Group top-ups can legitimately be a few cents; the diagnostic lab keeps a $1 floor.
+      if (amount < (groupPlanId ? 1 : 100) || amount > 50000)
         throw new DomainError(
-          "Use a sandbox test amount between $1 and $500.",
+          groupPlanId
+            ? "PayPal sandbox shares must be between $0.01 and $500."
+            : "Use a sandbox test amount between $1 and $500.",
           400,
         );
       session = {
         id: id || randomUUID(),
         amount,
         groupPlanId: groupPlanId || null,
+        returnUrl: returnUrl || null,
+        cancelUrl: cancelUrl || null,
+        description: description || null,
         status: "created",
         operations: [],
         at: new Date().toISOString(),
@@ -55,11 +64,20 @@ export class SandboxLab {
       throw new DomainError("This sandbox operation is already in progress.");
     this.locks.add(session.id);
     try {
+      if (action === "reconcile" && !session.orderId) {
+        const createOp = session.operations.findLast(
+          (o) => o.type === "create",
+        );
+        if (createOp && createOp.status !== "failed")
+          // Replaying the same PayPal-Request-Id returns the original order instead of a new one.
+          action = "create";
+        else {
+          session.status = "create_failed";
+          this.save();
+          return this.view();
+        }
+      }
       if (action === "reconcile") {
-        if (!session.orderId)
-          throw new DomainError(
-            "The order response is unknown. Inspect PayPal sandbox activity; do not create a replacement charge.",
-          );
         const previousStatus = session.status;
         const order = await this.client.getOrder(session.orderId);
         session.payerId =
@@ -121,7 +139,7 @@ export class SandboxLab {
           refund: session.status === "refunded",
         };
         for (const op of session.operations) {
-          if (confirmedByState[op.type]) {
+          if (op.status !== "failed" && confirmedByState[op.type]) {
             op.status = "confirmed";
             delete op.error;
           }
@@ -151,9 +169,12 @@ export class SandboxLab {
         throw new DomainError(
           "Reconcile this session before trying another payment transition.",
         );
-      let op = session.operations.find((o) => o.type === action);
+      // A definite 4xx changed nothing at PayPal, so a retry gets a fresh request ID.
+      let op = session.operations.findLast(
+        (o) => o.type === action && o.status !== "failed",
+      );
       if (op?.status === "confirmed") return this.view();
-      if (op?.status === "unknown")
+      if (op?.status === "unknown" && action !== "create")
         throw new DomainError(
           "The previous response is unknown. Reconcile with PayPal before continuing.",
         );
@@ -171,7 +192,11 @@ export class SandboxLab {
       try {
         const r =
           action === "create"
-            ? await this.client.createOrder(session.amount, op.id)
+            ? await this.client.createOrder(session.amount, op.id, {
+                returnUrl: session.returnUrl,
+                cancelUrl: session.cancelUrl,
+                description: session.description,
+              })
             : action === "authorize"
               ? await this.client.authorize(session.orderId, op.id)
               : action === "capture"
@@ -196,7 +221,14 @@ export class SandboxLab {
         if (action === "authorize") {
           session.payerId =
             r.payer?.payer_id || r.payment_source?.paypal?.account_id || null;
-          const a = r.purchase_units?.flatMap(
+          const order = r.purchase_units
+            ? r
+            : await this.client.getOrder(session.orderId);
+          session.payerId ||=
+            order.payer?.payer_id ||
+            order.payment_source?.paypal?.account_id ||
+            null;
+          const a = order.purchase_units?.flatMap(
             (u) => u.payments?.authorizations ?? [],
           )[0];
           if (!a?.id)
@@ -208,16 +240,18 @@ export class SandboxLab {
         }
         if (action === "capture") {
           session.captureId = r.id;
-          verifyAmount(r.amount, session.amount);
+          const capture = r.amount ? r : await this.client.getCapture(r.id);
+          verifyAmount(capture.amount, session.amount);
           session.status =
-            r.status === "COMPLETED" ? "captured" : "capture_pending";
+            capture.status === "COMPLETED" ? "captured" : "capture_pending";
         }
         if (action === "void") session.status = "voided";
         if (action === "refund") {
           session.refundId = r.id;
-          verifyAmount(r.amount, session.amount);
+          const refund = r.amount ? r : await this.client.getRefund(r.id);
+          verifyAmount(refund.amount, session.amount);
           session.status =
-            r.status === "COMPLETED" ? "refunded" : "refund_pending";
+            refund.status === "COMPLETED" ? "refunded" : "refund_pending";
         }
         this.save();
         return this.view();
@@ -225,10 +259,21 @@ export class SandboxLab {
         op.status =
           error.status >= 400 && error.status < 500 ? "failed" : "unknown";
         session.status =
-          op.status === "unknown" ? `${action}_unknown` : session.status;
-        op.error = error.status
-          ? `PayPal returned HTTP ${error.status}`
-          : "Provider result unknown; reconciliation required.";
+          op.status === "unknown"
+            ? `${action}_unknown`
+            : action === "create"
+              ? "create_failed"
+              : session.status;
+        const issue =
+          error.details?.details?.[0]?.issue || error.details?.name || "";
+        // Local verification failures are not provider HTTP errors; say which one happened.
+        op.error =
+          error instanceof DomainError
+            ? error.message
+            : error.status
+              ? `PayPal returned HTTP ${error.status}${issue ? ` (${issue})` : ""}`
+              : "Provider result unknown; reconciliation required.";
+        if (error.details?.debug_id) op.debugId = error.details.debug_id;
         this.save();
         throw new DomainError(op.error, 502);
       }

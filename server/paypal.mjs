@@ -22,7 +22,10 @@ export class PayPalSandbox {
         body: "grant_type=client_credentials",
       });
       if (!r.ok)
-        throw new Error(`PayPal sandbox authentication failed (${r.status})`);
+        throw Object.assign(
+          new Error(`PayPal sandbox authentication failed (${r.status})`),
+          { status: r.status },
+        );
       const token = await r.json();
       this.token = token.access_token;
       this.tokenUntil = Date.now() + (token.expires_in - 60) * 1000;
@@ -33,6 +36,8 @@ export class PayPalSandbox {
       headers: {
         Authorization: `Bearer ${this.token}`,
         "Content-Type": "application/json",
+        // Payments v2 writes default to return=minimal ({id, status, links}); amounts must be verifiable.
+        ...(method === "POST" ? { Prefer: "return=representation" } : {}),
         ...(key ? { "PayPal-Request-Id": key } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
@@ -45,7 +50,7 @@ export class PayPalSandbox {
       );
     return data;
   }
-  createOrder(cents, key) {
+  createOrder(cents, key, { returnUrl, cancelUrl, description } = {}) {
     if (!Number.isSafeInteger(cents) || cents < 1)
       throw new Error("Whole positive cents required");
     return this.request("/v2/checkout/orders", {
@@ -53,8 +58,26 @@ export class PayPalSandbox {
       body: {
         intent: "AUTHORIZE",
         purchase_units: [
-          { amount: { currency_code: "USD", value: (cents / 100).toFixed(2) } },
+          {
+            amount: { currency_code: "USD", value: (cents / 100).toFixed(2) },
+            ...(description ? { description: description.slice(0, 127) } : {}),
+          },
         ],
+        ...(returnUrl
+          ? {
+              payment_source: {
+                paypal: {
+                  experience_context: {
+                    brand_name: "Harambee",
+                    shipping_preference: "NO_SHIPPING",
+                    user_action: "CONTINUE",
+                    return_url: returnUrl,
+                    cancel_url: cancelUrl || returnUrl,
+                  },
+                },
+              },
+            }
+          : {}),
       },
     });
   }

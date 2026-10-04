@@ -210,3 +210,77 @@ test("a CREATED authorization does not erase an unknown capture or offer a new c
   assert.match(lab.state.sessions[0].investigation, /not proved/);
   await assert.rejects(lab.run("capture", { id: "session" }), /Reconcile/);
 });
+
+test("a definite 4xx is retried with a fresh PayPal-Request-Id", async () => {
+  const keys = [];
+  let approved = false;
+  const lab = fixture({
+    authorize: async (id, key) => {
+      keys.push(key);
+      if (!approved)
+        throw Object.assign(Error("not approved"), {
+          status: 422,
+          details: { details: [{ issue: "ORDER_NOT_APPROVED" }] },
+        });
+      return {
+        payer: { payer_id: "BUYER" },
+        purchase_units: [
+          {
+            payments: {
+              authorizations: [
+                {
+                  id: "AUTH",
+                  status: "CREATED",
+                  amount: { currency_code: "USD", value: "1.00" },
+                },
+              ],
+            },
+          },
+        ],
+      };
+    },
+  });
+  lab.state.sessions.push({
+    id: "session",
+    amount: 100,
+    status: "approval_required",
+    orderId: "ORDER",
+    operations: [],
+  });
+  await assert.rejects(
+    lab.run("authorize", { id: "session" }),
+    /ORDER_NOT_APPROVED/,
+  );
+  approved = true;
+  await lab.run("authorize", { id: "session" });
+  assert.equal(lab.state.sessions[0].status, "authorized");
+  assert.notEqual(keys[0], keys[1]);
+});
+
+test("PayPal adapter asks for full representations and sets checkout return URLs", async () => {
+  const client = new PayPalSandbox({ clientId: "fixture", secret: "fixture" });
+  client.token = "token";
+  client.tokenUntil = Date.now() + 60000;
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    sent.push({ url, init });
+    return new Response(JSON.stringify({ id: "X" }), { status: 201 });
+  };
+  try {
+    await client.createOrder(100, "op1", {
+      returnUrl: "http://127.0.0.1:5171/?paypal=return",
+      cancelUrl: "http://127.0.0.1:5171/?paypal=cancel",
+    });
+    await client.getOrder("X");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  assert.equal(sent[0].init.headers.Prefer, "return=representation");
+  assert.equal(sent[0].init.headers["PayPal-Request-Id"], "op1");
+  const context = JSON.parse(sent[0].init.body).payment_source.paypal
+    .experience_context;
+  assert.equal(context.return_url, "http://127.0.0.1:5171/?paypal=return");
+  assert.equal(context.cancel_url, "http://127.0.0.1:5171/?paypal=cancel");
+  assert.equal(sent[1].init.headers.Prefer, undefined);
+});

@@ -197,9 +197,13 @@ test("same sandbox buyer across different participants blocks readiness", async 
   order.payer.payer_id = first.payerId;
   await assert.rejects(
     f.g.complete("jordan", { paymentId: second.id, version: 1 }),
-    /distinct/,
+    /own sandbox buyer/,
   );
+  assert.equal(second.status, "voided");
   assert.equal(f.e.ready(), false);
+  // Jordan can retry with a different buyer instead of being stuck.
+  await f.approve("jordan");
+  assert.equal(f.e.held("jordan"), 20000);
   await f.g.expire("organizer");
   assert.equal(f.e.state.status, "cancelled");
 });
@@ -220,4 +224,116 @@ test("reconciles provider response persisted before coordinator snapshot without
       .length,
     1,
   );
+});
+
+test("PayPal minimal write responses still verify amounts and complete a booking", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  for (const name of ["capture", "refund"]) {
+    const full = f.client[name];
+    // PayPal's default Prefer: return=minimal body.
+    f.client[name] = async (id) => {
+      const r = await full(id);
+      return { id: r.id, status: r.status, links: [] };
+    };
+  }
+  await f.g.book("organizer", { version: 1 });
+  assert.equal(f.e.state.status, "confirmed");
+  assert.ok(f.e.state.payments.every((p) => p.status === "captured"));
+});
+
+test("sandbox booking refuses a plan that still requires revision", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  f.e.state.status = "revision_required";
+  await assert.rejects(
+    f.g.book("organizer", { version: 1 }),
+    /Every participant/,
+  );
+  assert.equal(f.e.state.status, "revision_required");
+});
+
+test("out-of-range sandbox share is rejected before any payment is persisted", async () => {
+  const f = fixture();
+  f.e.state.participants.forEach((p) => (p.budget = 60000));
+  f.e.current.shares = [
+    { id: "maya", share: 50100 },
+    { id: "jordan", share: 9900 },
+  ];
+  f.e.state.participants[2].active = false;
+  await assert.rejects(f.g.approve("maya", 1), /\$500/);
+  assert.equal(f.e.state.payments.length, 0);
+});
+
+test("a payment with no sandbox session can be released instead of wedging the plan", async () => {
+  const f = fixture();
+  f.e.state.payments.push({
+    id: "orphan",
+    participantId: "maya",
+    version: 1,
+    amount: 20000,
+    status: "created",
+    sandboxSessionId: "never-created",
+  });
+  await f.g.withdraw("organizer", "maya");
+  assert.equal(f.e.state.payments[0].status, "abandoned");
+});
+
+test("order create timeout reconciles by replaying the same PayPal-Request-Id", async () => {
+  const f = fixture();
+  const create = f.client.createOrder;
+  const keys = [];
+  let first = true;
+  f.client.createOrder = async (cents, key, checkout) => {
+    keys.push(key);
+    if (first) {
+      first = false;
+      throw Error("timeout");
+    }
+    return create(cents, key, checkout);
+  };
+  await assert.rejects(
+    f.g.approve("maya", 1, { appUrl: "http://127.0.0.1:5171" }),
+  );
+  const p = f.e.state.payments[0];
+  assert.equal(p.status, "create_unknown");
+  await f.g.reconcile("maya", p.id);
+  assert.equal(p.status, "approval_required");
+  assert.equal(keys.length, 2);
+  assert.equal(keys[0], keys[1]);
+});
+
+test("definitely failed create is abandoned and the participant can approve again", async () => {
+  const f = fixture();
+  const create = f.client.createOrder;
+  f.client.createOrder = async () => {
+    throw Object.assign(Error("bad request"), {
+      status: 422,
+      details: { name: "UNPROCESSABLE_ENTITY" },
+    });
+  };
+  await assert.rejects(f.g.approve("maya", 1), /422 \(UNPROCESSABLE_ENTITY\)/);
+  assert.equal(f.e.state.payments[0].status, "abandoned");
+  f.client.createOrder = create;
+  await f.approve("maya");
+  assert.equal(f.e.held("maya"), 20000);
+});
+
+test("checkout return URLs bring each buyer back to their own participant view", async () => {
+  const f = fixture();
+  const seen = [];
+  const create = f.client.createOrder;
+  f.client.createOrder = async (cents, key, checkout) => {
+    seen.push(checkout);
+    return create(cents, key, checkout);
+  };
+  await f.g.approve("maya", 1, { appUrl: "http://127.0.0.1:5171" });
+  const p = f.e.state.payments[0];
+  const back = new URL(seen[0].returnUrl);
+  assert.equal(back.origin, "http://127.0.0.1:5171");
+  assert.equal(back.searchParams.get("participant"), "maya");
+  assert.equal(back.searchParams.get("paypal"), "return");
+  assert.equal(back.searchParams.get("payment"), p.id);
+  assert.equal(new URL(seen[0].cancelUrl).searchParams.get("paypal"), "cancel");
+  assert.match(seen[0].description, /Maya/);
 });

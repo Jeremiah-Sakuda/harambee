@@ -131,6 +131,8 @@ function App() {
     [listingId, setListingId] = useState("pine"),
     [budget, setBudget] = useState("220");
   const dialog = useRef(null);
+  // PayPal sends buyers back with ?paypal=return|cancel|lab&payment=<id>.
+  const paypalReturn = useRef(new URLSearchParams(location.search));
   async function load(who = actor) {
     try {
       const r = await fetch("/api/state", { headers: { "x-demo-actor": who } });
@@ -144,6 +146,39 @@ function App() {
   useEffect(() => {
     load();
   }, [actor]);
+  useEffect(() => {
+    const q = paypalReturn.current;
+    const result = q.get("paypal");
+    if (!state || !result) return;
+    paypalReturn.current = new URLSearchParams();
+    history.replaceState(
+      null,
+      "",
+      actor === "organizer"
+        ? "/"
+        : `/?participant=${encodeURIComponent(actor)}`,
+    );
+    if (result === "lab") {
+      setTab("sandbox");
+      setNotice(
+        "Back from PayPal. Confirm the authorization in the sandbox lab.",
+      );
+    } else if (result === "cancel")
+      setNotice(
+        "PayPal checkout cancelled. Nothing was authorized; open the checkout again when you’re ready.",
+      );
+    else if (result === "return" && q.get("payment"))
+      act("complete-approval", {
+        paymentId: q.get("payment"),
+        version: state.version,
+      }).then(
+        (ok) =>
+          ok &&
+          setNotice(
+            "PayPal confirmed your sandbox authorization. Your exact share is held, not charged.",
+          ),
+      );
+  }, [state]);
   useEffect(() => {
     if (modal) {
       dialog.current?.showModal();
@@ -163,7 +198,7 @@ function App() {
       if (!r.ok) throw Error(data.error);
       if (endpoint === "interpret") setInsight(data);
       else setState(data);
-      return true;
+      return data;
     } catch (e) {
       setError(e.message);
       await load(who);
@@ -399,7 +434,7 @@ function App() {
                     {label(p.status)}
                   </p>
                   {p.approvalUrl && (
-                    <a href={p.approvalUrl} target="_blank" rel="noreferrer">
+                    <a href={p.approvalUrl}>
                       Approve this exact amount in PayPal sandbox
                     </a>
                   )}
@@ -1142,7 +1177,9 @@ function App() {
               )}
               <p className="secure-note">
                 <ShieldCheck size={13} />
-                Simulated authorization & capture
+                {state.provider === "paypal-sandbox"
+                  ? "PayPal sandbox authorization & capture"
+                  : "Simulated authorization & capture"}
               </p>
             </section>
             <section className="together-note">
@@ -1201,6 +1238,12 @@ function App() {
         {modal?.kind === "approve" && modalPerson && (
           <>
             <span className="eyebrow">YOUR CHOICE, YOUR COMMITMENT</span>
+            {!isOpen && (
+              <p role="status">
+                This trip is closed. You can inspect this note and saved
+                ceiling, but budgets and approvals cannot change.
+              </p>
+            )}
             <h2>You’re in, {modalPerson.name.split(" ")[0]}?</h2>
             <p>
               Review version {state.version} for {listing.name}. This approval
@@ -1273,7 +1316,7 @@ function App() {
             </p>
             <button
               className="secondary full"
-              disabled={busy || !budget || actor !== modalPerson.id}
+              disabled={busy || !isOpen || !budget || actor !== modalPerson.id}
               onClick={async () => {
                 if (
                   await act(
@@ -1309,6 +1352,7 @@ function App() {
               className="primary full"
               disabled={
                 busy ||
+                !isOpen ||
                 actor !== modalPerson.id ||
                 modalPerson.budget == null ||
                 Math.round(Number(budget) * 100) !== modalPerson.budget ||
@@ -1316,13 +1360,20 @@ function App() {
                 state.status === "revision_required"
               }
               onClick={async () => {
-                if (
-                  await act(
-                    "approve",
-                    { version: state.version },
-                    modalPerson.id,
+                const next = await act(
+                  "approve",
+                  { version: state.version },
+                  modalPerson.id,
+                );
+                if (next) {
+                  const checkout = next.payments?.findLast(
+                    (p) => p.participantId === modalPerson.id && p.approvalUrl,
+                  );
+                  if (
+                    next.provider === "paypal-sandbox" &&
+                    checkout?.status === "approval_required"
                   )
-                ) {
+                    return location.assign(checkout.approvalUrl);
                   setModal(null);
                   setNotice(
                     state.provider === "paypal-sandbox"

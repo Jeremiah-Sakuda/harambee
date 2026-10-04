@@ -47,6 +47,11 @@ const body = async (req) => {
     throw new DomainError("Invalid JSON.", 400);
   }
 };
+// Origin is already restricted to loopback hosts below; PayPal returns buyers there.
+const appUrl = (req) =>
+  req.headers.origin ||
+  process.env.APP_URL ||
+  `http://127.0.0.1:${Number(process.env.PORT) || 3101}`;
 const server = http.createServer(async (req, res) => {
   let ownsMutation = false;
   try {
@@ -115,8 +120,15 @@ const server = http.createServer(async (req, res) => {
           throw new DomainError(
             "Group payments can only be changed through the versioned trip coordinator.",
           );
+        const labAction = url.pathname.split("/").at(-1);
         return json(res, 200, {
-          ...(await lab.run(url.pathname.split("/").at(-1), input)),
+          ...(await lab.run(labAction, {
+            id: input.id,
+            amount: input.amount,
+            ...(labAction === "create"
+              ? { returnUrl: `${appUrl(req)}/?paypal=lab` }
+              : {}),
+          })),
           sessions: lab.state.sessions.filter((s) => !s.groupPlanId),
         });
       }
@@ -152,15 +164,28 @@ const server = http.createServer(async (req, res) => {
           break;
         case "/api/reset":
           engine.assertOrganizer(actor);
-          if (
-            engine.state.provider === "paypal-sandbox" &&
-            engine.state.payments.some(
-              (p) => !["voided", "refunded", "abandoned"].includes(p.status),
-            )
-          )
-            throw new DomainError(
-              "Resolve all sandbox payments before resetting; provider evidence must be preserved.",
+          if (engine.state.provider === "paypal-sandbox") {
+            // A confirmed booking's captures are final; anything else must be resolved first.
+            const settled = engine.state.payments.every(
+              (p) =>
+                ["voided", "refunded", "abandoned"].includes(p.status) ||
+                (engine.state.status === "confirmed" &&
+                  p.status === "captured"),
             );
+            if (!settled)
+              throw new DomainError(
+                "Resolve all sandbox payments before resetting; provider evidence must be preserved.",
+              );
+            // Keep the finished trip's provider evidence before replacing it.
+            if (engine.state.payments.length)
+              new Store(
+                path.join(
+                  path.dirname(store.path),
+                  "archive",
+                  `plan-${engine.state.id}.json`,
+                ),
+              ).save(engine.state);
+          }
           store.save(seed());
           engine = new Engine(store);
           break;
@@ -228,7 +253,10 @@ const server = http.createServer(async (req, res) => {
           break;
         }
         case "/api/approve":
-          await payments.approve(actor, input.version);
+          // PayPal returns the buyer to the same local origin they started from.
+          await payments.approve(actor, input.version, {
+            appUrl: appUrl(req),
+          });
           break;
         case "/api/withdraw":
           await payments.withdraw(actor, input.participantId);
@@ -316,6 +344,6 @@ server.listen(
   process.env.HOST || "127.0.0.1",
   () =>
     console.log(
-      `Harambee listening at http://${process.env.HOST || "127.0.0.1"}:${process.env.PORT || 3101} · SIMULATED payments`,
+      `Harambee listening at http://${process.env.HOST || "127.0.0.1"}:${process.env.PORT || 3101} · ${lab.client ? "PayPal sandbox credentials loaded" : "SIMULATED payments only (no PayPal sandbox credentials)"} · ${process.env.OPENAI_API_KEY ? "model interpretation enabled" : "local parser only"}`,
     ),
 );

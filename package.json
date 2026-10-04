@@ -11,7 +11,8 @@
     "start": "node server/index.mjs",
     "test": "node --test test/*.test.mjs",
     "eval": "node scripts/evaluate.mjs",
-    "eval:live": "node --env-file-if-exists=.env scripts/evaluate.mjs --live"
+    "eval:live": "node --env-file-if-exists=.env scripts/evaluate.mjs --live",
+    "paypal:check": "node scripts/paypal-check.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

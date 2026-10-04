@@ -20,7 +20,9 @@ export class GroupPayments {
       (s) => s.id === p.sandboxSessionId,
     );
     if (!session) return;
-    p.status = session.status;
+    // A definitely rejected order create left nothing at PayPal.
+    p.status =
+      session.status === "create_failed" ? "abandoned" : session.status;
     p.providerId = session.authorizationId || session.orderId || null;
     p.captureId = session.captureId;
     p.refundId = session.refundId;
@@ -42,18 +44,19 @@ export class GroupPayments {
     }
     this.engine.persist();
   }
-  async run(p, action) {
+  async run(p, action, checkout = {}) {
     try {
       await this.lab.run(action, {
         id: p.sandboxSessionId,
         amount: p.amount,
         groupPlanId: this.s.id,
+        ...checkout,
       });
     } finally {
       this.sync(p);
     }
   }
-  async approve(actor, version) {
+  async approve(actor, version, { appUrl } = {}) {
     const e = this.engine;
     e.assertOpen();
     need(
@@ -81,6 +84,11 @@ export class GroupPayments {
     );
     const held = e.held(actor);
     need(held <= share, "Release excess holds before approving.");
+    // Validate before persisting so a rejected amount can never strand a payment record.
+    need(
+      share - held <= 50000,
+      "PayPal sandbox checkouts are limited to $500 per buyer. Choose a cheaper plan or add participants.",
+    );
     if (!e.approved(actor))
       this.s.consents.push({
         id: randomUUID(),
@@ -102,7 +110,15 @@ export class GroupPayments {
       };
       this.s.payments.push(p);
       e.persist();
-      await this.run(p, "create");
+      const back = (result) =>
+        appUrl
+          ? `${appUrl}/?${new URLSearchParams({ participant: actor, paypal: result, payment: p.id })}`
+          : undefined;
+      await this.run(p, "create", {
+        returnUrl: back("return"),
+        cancelUrl: back("cancel"),
+        description: `${this.s.title} · ${person.name} · version ${version}`,
+      });
     }
     this.s.status = e.ready() ? "ready" : "collecting";
     e.log(
@@ -126,16 +142,21 @@ export class GroupPayments {
     );
     need(this.engine.approved(actor), "Review the current agreement first.");
     await this.run(p, "authorize");
-    need(
-      p.payerId &&
-        !this.s.payments.some(
-          (other) =>
-            other.participantId !== actor &&
-            !terminal(other) &&
-            other.payerId === p.payerId,
-        ),
-      "Each participant needs a distinct verified sandbox buyer. Release this hold before continuing.",
-    );
+    const shared =
+      !p.payerId ||
+      this.s.payments.some(
+        (other) =>
+          other.participantId !== actor &&
+          !terminal(other) &&
+          other.payerId === p.payerId,
+      );
+    if (shared) {
+      await this.release(p);
+      need(
+        false,
+        "Each participant needs their own sandbox buyer. That buyer already holds another share, so this hold was voided. Approve again and log in with a different sandbox buyer account.",
+      );
+    }
     this.s.status = this.engine.ready() ? "ready" : "collecting";
     this.engine.persist();
   }
@@ -157,6 +178,12 @@ export class GroupPayments {
   }
   async release(p) {
     if (terminal(p)) return;
+    // The lab persists its session before any provider call, so no session means nothing exists at PayPal.
+    if (!this.lab.state.sessions.some((s) => s.id === p.sandboxSessionId)) {
+      p.status = "abandoned";
+      this.engine.persist();
+      return;
+    }
     this.sync(p);
     if (p.status !== "authorized") {
       await this.run(p, "reconcile");
@@ -218,7 +245,9 @@ export class GroupPayments {
     if (this.s.status === "confirmed") return;
     e.assertOpen();
     need(
-      version === this.s.version && e.ready(),
+      version === this.s.version &&
+        this.s.status !== "revision_required" &&
+        e.ready(),
       "Every participant must authorize their exact current share.",
     );
     need(
