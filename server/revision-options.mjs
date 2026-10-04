@@ -63,7 +63,7 @@ const NUMBER_WORD = `(?:${[...Object.keys(ONES), ...Object.keys(TENS), "hundred"
 export function literalAmounts(line) {
   const found = new Set();
   const digits = (token) => {
-    const t = token.replace(/\.$/, "");
+    const t = token.replace(/[.,]+$/, "");
     if (/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(t))
       found.add(Math.round(Number(t.replaceAll(",", "")) * 100));
   };

@@ -1,0 +1,108 @@
+[
+  {
+    "id": "h2-clear-firm",
+    "kind": "clear",
+    "chat": [
+      "Sam: Gotta drop, sorry.",
+      "Jordan: I'm good up to $190, no more."
+    ],
+    "expect": { "cap": { "jordan": 19000 } },
+    "reference": [
+      {
+        "listingId": "pine",
+        "capRequests": [
+          {
+            "participantId": "jordan",
+            "amountCents": 19000,
+            "line": 2,
+            "quote": "I'm good up to $190, no more."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "h2-clear-updated",
+    "kind": "clear",
+    "chat": [
+      "Sam: Can't join.",
+      "Maya: $210 max.",
+      "Maya: hmm, make that $190"
+    ],
+    "expect": { "cap": { "maya": 19000 }, "forbidCap": { "maya": 21000 } },
+    "reference": [
+      {
+        "listingId": "pine",
+        "capRequests": [
+          {
+            "participantId": "maya",
+            "amountCents": 19000,
+            "line": 3,
+            "quote": "make that $190"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "h2-clear-unrelated-hedge",
+    "kind": "clear",
+    "chat": ["Sam: Out.", "Alex: Up to $180 works. Might be late though."],
+    "expect": { "cap": { "alex": 18000 } },
+    "reference": [
+      {
+        "listingId": "pine",
+        "capRequests": [
+          {
+            "participantId": "alex",
+            "amountCents": 18000,
+            "line": 2,
+            "quote": "Up to $180 works."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "h2-ambiguous-ish",
+    "kind": "ambiguous",
+    "chat": ["Sam: I'm out, sorry.", "Maya: probably $160ish?"],
+    "expect": { "clarify": true, "forbidCap": { "maya": 16000 } },
+    "reference": [{ "listingId": "pine", "capRequests": [] }],
+    "referenceClarifications": [
+      {
+        "participantId": "maya",
+        "line": 2,
+        "question": "What is Maya's firm limit?"
+      }
+    ]
+  },
+  {
+    "id": "h2-ambiguous-either",
+    "kind": "ambiguous",
+    "chat": ["Sam: Dropping.", "Alex: $175 or $185, whichever helps"],
+    "expect": { "clarify": true, "forbidCap": { "alex": 17500 } },
+    "reference": [{ "listingId": "pine", "capRequests": [] }],
+    "referenceClarifications": [
+      {
+        "participantId": "alex",
+        "line": 2,
+        "question": "Which is Alex's limit?"
+      }
+    ]
+  },
+  {
+    "id": "h2-ambiguous-relayed",
+    "kind": "ambiguous",
+    "chat": ["Sam: Not coming.", "Jordan: Alex told me he's capped at $150"],
+    "expect": { "clarify": true, "forbidCap": { "alex": 15000 } },
+    "reference": [{ "listingId": "pine", "capRequests": [] }],
+    "referenceClarifications": [
+      {
+        "participantId": "alex",
+        "line": 2,
+        "question": "Can Alex confirm his own limit?"
+      }
+    ]
+  }
+]

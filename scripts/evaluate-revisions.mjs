@@ -7,7 +7,13 @@ import { proposeRevisions } from "../server/revision-options.mjs";
 
 // --holdout uses briefs written after the first live run and before any tuning on it.
 const holdout = process.argv.includes("--holdout");
-const set = holdout ? "revision-cases-holdout" : "revision-cases";
+// --holdout2 uses briefs written before the deterministic ambiguity backstop existed.
+const holdout2 = process.argv.includes("--holdout2");
+const set = holdout2
+  ? "revision-cases-holdout2"
+  : holdout
+    ? "revision-cases-holdout"
+    : "revision-cases";
 const cases = JSON.parse(
   readFileSync(new URL(`../eval/${set}.json`, import.meta.url), "utf8"),
 );
@@ -154,7 +160,7 @@ console.log(JSON.stringify(report, null, 2));
 if (process.argv.includes("--write"))
   writeFileSync(
     new URL(
-      `../eval/revision${holdout ? "-holdout" : ""}-results${live ? "-live" : ""}${process.env.EVAL_SUFFIX ? `-${process.env.EVAL_SUFFIX}` : ""}.json`,
+      `../eval/revision${holdout2 ? "-holdout2" : holdout ? "-holdout" : ""}-results${live ? "-live" : ""}${process.env.EVAL_SUFFIX ? `-${process.env.EVAL_SUFFIX}` : ""}.json`,
       import.meta.url,
     ),
     JSON.stringify(report, null, 2) + "\n",

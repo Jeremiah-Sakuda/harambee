@@ -1,0 +1,211 @@
+{
+  "fixtureVersion": 1,
+  "cases": "revision-cases-holdout2",
+  "mode": "offline-reference-answers-through-verifier",
+  "liveProviderExecuted": false,
+  "passed": 6,
+  "safe": 6,
+  "total": 6,
+  "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
+  "limitations": "Reference answers are hand-written, two deliberately unsafe; this measures the verifier and planner pipeline, not model accuracy.",
+  "results": [
+    {
+      "id": "h2-clear-firm",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "reference",
+      "model": null,
+      "latencyMs": 0,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "jordan": 19000
+          },
+          "shares": [
+            20500,
+            19000,
+            20500
+          ],
+          "source": "reference",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-updated",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "reference",
+      "model": null,
+      "latencyMs": 0,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 19000
+          },
+          "shares": [
+            19000,
+            20500,
+            20500
+          ],
+          "source": "reference",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-unrelated-hedge",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "reference",
+      "model": null,
+      "latencyMs": 0,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            21000,
+            21000,
+            18000
+          ],
+          "source": "reference",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-ish",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "reference",
+      "model": null,
+      "latencyMs": 0,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "reference",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-either",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "reference",
+      "model": null,
+      "latencyMs": 0,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "reference",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-relayed",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "reference",
+      "model": null,
+      "latencyMs": 0,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "reference",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    }
+  ]
+}

@@ -430,3 +430,15 @@ test("a model failure falls back to the labeled local planner", async () => {
     else delete process.env.OPENAI_API_KEY;
   }
 });
+
+test("amounts followed by punctuation are still read", () => {
+  assert.deepEqual(
+    literalAmounts("Jordan: I'm good up to $190, no more."),
+    [19000],
+  );
+  assert.deepEqual(literalAmounts("Maya: $1,250, tops."), [125000]);
+  assert.deepEqual(
+    literalAmounts("Alex: $175 or $185, whichever"),
+    [17500, 18500],
+  );
+});
