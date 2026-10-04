@@ -24,7 +24,7 @@ The original panel evaluated `7adc968`; its reports and reproductions under `doc
 
 These cannot honestly be completed by writing code or inventing results:
 
-- **Actual PayPal group execution:** the user will configure sandbox credentials and distinct buyers later. Follow the integrated README journey, preserve order/auth/capture/refund IDs, verify a dropout/top-up and recovery. No actual provider calls were made in remediation.
+- **Actual PayPal group execution:** the user will configure sandbox credentials and distinct buyers later. Follow the integrated README journey, preserve order/auth/capture/refund IDs, verify a dropout/top-up and recovery. No actual provider calls were made in remediation. **Update, October 4, 2026:** the booking journey was run against the real sandbox; see [the evidence](evidence/2026-10-04-sandbox-booking/README.md). The minimal-response capture defect found by the round-two panel was fixed before this run.
 - **Actual model execution and comparative usefulness:** the user will configure the key later. Run the frozen live evaluator, retain failures/raw observations, then measure manual versus AI/local-parser correction effort using `VALIDATION_PLAN.md`. Offline injected output is not a genuine provider response.
 - **User evidence:** five recent-organizer interviews and one observed group session are still needed. The study protocol and blank observation schema are provided; no interviews, assistance counts, completion times, savings, or fairness acceptance are fabricated.
 - **Merchant feasibility:** discuss separate buyers paying one merchant, inventory timing, refunds/fees and support burden with a real lodging operator. A blank evidence record is provided; no discussion is claimed.

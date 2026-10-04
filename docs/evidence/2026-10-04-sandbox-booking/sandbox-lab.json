@@ -1,0 +1,208 @@
+{
+  "sessions": [
+    {
+      "id": "053a3726-1f9b-443a-8051-555dd6e9566d",
+      "amount": 20000,
+      "groupPlanId": "a342052e-eea1-422b-a8eb-c900c794f529",
+      "returnUrl": "http://127.0.0.1:5171/?participant=person-1&paypal=return&payment=a2d0e6fa-73e3-4735-9e1e-2c40f171ec51",
+      "cancelUrl": "http://127.0.0.1:5171/?participant=person-1&paypal=cancel&payment=a2d0e6fa-73e3-4735-9e1e-2c40f171ec51",
+      "description": "Cabin weekend (PayPal sandbox) \u00b7 Maya Chen \u00b7 version 1",
+      "status": "captured",
+      "operations": [
+        {
+          "id": "ed6082ac-dc60-40ed-b6e6-07b6ab903bb7",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-04T04:18:31.092Z",
+          "amount": 20000,
+          "providerId": "0J791360PB2052221"
+        },
+        {
+          "id": "6a6f7ab0-6f43-438e-b621-3a62b1be8e77",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-04T04:23:04.156Z",
+          "amount": 20000,
+          "providerId": "0J791360PB2052221"
+        },
+        {
+          "id": "63d50081-264a-4104-808b-2bbfd07c77df",
+          "type": "capture",
+          "status": "confirmed",
+          "at": "2026-10-04T04:27:41.238Z",
+          "amount": 20000,
+          "providerId": "617498144P1562459"
+        }
+      ],
+      "at": "2026-10-04T04:18:31.092Z",
+      "orderId": "0J791360PB2052221",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=0J791360PB2052221",
+      "payerId": "ZGYMC9T7R84DS",
+      "authorizationId": "82U363247V987701S",
+      "captureId": "617498144P1562459"
+    },
+    {
+      "id": "3bc8f4a9-7542-4b51-a8ed-0c8acdc38ce2",
+      "amount": 20000,
+      "groupPlanId": "a342052e-eea1-422b-a8eb-c900c794f529",
+      "returnUrl": "http://127.0.0.1:5171/?participant=person-2&paypal=return&payment=46c3c2cf-88f4-4e65-bd75-3ded4fc5f261",
+      "cancelUrl": "http://127.0.0.1:5171/?participant=person-2&paypal=cancel&payment=46c3c2cf-88f4-4e65-bd75-3ded4fc5f261",
+      "description": "Cabin weekend (PayPal sandbox) \u00b7 Jordan Ellis \u00b7 version 1",
+      "status": "captured",
+      "operations": [
+        {
+          "id": "78ab4db9-9a18-46fe-9ffd-c889976bff55",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-04T04:23:34.192Z",
+          "amount": 20000,
+          "providerId": "37M18308UR4389818"
+        },
+        {
+          "id": "7de0b487-380e-4d7a-b384-151d69019ed2",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-04T04:24:24.268Z",
+          "amount": 20000,
+          "providerId": "37M18308UR4389818"
+        },
+        {
+          "id": "005c9c72-b518-4262-a0d5-8bf28c91f036",
+          "type": "capture",
+          "status": "confirmed",
+          "at": "2026-10-04T04:27:42.893Z",
+          "amount": 20000,
+          "providerId": "2MJ692183X295905U"
+        }
+      ],
+      "at": "2026-10-04T04:23:34.192Z",
+      "orderId": "37M18308UR4389818",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=37M18308UR4389818",
+      "payerId": "C7LL6VVD4SA2W",
+      "authorizationId": "3M338976XD096941J",
+      "captureId": "2MJ692183X295905U"
+    },
+    {
+      "id": "7d6bf745-b712-4aec-9220-cfc6730702e6",
+      "amount": 20000,
+      "groupPlanId": "a342052e-eea1-422b-a8eb-c900c794f529",
+      "returnUrl": "http://127.0.0.1:5171/?participant=person-3&paypal=return&payment=39439920-0842-42fa-8a9d-0a9d128f8ad0",
+      "cancelUrl": "http://127.0.0.1:5171/?participant=person-3&paypal=cancel&payment=39439920-0842-42fa-8a9d-0a9d128f8ad0",
+      "description": "Cabin weekend (PayPal sandbox) \u00b7 Alex Rivera \u00b7 version 1",
+      "status": "voided",
+      "operations": [
+        {
+          "id": "797b8cf4-bf49-4090-bae2-baa6f032af5b",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-04T04:24:39.678Z",
+          "amount": 20000,
+          "providerId": "9A626959JK662083H"
+        },
+        {
+          "id": "4154918e-8bbc-4b38-8aae-b5ea7d49276d",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-04T04:25:16.817Z",
+          "amount": 20000,
+          "providerId": "9A626959JK662083H"
+        },
+        {
+          "id": "fd902096-a862-4d50-82be-b917b6ed4017",
+          "type": "void",
+          "status": "confirmed",
+          "at": "2026-10-04T04:25:33.112Z",
+          "amount": 20000,
+          "providerId": "5R56004551053562X"
+        }
+      ],
+      "at": "2026-10-04T04:24:39.678Z",
+      "orderId": "9A626959JK662083H",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=9A626959JK662083H",
+      "payerId": "CHD2P2V875EJU",
+      "authorizationId": "5R56004551053562X"
+    },
+    {
+      "id": "fb577e61-42a5-4ab4-8315-5b754b58d26b",
+      "amount": 10000,
+      "groupPlanId": "a342052e-eea1-422b-a8eb-c900c794f529",
+      "returnUrl": "http://127.0.0.1:5171/?participant=person-1&paypal=return&payment=31c0a8da-dd0c-4141-a8f1-2790388a9989",
+      "cancelUrl": "http://127.0.0.1:5171/?participant=person-1&paypal=cancel&payment=31c0a8da-dd0c-4141-a8f1-2790388a9989",
+      "description": "Cabin weekend (PayPal sandbox) \u00b7 Maya Chen \u00b7 version 2",
+      "status": "captured",
+      "operations": [
+        {
+          "id": "539f3b8b-59a5-45bf-89bb-1ad3b40ebc70",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-04T04:25:58.404Z",
+          "amount": 10000,
+          "providerId": "49F60267JD425381G"
+        },
+        {
+          "id": "68f31cf6-0a0e-4e1f-9bf5-87170f7799e3",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-04T04:26:40.526Z",
+          "amount": 10000,
+          "providerId": "49F60267JD425381G"
+        },
+        {
+          "id": "61b322d5-81b6-461d-a984-3dae639350e4",
+          "type": "capture",
+          "status": "confirmed",
+          "at": "2026-10-04T04:27:44.241Z",
+          "amount": 10000,
+          "providerId": "7TV5059811935852K"
+        }
+      ],
+      "at": "2026-10-04T04:25:58.404Z",
+      "orderId": "49F60267JD425381G",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=49F60267JD425381G",
+      "payerId": "ZGYMC9T7R84DS",
+      "authorizationId": "30F847087D004012M",
+      "captureId": "7TV5059811935852K"
+    },
+    {
+      "id": "c04e28cd-4620-4f7b-83a5-f5c527cb96ee",
+      "amount": 10000,
+      "groupPlanId": "a342052e-eea1-422b-a8eb-c900c794f529",
+      "returnUrl": "http://127.0.0.1:5171/?participant=person-2&paypal=return&payment=8315d9fa-79f2-414e-afd8-28344c116b61",
+      "cancelUrl": "http://127.0.0.1:5171/?participant=person-2&paypal=cancel&payment=8315d9fa-79f2-414e-afd8-28344c116b61",
+      "description": "Cabin weekend (PayPal sandbox) \u00b7 Jordan Ellis \u00b7 version 2",
+      "status": "captured",
+      "operations": [
+        {
+          "id": "6d933ba0-76c4-4ea2-860b-0056aa7af3c8",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-04T04:26:59.188Z",
+          "amount": 10000,
+          "providerId": "1DS1879611716633J"
+        },
+        {
+          "id": "b44ce7d2-279b-4ae5-8fe8-79b1b195c177",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-04T04:27:25.976Z",
+          "amount": 10000,
+          "providerId": "1DS1879611716633J"
+        },
+        {
+          "id": "0aee0aa4-c569-4109-906d-fea13d679af3",
+          "type": "capture",
+          "status": "confirmed",
+          "at": "2026-10-04T04:27:45.569Z",
+          "amount": 10000,
+          "providerId": "5LH78319LP852124U"
+        }
+      ],
+      "at": "2026-10-04T04:26:59.187Z",
+      "orderId": "1DS1879611716633J",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=1DS1879611716633J",
+      "payerId": "C7LL6VVD4SA2W",
+      "authorizationId": "96B76713U1303094P",
+      "captureId": "5LH78319LP852124U"
+    }
+  ]
+}

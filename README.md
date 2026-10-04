@@ -4,7 +4,7 @@
 
 [Browser verification and preview](docs/BROWSER_QA.md)
 
-The trip defaults to **simulated payments and local fixture inventory**. An optional **integrated PayPal sandbox group mode** runs the same versioned agreement through separate buyer orders, authorizations, exact top-ups, captures and compensating refunds/voids. A diagnostic lab also remains available. Neither path purchases real lodging. The integrated path is implemented and tested with provider doubles; no live-model or actual PayPal transaction success is claimed.
+The trip defaults to **simulated payments and local fixture inventory**. An optional **integrated PayPal sandbox group mode** runs the same versioned agreement through separate buyer orders, authorizations, exact top-ups, captures and compensating refunds/voids. A diagnostic lab also remains available. Neither path purchases real lodging. The integrated path has completed a [real PayPal sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md): three buyers, one dropout with a voided authorization, two exact top-ups, and $600 captured. No live-model result is claimed.
 
 [Remediation and remaining evidence gates](docs/REMEDIATION.md) · [Frozen local evaluation](eval/results.json)
 
@@ -61,14 +61,14 @@ Reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/gu
 
 ## Integrated PayPal sandbox group
 
-1. Configure sandbox merchant credentials in `.env`, restart, and start an unfunded trip with three distinct participants. Set each private ceiling to at least $300 for the $600 trip if demonstrating a dropout to two remaining buyers.
+1. Configure sandbox merchant credentials in `.env`, run `npm run paypal:check` to confirm PayPal accepts them, restart, and start an unfunded trip with three distinct participants. Set each private ceiling to at least $300 for the $600 trip if demonstrating a dropout to two remaining buyers.
 2. As Organizer choose **Use PayPal sandbox for this group**. Participant links open separate tab-scoped views; they are local demo selectors, not authentication. Use distinct sandbox buyer accounts and separate browser profiles for their PayPal logins.
-3. Each participant reviews the exact version/share, saves their budget separately, and approves. Open the generated sandbox checkout, approve with that buyer, return, and choose **I approved in PayPal — confirm authorization**. Server state validates the exact USD amount and unique buyer identity. Browser approval alone never counts as a hold.
+3. Each participant reviews the exact version/share, saves their budget separately, and approves. **Agree & open sandbox checkout** sends that buyer to PayPal in the same tab. After approval PayPal returns them to their participant view, which asks the server to authorize the order; **I approved in PayPal — confirm authorization** remains as a manual fallback. Server state validates the exact USD amount and unique buyer identity. Browser approval alone never counts as a hold. A buyer already holding another participant's share has the new hold voided and is asked to use a different sandbox account.
 4. Withdraw one participant. Their actual sandbox authorization must be voided before the new version is published. Remaining participants explicitly approve the revised version and additional amount only, then complete their top-up checkouts. Original consent cannot authorize an increase.
 5. Book once every exact current share is authorized. Provider captures run sequentially against persisted authorization IDs, followed by a **local fixture** reservation commit. Export the provider-labeled receipt evidence.
 6. In a separate prepared trip select **Merchant reservation fails** before booking to exercise compensating refunds. Reconcile until every refund/void is confirmed. An unknown operation remains blocked with investigation guidance; never create a replacement charge. Inspect sandbox activity if the provider cannot supply a recoverable ID.
 
-`test/group-payments.test.mjs` verifies this integrated journey with mocked buyers/providers, restart between provider and coordinator saves, partial capture, unresolved capture, stale checkout, distinct buyers, and fixture-commit failure. **Real sandbox execution remains pending credentials and buyer interaction.** This is a single-process local prototype with polling reconciliation and no webhooks. The diagnostic lab cannot operate on group-linked sessions. Reset refuses unresolved or captured sandbox money; preserve the evidence until settlement is resolved.
+`test/group-payments.test.mjs` verifies this integrated journey with mocked buyers/providers, restart between provider and coordinator saves, partial capture, unresolved capture, stale checkout, distinct buyers, and fixture-commit failure. The booking journey has also run against the real PayPal sandbox; see the [recorded evidence](docs/evidence/2026-10-04-sandbox-booking/README.md). This is a single-process local prototype with polling reconciliation and no webhooks. The diagnostic lab cannot operate on group-linked sessions. Reset refuses unresolved sandbox money. After a confirmed booking it first archives the trip's provider evidence to `data/archive/`.
 
 ## Optional PayPal sandbox lab
 
@@ -82,7 +82,7 @@ Set `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` to a **sandbox** merchant appl
 
 The adapter is pinned to `https://api-m.sandbox.paypal.com`; there is no live profile. It persists operation IDs before dispatch, uses `PayPal-Request-Id`, separates authorization/capture/refund statuses, and serializes each lab session. Timeouts become unknown. Reconciliation queries PayPal; an unknown order or capture without a recoverable provider ID requires inspection in the sandbox dashboard and is never automatically recharged. The default demo reset does not delete sandbox operation evidence.
 
-This diagnostic lab is a **single-payment workflow**, separate from the integrated group path above. Authenticated webhook verification and real provider execution/recovery evidence remain release gates. The adapter and flow are tested with mocks; actual merchant credentials and buyer accounts were not provided during implementation.
+This diagnostic lab is a **single-payment workflow**, separate from the integrated group path above. Authenticated webhook verification remains a release gate. The shared adapter has run against the real sandbox through the integrated group path; the lab's own steps are covered by mocked tests.
 
 References: [PayPal delayed capture](https://developer.paypal.com/checkout/delay-capture/), [Payments v2](https://developer.paypal.com/docs/api/payments/v2/), [Orders v2](https://developer.paypal.com/docs/api/orders/v2/).
 
