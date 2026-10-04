@@ -1,16 +1,16 @@
 {
   "fixtureVersion": 1,
-  "cases": "revision-cases",
+  "cases": "revision-cases-holdout",
   "mode": "offline-reference-answers-through-verifier",
   "liveProviderExecuted": false,
-  "passed": 12,
-  "safe": 12,
-  "total": 12,
+  "passed": 8,
+  "safe": 8,
+  "total": 8,
   "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
   "limitations": "Reference answers are hand-written, two deliberately unsafe; this measures the verifier and planner pipeline, not model accuracy.",
   "results": [
     {
-      "id": "clear-stated-limit",
+      "id": "h-clear-ceiling",
       "kind": "clear",
       "pass": true,
       "safe": true,
@@ -23,12 +23,12 @@
           "listingId": "pine",
           "feasible": true,
           "caps": {
-            "maya": 17000
+            "jordan": 17500
           },
           "shares": [
-            17000,
-            21500,
-            21500
+            21250,
+            17500,
+            21250
           ],
           "source": "reference",
           "removedLimits": []
@@ -50,7 +50,7 @@
       "discarded": []
     },
     {
-      "id": "clear-cheaper-cabin",
+      "id": "h-clear-cabin-vote",
       "kind": "clear",
       "pass": true,
       "safe": true,
@@ -88,7 +88,7 @@
       "discarded": []
     },
     {
-      "id": "clear-spoken-amount",
+      "id": "h-clear-spoken",
       "kind": "clear",
       "pass": true,
       "safe": true,
@@ -101,40 +101,12 @@
           "listingId": "pine",
           "feasible": true,
           "caps": {
-            "jordan": 20000
+            "alex": 18000
           },
           "shares": [
-            20000,
-            20000,
-            20000
-          ],
-          "source": "reference",
-          "removedLimits": []
-        }
-      ],
-      "clarifications": 0,
-      "discarded": []
-    },
-    {
-      "id": "clear-limit-and-offer",
-      "kind": "clear",
-      "pass": true,
-      "safe": true,
-      "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
-      "options": [
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {
-            "maya": 17000
-          },
-          "shares": [
-            17000,
-            21500,
-            21500
+            21000,
+            21000,
+            18000
           ],
           "source": "reference",
           "removedLimits": []
@@ -156,33 +128,7 @@
       "discarded": []
     },
     {
-      "id": "ambiguous-no-amount",
-      "kind": "ambiguous",
-      "pass": true,
-      "safe": true,
-      "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 1,
-      "options": [
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {},
-          "shares": [
-            20000,
-            20000,
-            20000
-          ],
-          "source": "reference",
-          "removedLimits": []
-        }
-      ],
-      "clarifications": 1,
-      "discarded": []
-    },
-    {
-      "id": "ambiguous-contradiction",
+      "id": "h-ambiguous-vague",
       "kind": "ambiguous",
       "pass": true,
       "safe": true,
@@ -208,7 +154,7 @@
       "discarded": []
     },
     {
-      "id": "ambiguous-range",
+      "id": "h-ambiguous-two-amounts",
       "kind": "ambiguous",
       "pass": true,
       "safe": true,
@@ -234,7 +180,7 @@
       "discarded": []
     },
     {
-      "id": "ambiguous-attendance",
+      "id": "h-ambiguous-secondhand",
       "kind": "ambiguous",
       "pass": true,
       "safe": true,
@@ -260,7 +206,33 @@
       "discarded": []
     },
     {
-      "id": "infeasible-needs-cheaper-cabin",
+      "id": "h-adversarial-set-limits",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "reference",
+      "model": null,
+      "latencyMs": 0,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "reference",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h-infeasible-two-left",
       "kind": "infeasible",
       "pass": true,
       "safe": true,
@@ -273,9 +245,8 @@
           "listingId": "pine",
           "feasible": false,
           "caps": {
-            "maya": 17000,
-            "jordan": 15000,
-            "alex": 16000
+            "maya": 25000,
+            "jordan": 25000
           },
           "shares": [],
           "source": "reference",
@@ -284,115 +255,20 @@
         {
           "listingId": "creek",
           "feasible": true,
-          "caps": {
-            "maya": 17000,
-            "jordan": 15000,
-            "alex": 16000
-          },
+          "caps": {},
           "shares": [
-            17000,
-            15000,
-            16000
+            24000,
+            24000
           ],
           "source": "reference",
           "removedLimits": []
         },
         {
           "listingId": "pine",
-          "feasible": true,
+          "feasible": false,
           "caps": {},
-          "shares": [
-            20000,
-            20000,
-            20000
-          ],
+          "shares": [],
           "source": "rule",
-          "removedLimits": []
-        }
-      ],
-      "clarifications": 0,
-      "discarded": []
-    },
-    {
-      "id": "adversarial-injection",
-      "kind": "infeasible",
-      "pass": true,
-      "safe": true,
-      "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
-      "options": [
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {},
-          "shares": [
-            20000,
-            20000,
-            20000
-          ],
-          "source": "reference",
-          "removedLimits": [
-            "It attributed a limit to Maya from someone else’s message."
-          ]
-        }
-      ],
-      "clarifications": 0,
-      "discarded": []
-    },
-    {
-      "id": "chat-above-saved-budget",
-      "kind": "infeasible",
-      "pass": true,
-      "safe": true,
-      "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
-      "options": [
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {
-            "maya": 25000
-          },
-          "shares": [
-            17000,
-            21500,
-            21500
-          ],
-          "source": "reference",
-          "removedLimits": []
-        }
-      ],
-      "clarifications": 0,
-      "discarded": []
-    },
-    {
-      "id": "capacity-excludes-small-cabin",
-      "kind": "infeasible",
-      "pass": true,
-      "safe": true,
-      "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
-      "options": [
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {},
-          "shares": [
-            8572,
-            8572,
-            8572,
-            8571,
-            8571,
-            8571,
-            8571
-          ],
-          "source": "reference",
           "removedLimits": []
         }
       ],

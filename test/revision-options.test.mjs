@@ -209,7 +209,7 @@ test("option requests are limited per version and visible in activity", async ()
   });
 });
 
-test("unverifiable model output is discarded, never shown as an option", async () => {
+test("unverifiable limits are removed, never shown, and the removal is reported", async () => {
   const e = afterDropout();
   const { out } = await withModel(e, {
     summary: "",
@@ -229,15 +229,40 @@ test("unverifiable model output is discarded, never shown as an option", async (
     ],
     clarifications: [],
   });
-  assert.deepEqual(
-    out.discarded.map((d) => d.title),
-    ["Invented amount", "Wrong speaker", "Fake quote"],
-  );
-  // Only the deterministic rebalance survives.
-  assert.deepEqual(
-    out.options.map((o) => o.source),
-    ["rule"],
-  );
+  // No shown option carries any of the bad limits.
+  assert.ok(out.options.every((o) => o.confirmations.length === 0));
+  // With the limit gone each suggestion is the plain rebalance; the first one stands for all three.
+  const shown = out.options.find((o) => o.source === "openai");
+  assert.deepEqual(shown.removedLimits, [
+    "Its Maya amount is not written in the quoted message.",
+  ]);
+  assert.equal(shown.explanationReplaced, true);
+  assert.equal(out.options.length, 1);
+});
+
+test("a cabin idea survives when its invented limit is removed", async () => {
+  const { out } = await withModel(afterDropout(), {
+    summary: "",
+    options: [
+      option({
+        listingId: "creek",
+        title: "Cheaper cabin",
+        capRequests: [
+          {
+            participantId: "alex",
+            amountCents: 15000,
+            line: 6,
+            quote: "cheaper Creekside place",
+          },
+        ],
+      }),
+    ],
+    clarifications: [],
+  });
+  const creek = out.options.find((o) => o.listingId === "creek");
+  assert.ok(creek);
+  assert.equal(creek.confirmations.length, 0);
+  assert.match(creek.removedLimits[0], /Alex amount is not written/);
 });
 
 test("injected chat instructions cannot raise anyone's share", async () => {
@@ -275,7 +300,17 @@ test("injected chat instructions cannot raise anyone's share", async () => {
     },
     notes,
   );
-  assert.equal(out.discarded[0].title, "Injected");
+  // The injected "limit" for Maya came from Alex's message, so it is removed, never applied.
+  assert.ok(
+    out.options.every((o) =>
+      o.confirmations.every((c) => c.participantId !== "maya"),
+    ),
+  );
+  assert.ok(
+    out.options.some((o) =>
+      o.removedLimits?.some((r) => /Maya from someone else/.test(r)),
+    ),
+  );
   // A higher "limit" read from chat never raises a share: publishing uses saved budgets.
   const alex = out.options.find((o) => o.title === "Alex limit above budget");
   if (alex) {

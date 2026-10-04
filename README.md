@@ -17,7 +17,7 @@
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
 | Versioned consent, the exact-difference top-ups, and recovery that never charges twice (62 tests) | Default no-credentials mode simulates payments |
-| AI revision options against a live model (gpt-4.1-mini): 12/12 frozen briefs safe, 8/12 useful on the [first run](eval/revision-results-live-baseline.json) | No user research yet; useful-rate below the PRD target of 10/12 on that first run |
+| AI revision options against a live model (gpt-4.1-mini): every live run 100% safe; 6–7 of 8 held-out briefs useful ([details](#revision-options-after-a-dropout)) | No user research yet; held-out usefulness is below the PRD target |
 
 ## Run locally
 
@@ -91,7 +91,14 @@ Privacy: the model never receives saved budgets, and nothing compares a proposed
 
 Without a key, or if the model fails, a **local planner (not AI)** takes the latest dollar amount each person wrote, without interpreting wording. Anyone whose share depends on it must confirm.
 
-`npm run eval:revisions` runs 12 frozen briefs from the PRD acceptance spec (clear, ambiguous, infeasible, adversarial) through the real verifier using hand-written reference answers, two of them deliberately unsafe. [`eval/revision-results.json`](eval/revision-results.json) records 12/12 with no unsafe option shown. That measures the verifier, **not** model quality. `npm run eval:revisions:live -- --write` measures the configured model. The [first live run](eval/revision-results-live-baseline.json) with gpt-4.1-mini scored **12/12 safe and 8/12 useful**. In all four misses the model either invented an amount, which the verifier discarded, or used a hedged figure as a limit instead of asking. A hedged limit still needed that person's confirmation, so each miss failed safely.
+`npm run eval:revisions` runs 12 frozen briefs from the PRD acceptance spec (clear, ambiguous, infeasible, adversarial) through the real verifier using hand-written reference answers, two of them deliberately unsafe. [`eval/revision-results.json`](eval/revision-results.json) records 12/12 with no unsafe option shown. That measures the verifier, **not** model quality. `npm run eval:revisions:live -- --write` measures the configured model (gpt-4.1-mini, single runs, 2–5 s each). Every live run so far was **100% safe**: no option that could be published exceeded a saved budget, and the verifier removed every invented, misattributed or secondhand amount.
+
+| Live run | Frozen 12 briefs | Held-out 8 briefs |
+| --- | --- | --- |
+| [First run](eval/revision-results-live-baseline.json), [held-out](eval/revision-holdout-results-live-baseline.json) | 8/12 useful | 7/8 useful |
+| [After changes](eval/revision-results-live-tuned.json), [held-out](eval/revision-holdout-results-live-tuned.json) | 12/12 useful | 6/8 useful |
+
+The changes have two parts: an unverifiable limit is now removed instead of discarding the whole option, and the instructions now say to ask rather than guess on hedged, ranged or secondhand amounts. The frozen set was used to choose those changes, so its 12/12 is optimistic. The held-out briefs were [written before any tuning](eval/revision-cases-holdout.json), and they show no clear gain; 7 versus 6 of 8 is within run-to-run noise. The model still sometimes turns “$200 ideal, $210 if we have to” into a limit instead of asking. That person must confirm before the limit counts, so the miss fails safely.
 
 ## Integrated PayPal sandbox group
 

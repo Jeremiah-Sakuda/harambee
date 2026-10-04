@@ -5,8 +5,11 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { Engine, allocate, seed } from "../server/domain.mjs";
 import { proposeRevisions } from "../server/revision-options.mjs";
 
+// --holdout uses briefs written after the first live run and before any tuning on it.
+const holdout = process.argv.includes("--holdout");
+const set = holdout ? "revision-cases-holdout" : "revision-cases";
 const cases = JSON.parse(
-  readFileSync(new URL("../eval/revision-cases.json", import.meta.url), "utf8"),
+  readFileSync(new URL(`../eval/${set}.json`, import.meta.url), "utf8"),
 );
 const live = process.argv.includes("--live");
 if (live && !process.env.OPENAI_API_KEY)
@@ -119,7 +122,8 @@ try {
         feasible: o.feasible,
         caps: capsOf(o),
         shares: o.rows.map((r) => r.share),
-        source: o.source,
+        source: live || o.source !== "openai" ? o.source : "reference",
+        removedLimits: o.removedLimits,
       })),
       clarifications: out.clarifications.length,
       discarded: out.discarded,
@@ -133,6 +137,7 @@ try {
 }
 const report = {
   fixtureVersion: 1,
+  cases: set,
   mode: live ? "live-provider" : "offline-reference-answers-through-verifier",
   liveProviderExecuted: live && results.some((r) => r.provider === "openai"),
   passed: results.filter((r) => r.pass).length,
@@ -149,7 +154,7 @@ console.log(JSON.stringify(report, null, 2));
 if (process.argv.includes("--write"))
   writeFileSync(
     new URL(
-      `../eval/revision-results${live ? "-live" : ""}.json`,
+      `../eval/revision${holdout ? "-holdout" : ""}-results${live ? "-live" : ""}${process.env.EVAL_SUFFIX ? `-${process.env.EVAL_SUFFIX}` : ""}.json`,
       import.meta.url,
     ),
     JSON.stringify(report, null, 2) + "\n",

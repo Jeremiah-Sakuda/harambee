@@ -110,7 +110,13 @@ export default function RevisionOptions({
             </header>
             <p className="rev-explain">{o.explanation}</p>
             {o.tradeoff && <p className="rev-tradeoff">{o.tradeoff}</p>}
-            {o.explanationReplaced && (
+            {o.removedLimits?.length > 0 && (
+              <p className="rev-note">
+                Code removed a limit this suggestion used:{" "}
+                {o.removedLimits.join(" ")}
+              </p>
+            )}
+            {o.explanationReplaced && !o.removedLimits?.length && (
               <p className="rev-note">
                 The suggestion’s own figures didn’t match the math, so this
                 summary was written by code.
