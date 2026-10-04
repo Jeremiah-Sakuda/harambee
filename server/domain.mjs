@@ -29,7 +29,8 @@ export class Engine {
  get current(){return this.state.versions.find(v=>v.number===this.state.version);}
  get active(){return this.state.participants.filter(p=>p.active);}
  assertOrganizer(actor){ensure(actor==='organizer','Only the organizer can do this.',403);}
- assertOpen(){ensure(['collecting','ready','revision_required'].includes(this.state.status),'This plan is no longer open for changes.');ensure(Date.parse(this.state.deadline)>Date.now(),'The collection deadline has passed. Close expired holds first.');}
+ sweepExpiry(){if(['collecting','ready','revision_required'].includes(this.state.status)&&Date.parse(this.state.deadline)<=Date.now())this.expire('organizer');}
+ assertOpen(){this.sweepExpiry();ensure(['collecting','ready','revision_required'].includes(this.state.status),'This plan is no longer open for changes.');ensure(Date.parse(this.state.deadline)>Date.now(),'The collection deadline has passed. Close expired holds first.');}
  approved(id){return this.state.consents.some(c=>c.version===this.state.version && c.participantId===id);}
  held(id){return this.state.payments.filter(p=>p.participantId===id && p.status==='authorized').reduce((s,p)=>s+p.amount,0);}
  ready(){return this.active.every(p=>this.approved(p.id) && this.held(p.id)===this.current.shares.find(s=>s.id===p.id)?.share);}
@@ -59,14 +60,14 @@ export class Engine {
   this.state.status='revision_required';this.log(`${person.name} left. Their holds were voided in the simulator. Remaining participants must approve a new plan.`,'revision');
  }
  revise(actor,{listingId=this.state.listingId}={}) {
-  this.assertOrganizer(actor);this.assertOpen();const listing=catalog.find(l=>l.id===listingId);ensure(listing,'Choose an available cabin.',400);
+  this.assertOrganizer(actor);this.assertOpen();const listing=catalog.find(l=>l.id===listingId);ensure(listing,'Choose an available cabin.',400);ensure(this.active.length<=listing.guests,'This cabin cannot fit the full group. Choose a larger cabin.');
   const shares=allocate(listing.total,this.active);const old=this.current;
   for(const p of this.active){if(listingId!==this.state.listingId||this.held(p.id)>shares.find(s=>s.id===p.id).share)this.state.payments.filter(v=>v.participantId===p.id).forEach(v=>this.voidPayment(v));}
   this.state.version++;this.state.listingId=listingId;this.state.versions.push({number:this.state.version,createdAt:timestamp(),listingId,total:listing.total,shares,reason:listingId!==old.listingId?'A different cabin, a fresh agreement':'Updated group, refreshed shares',rule:'Equal shares, capped by confirmed budgets; leftover cents assigned in roster order.'});this.state.status='collecting';this.log(`Version ${this.state.version} published. Everyone must approve the new allocation before booking.`,'revision');
  }
  budget(actor,value){this.assertOpen();const p=this.active.find(p=>p.id===actor);ensure(p,'Only participants can update their own budget.',403);const budget=money(value);ensure(budget>0,'Budget must be greater than zero.',400);p.budget=budget;this.log(`${p.name} updated their private budget. Existing consent is unchanged; publish a revision if shares need to change.`);}
  book(actor,{version,fault='none'}={}){
-  this.assertOrganizer(actor);if(this.state.status==='confirmed')return;this.assertOpen();ensure(version===this.state.version,'This plan version is stale.');ensure(this.ready(),'Every participant must approve and authorize the exact current share.');ensure(['none','capture_failure','capture_timeout','reservation_failure','refund_pending','lease_expiry','commit_timeout'].includes(fault),'Unknown demo scenario.',400);
+  this.assertOrganizer(actor);if(this.state.status==='confirmed')return;this.assertOpen();ensure(version===this.state.version,'This plan version is stale.');ensure(this.active.length<=catalog.find(l=>l.id===this.state.listingId).guests,'The cabin cannot fit this group.');ensure(this.ready(),'Every participant must approve and authorize the exact current share.');ensure(['none','capture_failure','capture_timeout','reservation_failure','refund_pending','lease_expiry','commit_timeout'].includes(fault),'Unknown demo scenario.',400);
   this.state.status='booking';this.state.fault=fault;this.state.reservation={id:`SIM-RES-${randomUUID().slice(0,8)}`,status:'leased',expiresAt:new Date(Date.now()+60000).toISOString(),listingId:this.state.listingId};this.log('Booking locked. The local merchant reserved fixture inventory.','reservation');
   const holds=this.state.payments.filter(p=>p.status==='authorized');
   for(let i=0;i<holds.length;i++){

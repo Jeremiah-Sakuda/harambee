@@ -11,6 +11,7 @@ export class PayPalSandbox {
  capture(authorizationId,key){return this.request(`/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/capture`,{key,body:{final_capture:true}});}
  void(authorizationId,key){return this.request(`/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/void`,{key});}
  refund(captureId,key){return this.request(`/v2/payments/captures/${encodeURIComponent(captureId)}/refund`,{key,body:{}});}
+ getOrder(id){return this.request(`/v2/checkout/orders/${encodeURIComponent(id)}`,{method:'GET'});}
  getAuthorization(id){return this.request(`/v2/payments/authorizations/${encodeURIComponent(id)}`,{method:'GET'});}
  getCapture(id){return this.request(`/v2/payments/captures/${encodeURIComponent(id)}`,{method:'GET'});}
 }
