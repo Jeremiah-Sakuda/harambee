@@ -1,0 +1,7 @@
+maya payment: approval_required
+withdraw maya -> ERROR 404 PayPal sandbox request failed (404) | plan collecting
+reconcile maya -> ERROR 404 PayPal sandbox request failed (404) | plan collecting
+expire plan -> ok; plan recovery_pending
+recover again -> ok; plan recovery_pending
+payments: jordan:voided, alex:voided, sam:voided, maya:approval_required (PayPal sandbox request failed (404))
+/api/reset would be allowed: false

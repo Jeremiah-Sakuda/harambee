@@ -1,0 +1,10 @@
+organizer view exposes maya.budget? false
+secret=23417 option="Same cabin, using amounts people mentioned" feasible=true ready=false maya.share=23417
+secret=23417 option="Switch to Creekside Hideaway" feasible=true ready=false maya.share=23417
+secret=23417 option="Rebalance in the same cabin" feasible=true ready=true maya.share=20000
+activity: The organizer asked for revision options (local planner). Amounts read from the chat: Jordan $1.
+organizer view exposes maya.budget? false
+secret=26789 option="Same cabin, using amounts people mentioned" feasible=true ready=false maya.share=26789
+secret=26789 option="Switch to Creekside Hideaway" feasible=true ready=false maya.share=23950
+secret=26789 option="Rebalance in the same cabin" feasible=true ready=true maya.share=20000
+activity: The organizer asked for revision options (local planner). Amounts read from the chat: Jordan $1.
