@@ -106,4 +106,4 @@ Use synthetic data. Demo reset clears the simulated trip's stored record; notes 
 
 See [PRD.md](PRD.md) for the original proposed scope, [HACKATHON.md](HACKATHON.md) for judging plans, [SHARED_REQUIREMENTS.md](SHARED_REQUIREMENTS.md) for shared submission requirements, and [DEMO.md](DEMO.md) for a concise recording script. The PRD remains a proposal; this README describes what is actually implemented.
 
-MIT licensed. No repository publication, hosting deployment, or submission video is performed by the app.
+MIT licensed. The [GitHub repository](https://github.com/Jeremiah-Sakuda/harambee) is public (published and verified by the coordinating agent with owner approval). Hosting and a public submission video remain pending; the app does not perform publication.
