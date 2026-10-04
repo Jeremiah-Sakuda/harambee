@@ -1,3 +1,5 @@
+> **Superseded.** This narrated still-image preview was made at commit `e28bc2a`, before the real PayPal sandbox booking and the AI revision options existed. It shows simulated payments and the local parser only. Its statements about pending provider execution are out of date; see the README and `docs/evidence/`.
+
 # Harambee — demo preview
 
 Edited narrated walkthrough using actual local UI captures. Payments are simulated; provider/model execution is not established by this video. Synthetic examples are not user-validation evidence.

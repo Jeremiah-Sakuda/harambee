@@ -1,12 +1,23 @@
-# Harambee
+# Harambee — group trips where nobody fronts the money
 
-**A little agreement. A great escape.** A working local hackathon prototype for group cabin commitments, versioned consent, and transparent payment recovery.
+**A little agreement. A great escape.** *Harambee* means “all pull together” in Swahili.
 
-[Browser verification and preview](docs/BROWSER_QA.md)
+![Harambee commitment board](docs/preview.png)
 
-The trip defaults to **simulated payments and local fixture inventory**. An optional **integrated PayPal sandbox group mode** runs the same versioned agreement through separate buyer orders, authorizations, exact top-ups, captures and compensating refunds/voids. A diagnostic lab also remains available. Neither path purchases real lodging. The integrated path has completed a [real PayPal sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md): three buyers, one dropout with a voided authorization, two exact top-ups, and $600 captured. No live-model result is claimed.
+**The problem:** one friend books the $600 cabin, then spends weeks chasing everyone for their share. When someone drops out, that friend absorbs the gap.
+**Who it’s for:** groups of 3–8 friends booking a shared stay.
 
-[Remediation and remaining evidence gates](docs/REMEDIATION.md) · [Frozen local evaluation](eval/results.json)
+**How it works:**
+
+1. Each friend approves their own exact share with a **PayPal authorization**. It is a hold, not a charge, and nobody is charged until everyone is in.
+2. When someone drops out, their hold is voided. The group’s chat becomes **verified revision options**: a model proposes, and code checks every quote and computes every share. A limit like “I can’t go above $170” only counts once that person confirms it.
+3. Everyone approves the new version. Earlier approval never covers an increase, so each person authorizes only the difference in their own PayPal checkout. Then Harambee captures and books.
+
+| Real | Simulated or pending |
+| --- | --- |
+| PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
+| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (62 tests) | Default no-credentials mode simulates payments |
+| Code verification of AI options: 12 frozen briefs, no unsafe option shown | A live model run: implemented, **not yet recorded** (needs `OPENAI_API_KEY`; see below) |
 
 ## Run locally
 
@@ -38,7 +49,7 @@ The native Node test suite covers exact allocations, private budget projection, 
 
 1. Start with four friends and the $600 Pine & Still cabin. Click **Review** beside each person, review their saved private $220 ceiling (use **Save budget only** for edits), and select **Agree & authorize simulated hold**. The demo role switch intentionally lets one judge act as each participant.
 2. Switch to Organizer. Withdraw Sam using the exit icon. Their hold is voided, and the plan requires a revision.
-3. Choose **Suggest options**. Harambee reads the group chat in **Planning notes**. The sample chat includes Sam leaving, Maya saying she “can’t go above $170” now, and Alex preferring the cheaper cabin. It shows verified options with every share and top-up computed by code. See [Revision options](#revision-options-after-a-dropout). The plain **Rebalance** splits within saved budgets ($200 each).
+3. Choose **Suggest options**. Harambee reads the group chat in **Planning notes**. In the sample chat Sam leaves, Maya says she “can’t go above $170” now, and Alex prefers the cheaper cabin. Code computes every share and top-up for the verified options. Maya’s $170 option waits for **Ask Maya to confirm $170**; the plain rebalance ($200 each) and the cheaper cabin ($160 each) are always available. See [Revision options](#revision-options-after-a-dropout).
 4. Publish an option. Each remaining friend explicitly approves the new version and their exact top-up. The original version never grants permission for an increase.
 5. Return to Organizer and book. The system locks the plan, captures each simulated payment, and commits local inventory. Open **Activity & receipts** or export the JSON evidence.
 6. Reset and approve the group again. Under **Demo scenarios**, choose a capture failure or timeout before booking. **Reconcile & recover** returns confirmed captures, voids unused holds, and releases inventory. The pending-refund scenario requires a second recovery pass; it cannot falsely report completion.
@@ -74,9 +85,11 @@ Code then decides what is shown:
 - Failing suggestions are listed as discarded, and ambiguity becomes a clarification question.
 - The plain rebalance is always included for comparison.
 
-An option that depends on a stated limit stays unpublishable until that person saves the limit as their own budget (**Ask Maya to confirm $170**). Publishing recomputes the split and refuses if budgets or the roster changed, before any real authorization is released. Each person then approves their own new share and top-up.
+If a person’s stated limit sets their share in an option, that option can’t be published until they explicitly confirm the limit (**Ask Maya to confirm $170**). Confirming makes it their saved budget. Options are stored on the server and published by ID, so neither the shares nor the “suggested by” record come from the browser. Publishing recomputes the split from saved budgets and refuses if anything changed, before any real authorization is released. Each person then approves their own new share and top-up.
 
-Without a key, or if the model fails, a **local planner (not AI)** shows cabin options and applies only plain “Name: $amount” lines.
+Privacy: the model never receives saved budgets. Checks never compare a proposed limit with anyone’s private budget. Any what-if split can still reveal something about others’ limits, as a published split does, so option requests are limited to five per plan version. Each request is recorded in Activity with the amounts read from the chat.
+
+Without a key, or if the model fails, a **local planner (not AI)** takes the latest dollar amount each person wrote, without interpreting wording. Anyone whose share depends on it must confirm.
 
 `npm run eval:revisions` runs 12 frozen briefs from the PRD acceptance spec (clear, ambiguous, infeasible, adversarial) through the real verifier using hand-written reference answers, two of them deliberately unsafe. [`eval/revision-results.json`](eval/revision-results.json) records 12/12 with no unsafe option shown. That measures the verifier, **not** model quality. `npm run eval:revisions:live -- --write` measures the configured model; it has not been run.
 
@@ -119,12 +132,12 @@ References: [PayPal delayed capture](https://developer.paypal.com/checkout/delay
 
 ## Scope and release gates
 
-This is a usable hackathon MVP, not a production payment service. It intentionally uses a single current trip, local merchant fixtures, fixed stay dates, and a visible demo role switch. The first real-money release would require real authentication, isolated user accounts and durable transactional storage; live proof of the implemented multi-buyer PayPal orchestration; verified and deduplicated webhooks; reservation inventory integration; provider reconciliation jobs; retention policy and deletion controls; and observed user/evaluation evidence.
+This is a usable hackathon MVP, not a production payment service. It intentionally uses a single current trip, local merchant fixtures, fixed stay dates, and a visible demo role switch. The first real-money release would require real authentication, isolated user accounts and durable transactional storage; broader live evidence (refund recovery against PayPal has not yet been recorded); verified and deduplicated webhooks; reservation inventory integration; provider reconciliation jobs; retention policy and deletion controls; and observed user/evaluation evidence.
 
 Public hosting is not configured. Default binding is loopback, and the API accepts only local browser origins. No real merchant reservations, payouts, organizer wallets, money transmission, real payment success, fee economics, or user impact are claimed. Google Fonts is the only optional external asset request; system fonts are fallbacks. The cabin art is original inline SVG and works offline.
 
 Use synthetic data. Demo reset clears the simulated trip's stored record; notes never persist. Local financial fixtures remain until reset/deletion, and sandbox audit records remain until explicitly removed after reconciliation. Do not delete unresolved sandbox evidence. These defaults do not establish a production financial-data retention policy.
 
-See [PRD.md](PRD.md) for the original proposed scope, [HACKATHON.md](HACKATHON.md) for judging plans, [SHARED_REQUIREMENTS.md](SHARED_REQUIREMENTS.md) for shared submission requirements, and [DEMO.md](DEMO.md) for a concise recording script. The PRD remains a proposal; this README describes what is actually implemented.
+See [PRD.md](PRD.md) for the original proposed scope, [HACKATHON.md](HACKATHON.md) for judging plans, [SHARED_REQUIREMENTS.md](SHARED_REQUIREMENTS.md) for shared submission requirements. The PRD remains a proposal; this README describes what is actually implemented.
 
-MIT licensed. The [GitHub repository](https://github.com/Jeremiah-Sakuda/harambee) is public (published and verified by the coordinating agent with owner approval). Hosting and a public submission video remain pending; the app does not perform publication.
+MIT licensed. Source: [github.com/Jeremiah-Sakuda/harambee](https://github.com/Jeremiah-Sakuda/harambee).
