@@ -1,34 +1,48 @@
-const localInterpret = (text) => {
-  const lines = text
+// Conservative USD source grounding. This rejects ambiguous values instead of guessing.
+export function groundLine(source) {
+  const person = /^\s*([^:]{1,60}):/.exec(source)?.[1].trim() || "Unassigned";
+  const matches = [
+    ...source.matchAll(/(?:\$|USD\s+)([0-9][0-9,.]*)(?![0-9])/gi),
+  ];
+  const token = matches[0]?.[1].replace(/\.$/, "");
+  const valid =
+    token && /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(token);
+  const ambiguous =
+    matches.length !== 1 ||
+    !valid ||
+    /maybe|might|not sure|either|\bor\b|\bbut\b|ignore|override|not my|per night|each night|EUR|GBP|€|£|\$\d[\d,.]*[kKmM]\b/.test(
+      source,
+    );
+  const cents = valid
+    ? Math.round(Number(token.replaceAll(",", "")) * 100)
+    : null;
+  return {
+    person,
+    budgetCents: !ambiguous && cents <= 10_000_000 ? cents : null,
+    needsReview: ambiguous || person === "Unassigned" || cents > 10_000_000,
+  };
+}
+export const localInterpret = (text) => ({
+  summary:
+    "Review these source-linked preferences before changing the plan. Budget suggestions never change approved amounts.",
+  constraints: text
     .split("\n")
     .map((source, index) => ({ source, index }))
-    .filter((row) => row.source.trim());
-  return {
-    summary:
-      "Review these source-linked preferences before changing the plan. Budget suggestions never change approved amounts.",
-    constraints: lines.map(({ source, index }) => {
-      const amount = source.match(/\$(\d+(?:\.\d{1,2})?)/);
-      return {
-        source: source.slice(0, 500),
-        line: index + 1,
-        person: source.split(":")[0].slice(0, 60),
-        budgetCents: amount ? Math.round(Number(amount[1]) * 100) : null,
-        needsReview:
-          !amount ||
-          (source.match(/\$/g) || []).length > 1 ||
-          /maybe|might|not sure|either|but|ignore|override/i.test(source),
-        preference: source
-          .slice(source.indexOf(":") + 1)
-          .trim()
-          .slice(0, 300),
-      };
-    }),
-    provider: "local-parser",
-    model: null,
-    latencyMs: 0,
-    usage: null,
-  };
-};
+    .filter((r) => r.source.trim())
+    .map(({ source, index }) => ({
+      source: source.slice(0, 500),
+      line: index + 1,
+      ...groundLine(source),
+      preference: source
+        .slice(source.indexOf(":") + 1)
+        .trim()
+        .slice(0, 300),
+    })),
+  provider: "local-parser",
+  model: null,
+  latencyMs: 0,
+  usage: null,
+});
 export async function interpret(text) {
   if (typeof text !== "string" || text.length < 3 || text.length > 8000)
     throw new Error("Enter 3–8,000 characters of consented planning notes.");
@@ -120,6 +134,19 @@ export async function interpret(text) {
             c.budgetCents > 10_000_000))
       )
         throw new Error("Unverified model source or amount");
+      const grounded = groundLine(text.split("\n")[c.line - 1]);
+      if (
+        c.person.trim().toLowerCase() !== grounded.person.toLowerCase() ||
+        c.budgetCents !== grounded.budgetCents
+      ) {
+        c.groundingWarning =
+          "The extracted person or amount conflicted with the source. Use the source-grounded draft and confirm manually.";
+        c.preference = text.split("\n")[c.line - 1].slice(0, 300);
+        c.person = grounded.person;
+        c.budgetCents = grounded.budgetCents;
+        c.needsReview = true;
+      }
+      c.needsReview ||= grounded.needsReview;
     }
     return {
       ...result,

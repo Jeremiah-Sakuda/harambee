@@ -25,14 +25,14 @@ export class SandboxLab {
   view() {
     return { configured: !!this.client, sessions: this.state.sessions };
   }
-  async run(action, { id, amount } = {}) {
+  async run(action, { id, amount, groupPlanId } = {}) {
     if (!this.client)
       throw new DomainError(
         "Add sandbox credentials to .env and restart to enable real sandbox calls.",
         503,
       );
     let session = this.state.sessions.find((s) => s.id === id);
-    if (action === "create") {
+    if (action === "create" && !session) {
       money(amount);
       if (amount < 100 || amount > 50000)
         throw new DomainError(
@@ -40,8 +40,9 @@ export class SandboxLab {
           400,
         );
       session = {
-        id: randomUUID(),
+        id: id || randomUUID(),
         amount,
+        groupPlanId: groupPlanId || null,
         status: "created",
         operations: [],
         at: new Date().toISOString(),
@@ -61,6 +62,11 @@ export class SandboxLab {
           );
         const previousStatus = session.status;
         const order = await this.client.getOrder(session.orderId);
+        session.payerId =
+          order.payer?.payer_id ||
+          order.payment_source?.paypal?.account_id ||
+          session.payerId ||
+          null;
         const auth = order.purchase_units?.flatMap(
           (u) => u.payments?.authorizations ?? [],
         )[0];
@@ -103,6 +109,31 @@ export class SandboxLab {
             order.status === "APPROVED"
               ? "buyer_approved"
               : "approval_required";
+        const confirmedByState = {
+          create: !!session.orderId,
+          authorize:
+            !!session.authorizationId &&
+            !session.status.startsWith("authorization_"),
+          capture: ["captured", "refunded", "refund_pending"].includes(
+            session.status,
+          ),
+          void: session.status === "voided",
+          refund: session.status === "refunded",
+        };
+        for (const op of session.operations) {
+          if (confirmedByState[op.type]) {
+            op.status = "confirmed";
+            delete op.error;
+          }
+        }
+        const unresolved = session.operations.find((o) =>
+          ["pending", "unknown"].includes(o.status),
+        );
+        if (unresolved) {
+          session.status = `${unresolved.type}_unknown`;
+          session.investigation =
+            "The provider has not proved the prior operation outcome. Inspect sandbox activity and reconcile again; no replacement charge is allowed.";
+        } else delete session.investigation;
         session.lastReconciledAt = new Date().toISOString();
         this.save();
         return this.view();
@@ -155,9 +186,16 @@ export class SandboxLab {
           session.approvalUrl = r.links?.find(
             (l) => l.rel === "approve" || l.rel === "payer-action",
           )?.href;
+          if (
+            session.approvalUrl &&
+            new URL(session.approvalUrl).hostname !== "www.sandbox.paypal.com"
+          )
+            throw new Error("Unexpected checkout host");
           session.status = "approval_required";
         }
         if (action === "authorize") {
+          session.payerId =
+            r.payer?.payer_id || r.payment_source?.paypal?.account_id || null;
           const a = r.purchase_units?.flatMap(
             (u) => u.payments?.authorizations ?? [],
           )[0];

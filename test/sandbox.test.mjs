@@ -182,3 +182,31 @@ test("reconciliation preserves a pending refund even while capture is completed"
   assert.equal(lab.state.sessions[0].status, "refund_pending");
   await assert.rejects(lab.run("refund", { id: "session" }), /Reconcile/);
 });
+
+test("a CREATED authorization does not erase an unknown capture or offer a new capture", async () => {
+  const lab = fixture({
+    capture: async () => {
+      throw Error("timeout");
+    },
+    getOrder: async () => ({
+      purchase_units: [{ payments: { authorizations: [{ id: "AUTH" }] } }],
+    }),
+    getAuthorization: async () => ({
+      status: "CREATED",
+      amount: { currency_code: "USD", value: "1.00" },
+    }),
+  });
+  lab.state.sessions.push({
+    id: "session",
+    amount: 100,
+    status: "authorized",
+    authorizationId: "AUTH",
+    orderId: "ORDER",
+    operations: [],
+  });
+  await assert.rejects(lab.run("capture", { id: "session" }));
+  await lab.run("reconcile", { id: "session" });
+  assert.equal(lab.state.sessions[0].status, "capture_unknown");
+  assert.match(lab.state.sessions[0].investigation, /not proved/);
+  await assert.rejects(lab.run("capture", { id: "session" }), /Reconcile/);
+});

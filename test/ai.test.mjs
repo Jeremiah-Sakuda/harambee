@@ -111,3 +111,57 @@ test("fabricated sources and provider failures visibly fall back to local review
     else delete process.env.OPENAI_API_KEY;
   }
 });
+
+test("currency notation and semantic grounding reject wrong model amounts and attribution", async () => {
+  const oldKey = process.env.OPENAI_API_KEY,
+    oldFetch = globalThis.fetch;
+  delete process.env.OPENAI_API_KEY;
+  assert.equal(
+    (await interpret("Maya: $1,000.50 maximum")).constraints[0].budgetCents,
+    100050,
+  );
+  assert.equal(
+    (await interpret("Maya: $1,00 maximum")).constraints[0].budgetCents,
+    null,
+  );
+  process.env.OPENAI_API_KEY = "fixture";
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      status: "completed",
+      output: [
+        {
+          content: [
+            {
+              type: "output_text",
+              text: JSON.stringify({
+                summary: "Draft",
+                constraints: [
+                  {
+                    source: "Maya: $220 maximum",
+                    line: 1,
+                    person: "Sam",
+                    budgetCents: 99900,
+                    needsReview: false,
+                    preference: "Budget $999",
+                  },
+                ],
+              }),
+            },
+          ],
+        },
+      ],
+    }),
+  });
+  try {
+    const c = (await interpret("Maya: $220 maximum")).constraints[0];
+    assert.equal(c.person, "Maya");
+    assert.equal(c.budgetCents, 22000);
+    assert.equal(c.needsReview, true);
+    assert.match(c.groundingWarning, /conflicted/);
+  } finally {
+    globalThis.fetch = oldFetch;
+    if (oldKey) process.env.OPENAI_API_KEY = oldKey;
+    else delete process.env.OPENAI_API_KEY;
+  }
+});

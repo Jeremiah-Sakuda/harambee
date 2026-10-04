@@ -149,7 +149,7 @@ export class Engine {
       ) &&
       Date.parse(this.state.deadline) <= Date.now()
     )
-      this.expire("organizer");
+      if (this.state.provider !== "paypal-sandbox") this.expire("organizer");
   }
   assertOpen() {
     this.sweepExpiry();
@@ -177,6 +177,22 @@ export class Engine {
       this.current.shares.length === this.active.length &&
       this.current.shares.reduce((sum, share) => sum + share.share, 0) ===
         this.current.total &&
+      (this.state.provider !== "paypal-sandbox" ||
+        this.active.every((person) => {
+          const holds = this.state.payments.filter(
+            (p) => p.participantId === person.id && p.status === "authorized",
+          );
+          return holds.every(
+            (p) =>
+              p.payerId &&
+              !this.state.payments.some(
+                (other) =>
+                  other.participantId !== person.id &&
+                  other.status === "authorized" &&
+                  other.payerId === p.payerId,
+              ),
+          );
+        })) &&
       this.active.every((p) => {
         const share = this.current.shares.find((s) => s.id === p.id)?.share;
         return (
@@ -212,6 +228,10 @@ export class Engine {
     return op;
   }
   approve(actor, version) {
+    ensure(
+      this.state.provider !== "paypal-sandbox",
+      "Use the sandbox coordinator.",
+    );
     this.assertOpen();
     ensure(
       this.state.status !== "revision_required",
@@ -267,7 +287,11 @@ export class Engine {
     );
   }
   voidPayment(payment) {
-    if (payment.status !== "authorized") return;
+    if (!["authorized", "void_pending"].includes(payment.status)) return;
+    ensure(
+      this.state.provider !== "paypal-sandbox",
+      "Sandbox holds must be released through the provider coordinator.",
+    );
     payment.status = "void_pending";
     this.operation("void", payment, payment.amount, (op) => {
       op.status = "confirmed";
@@ -293,7 +317,7 @@ export class Engine {
       .forEach((p) => this.voidPayment(p));
     this.state.status = "revision_required";
     this.log(
-      `${person.name} left. Their holds were voided in the simulator. Remaining participants must approve a new plan.`,
+      `${person.name} left. Their holds were released. Remaining participants must approve a new plan.`,
       "revision",
     );
   }
@@ -351,6 +375,10 @@ export class Engine {
     );
   }
   book(actor, { version, fault = "none" } = {}) {
+    ensure(
+      this.state.provider !== "paypal-sandbox",
+      "Use the sandbox coordinator.",
+    );
     this.assertOrganizer(actor);
     if (this.state.status === "confirmed") return;
     this.assertOpen();
@@ -502,9 +530,14 @@ export class Engine {
     }
     if (this.state.reservation) this.state.reservation.status = "cancelled";
     this.state.status = this.state.payments.some((p) =>
-      ["refund_pending", "unknown", "capture_pending", "captured"].includes(
-        p.status,
-      ),
+      [
+        "refund_pending",
+        "unknown",
+        "capture_pending",
+        "captured",
+        "void_pending",
+        "authorized",
+      ].includes(p.status),
     )
       ? "recovery_pending"
       : "cancelled";

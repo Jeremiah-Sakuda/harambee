@@ -223,3 +223,30 @@ test("lowering a confirmed ceiling blocks booking until fresh allocation and con
   assert.equal(e.current.shares.find((s) => s.id === "maya").share, 10000);
   assert.equal(e.state.status, "collecting");
 });
+
+test("every persisted cancelling/void boundary replays to a confirmed terminal state", () => {
+  let disk;
+  const snapshots = [];
+  const store = {
+    load: () => structuredClone(disk),
+    save: (s) => {
+      disk = structuredClone(s);
+      snapshots.push(structuredClone(s));
+    },
+  };
+  const engine = new Engine(store);
+  engine.approve("maya", 1);
+  engine.expire("organizer");
+  const interrupted = snapshots.filter((s) => s.status === "cancelling");
+  assert.ok(interrupted.some((s) => s.payments[0].status === "void_pending"));
+  for (const snapshot of interrupted) {
+    disk = snapshot;
+    const restarted = new Engine(store);
+    restarted.recover("organizer");
+    assert.equal(restarted.state.status, "cancelled");
+    assert.equal(restarted.state.payments[0].status, "voided");
+    assert.ok(
+      restarted.state.operations.every((o) => o.status === "confirmed"),
+    );
+  }
+});
