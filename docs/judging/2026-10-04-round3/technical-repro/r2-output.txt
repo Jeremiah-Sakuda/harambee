@@ -1,0 +1,7 @@
+book: REJECTED -> Provider result unknown; reconciliation required.
+recover #1: OK 
+recover #2: OK 
+recover #3: OK 
+plan: recovery_pending | payments: maya:capture_unknown, jordan:voided, alex:voided
+PayPal authorization statuses: AO1:CREATED, AO2:VOIDED, AO3:VOIDED
+recoveryError: A prior payment is unresolved. Reconcile it before changing the plan.

@@ -1,0 +1,6 @@
+capped option ready? false rows: [ 17000, 21500, 21500 ]
+publish capped option before Maya confirms: REJECTED -> Budgets or the group changed since this option was shown. Refresh the options before publishing.
+publish with forged shares under Maya's budget: REJECTED -> Budgets or the group changed since this option was shown. Refresh the options before publishing.
+publish with forged provenance, no option ever generated: OK 
+audit: Version 2 published from the option “GPT-5 optimal fairness plan” (suggested by gpt-5-pro, verified by code). Everyone must approve the new allocation before booking.
+version shares vs budgets: maya:20000/22000 jordan:20000/22000 alex:20000/22000
