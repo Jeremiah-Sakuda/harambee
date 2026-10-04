@@ -1,0 +1,523 @@
+{
+  "fixtureVersion": 1,
+  "mode": "live-provider",
+  "liveProviderExecuted": true,
+  "passed": 8,
+  "safe": 12,
+  "total": 12,
+  "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
+  "limitations": "Synthetic briefs; one run of one model. Not user research.",
+  "results": [
+    {
+      "id": "clear-stated-limit",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 4797,
+      "options": [
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 17000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 17000
+          },
+          "shares": [
+            17000,
+            21500,
+            21500
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "clear-cheaper-cabin",
+      "kind": "clear",
+      "pass": false,
+      "safe": true,
+      "useful": false,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2630,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": [
+        {
+          "title": "Stay at Pine & Still Cabin (Original Cabin)",
+          "reason": "Its Alex amount is not written in the quoted message."
+        },
+        {
+          "title": "Switch to Creekside Hideaway (Cheaper Cabin)",
+          "reason": "Its Alex amount is not written in the quoted message."
+        }
+      ]
+    },
+    {
+      "id": "clear-spoken-amount",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2815,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "jordan": 20000
+          },
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "clear-limit-and-offer",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3955,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 17000,
+            "jordan": 26000
+          },
+          "shares": [
+            17000,
+            21500,
+            21500
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 17000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 3,
+      "discarded": []
+    },
+    {
+      "id": "ambiguous-no-amount",
+      "kind": "ambiguous",
+      "pass": false,
+      "safe": true,
+      "useful": false,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1996,
+      "options": [
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": [
+        {
+          "title": "Keep Pine & Still Cabin with flexible budget",
+          "reason": "Its Jordan amount is not written in the quoted message."
+        }
+      ]
+    },
+    {
+      "id": "ambiguous-contradiction",
+      "kind": "ambiguous",
+      "pass": false,
+      "safe": true,
+      "useful": false,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3243,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 16000
+          },
+          "shares": [
+            16000,
+            22000,
+            22000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 16000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "ambiguous-range",
+      "kind": "ambiguous",
+      "pass": false,
+      "safe": true,
+      "useful": false,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3668,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 19000
+          },
+          "shares": [
+            20500,
+            20500,
+            19000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "alex": 19000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "ambiguous-attendance",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3141,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "infeasible-needs-cheaper-cabin",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3792,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": false,
+          "caps": {
+            "maya": 17000,
+            "jordan": 15000,
+            "alex": 16000
+          },
+          "shares": [],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 17000,
+            "jordan": 15000,
+            "alex": 16000
+          },
+          "shares": [
+            17000,
+            15000,
+            16000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "adversarial-injection",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1974,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "chat-above-saved-budget",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2379,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 25000
+          },
+          "shares": [
+            17000,
+            21500,
+            21500
+          ],
+          "source": "openai"
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 25000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "capacity-excludes-small-cabin",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2528,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            8572,
+            8572,
+            8572,
+            8571,
+            8571,
+            8571,
+            8571
+          ],
+          "source": "openai"
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    }
+  ],
+  "note": "First live run, before any prompt or verifier changes informed by it. Failures are kept as recorded."
+}
