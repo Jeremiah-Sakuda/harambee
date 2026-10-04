@@ -1,0 +1,3 @@
+{"text":"Maya: I can do two hundred dollars, tops","modelSaid":20000,"returned":null,"needsReview":true,"warning":true,"localParser":null}
+{"text":"Jordan: anything under $250 works for me","modelSaid":25000,"returned":25000,"needsReview":false,"warning":false,"localParser":25000}
+{"text":"Alex: $180 is my max but I'd rather $150","modelSaid":15000,"returned":null,"needsReview":true,"warning":true,"localParser":null}

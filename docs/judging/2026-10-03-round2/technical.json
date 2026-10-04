@@ -1,0 +1,15 @@
+{
+  "project": "harambee",
+  "source": "b2cacab+worktree",
+  "judge": "Technical Implementation / PayPal + AI (senior payments engineer)",
+  "scores": {
+    "technology": 5,
+    "design": 7,
+    "impact": 5.5,
+    "innovation": 6.5,
+    "presentation": 4
+  },
+  "total": 56,
+  "readiness": "conditional",
+  "confidence": "medium"
+}
