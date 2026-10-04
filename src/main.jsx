@@ -230,18 +230,19 @@ function App() {
     setRevBusy(true);
     setError("");
     try {
-      const r = await fetch("/api/revision-options", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-demo-actor": "organizer",
+      const r = await fetch(
+        recheck ? "/api/revision-options/recheck" : "/api/revision-options",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-demo-actor": "organizer",
+          },
+          body: JSON.stringify(
+            recheck ? { batchId: revOptions.batchId } : { notes },
+          ),
         },
-        body: JSON.stringify(
-          recheck
-            ? { notes, recheck: revOptions.options.map((o) => o.proposal) }
-            : { notes },
-        ),
-      });
+      );
       const data = await r.json();
       if (!r.ok) throw Error(data.error);
       setRevOptions((prev) =>
@@ -255,14 +256,8 @@ function App() {
   }
   async function publishOption(o) {
     if (
-      await act("revise", {
-        listingId: o.listingId,
-        expectedShares: o.rows.map((r) => ({
-          id: r.participantId,
-          share: r.share,
-        })),
-        proposal: { ...o.proposal, title: o.title, model: revOptions?.model },
-      })
+      // The server resolves the option by ID; shares and provenance never come from here.
+      await act("revise", { optionId: o.id })
     ) {
       setRevOptions(null);
       setNotice(
@@ -270,9 +265,22 @@ function App() {
       );
     }
   }
+  async function confirmLimit(c) {
+    if (
+      await act(
+        "confirm-limit",
+        { amountCents: c.amountCents },
+        c.participantId,
+      )
+    ) {
+      setModal(null);
+      await load("organizer");
+    }
+  }
   async function review(p, suggestion = null) {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const r = await fetch("/api/state", {
         headers: { "x-demo-actor": p.id },
@@ -339,7 +347,12 @@ function App() {
     captured = state.payments
       .filter((p) => p.status === "captured" || p.status === "refund_pending")
       .reduce((s, p) => s + p.amount, 0),
-    count = active.filter((p) => approved(p.id)).length,
+    // Approvals only count toward an open or booked plan; a plan awaiting revision has none yet.
+    count = ["collecting", "ready", "booking", "confirmed"].includes(
+      state.status,
+    )
+      ? active.filter((p) => approved(p.id)).length
+      : 0,
     isOpen = ["collecting", "ready", "revision_required"].includes(
       state.status,
     ),
@@ -599,15 +612,11 @@ function App() {
                     <div>
                       <strong>The group changed. The plan can, too.</strong>
                       <p>
-                        Rebalance within confirmed budgets. Everyone reviews
-                        their new share.
+                        {isOrganizer
+                          ? "Choose a new plan below. Everyone reviews and approves their own new share."
+                          : "The organizer is choosing a new plan. You’ll review your new share before anything changes."}
                       </p>
                     </div>
-                    {isOrganizer && (
-                      <button disabled={busy} onClick={() => act("revise")}>
-                        Rebalance <ArrowRight size={15} />
-                      </button>
-                    )}
                   </div>
                 )}
                 {state.status === "revision_required" && isOrganizer && (
@@ -624,14 +633,11 @@ function App() {
                         ...prev,
                         asked: [...(prev.asked ?? []), c.participantId],
                       }));
-                      review(
-                        active.find((p) => p.id === c.participantId),
-                        {
-                          source: c.quote,
-                          budgetCents: c.amountCents,
-                          needsReview: false,
-                        },
-                      );
+                      setModal({
+                        kind: "limit",
+                        id: c.participantId,
+                        limit: c,
+                      });
                     }}
                   />
                 )}
@@ -1115,7 +1121,13 @@ function App() {
                       : "Group commitment"}
                   </span>
                   <strong>
-                    {count}/{active.length} approved
+                    {state.status === "revision_required"
+                      ? "Waiting for a new plan"
+                      : state.status === "cancelled"
+                        ? "Closed"
+                        : state.status === "recovery_pending"
+                          ? "Booking stopped"
+                          : `${count}/${active.length} approved`}
                   </strong>
                 </div>
                 <div
@@ -1233,9 +1245,16 @@ function App() {
                 <button
                   className="primary full"
                   disabled={busy || !isOrganizer}
-                  onClick={() => act("revise")}
+                  onClick={() =>
+                    document
+                      .getElementById("revision-options")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
                 >
-                  Publish revised shares <ArrowRight size={16} />
+                  {isOrganizer
+                    ? "Choose a new plan"
+                    : "Waiting for the organizer’s new plan"}{" "}
+                  <ArrowRight size={16} />
                 </button>
               ) : currentPerson && !approved(actor) ? (
                 <button
@@ -1337,6 +1356,21 @@ function App() {
               Review version {state.version} for {listing.name}. This approval
               belongs to {modalPerson.name} in the local demo.
             </p>
+            {(() => {
+              const before = state.versions
+                .find((v) => v.number === state.version - 1)
+                ?.shares.find((s) => s.id === modalPerson.id)?.share;
+              return (
+                before !== undefined &&
+                before !== shareFor(modalPerson.id) && (
+                  <p className="change-why">
+                    {state.current.reason}. Your share changes from{" "}
+                    {usd(before)} to {usd(shareFor(modalPerson.id))}. Your
+                    earlier approval doesn’t cover the difference.
+                  </p>
+                )
+              );
+            })()}
             <div className="consent-amount">
               <span>Your exact share</span>
               <strong>{usd(shareFor(modalPerson.id))}</strong>
@@ -1629,6 +1663,55 @@ function App() {
             </button>
           </>
         )}
+        {modal?.kind === "limit" && modalPerson && (
+          <>
+            <span className="eyebrow">A QUICK QUESTION</span>
+            <p className="demo-as">
+              Demo: shown to {modalPerson.name}. In a real trip only they would
+              see this.
+            </p>
+            <h2>
+              Use {usd(modal.limit.amountCents)} as your limit,{" "}
+              {modalPerson.name.split(" ")[0]}?
+            </h2>
+            <p>
+              {state.participants
+                .filter((p) => !p.active)
+                .map((p) => p.name.split(" ")[0])
+                .join(" and ") || "Someone"}{" "}
+              left, so the organizer is choosing a new plan. One option uses
+              what you wrote:
+            </p>
+            <blockquote className="limit-quote">
+              “{modal.limit.quote.replace(/^[^:]*:\s*/, "")}”
+            </blockquote>
+            <p>
+              Confirming saves {usd(modal.limit.amountCents)} as your private
+              budget. The group sees that you confirmed this amount, which you
+              already shared in the chat. Nothing is charged; you’ll still
+              review and approve your new share.
+            </p>
+            {error && (
+              <p className="inline-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button
+              className="primary full"
+              disabled={busy}
+              onClick={() => confirmLimit(modal.limit)}
+            >
+              Confirm {usd(modal.limit.amountCents)} as my limit
+            </button>
+            <button
+              className="secondary full"
+              disabled={busy}
+              onClick={() => setModal(null)}
+            >
+              Not now
+            </button>
+          </>
+        )}
         {modal?.kind === "allocation" && (
           <>
             <span className="eyebrow">TRANSPARENT BY DESIGN</span>
@@ -1652,7 +1735,7 @@ function App() {
               Changing a roster or cabin creates a new immutable version. Prior
               agreement never approves an increase.
             </p>
-            {isOrganizer && isOpen && (
+            {isOrganizer && isOpen && state.status !== "revision_required" && (
               <button
                 className="secondary full"
                 disabled={busy}

@@ -8,7 +8,11 @@ import { interpret } from "./ai.mjs";
 import { PayPalSandbox } from "./paypal.mjs";
 import { GroupPayments } from "./group-payments.mjs";
 import { SandboxLab } from "./sandbox-lab.mjs";
-import { proposeRevisions } from "./revision-options.mjs";
+import {
+  proposeRevisions,
+  recheckRevisions,
+  resolveOption,
+} from "./revision-options.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 try {
   process.loadEnvFile(path.join(root, ".env"));
@@ -112,11 +116,12 @@ const server = http.createServer(async (req, res) => {
         return json(
           res,
           200,
-          await proposeRevisions(engine, {
-            notes: input.notes,
-            recheck: input.recheck,
-          }),
+          await proposeRevisions(engine, { notes: input.notes }),
         );
+      }
+      if (url.pathname === "/api/revision-options/recheck") {
+        engine.assertOrganizer(actor);
+        return json(res, 200, recheckRevisions(engine, input.batchId));
       }
       if (mutating)
         throw new DomainError(
@@ -278,7 +283,17 @@ const server = http.createServer(async (req, res) => {
           await payments.withdraw(actor, input.participantId);
           break;
         case "/api/revise":
-          await payments.revise(actor, input);
+          // Options publish by server-issued ID: shares and provenance never come from the client.
+          await payments.revise(
+            actor,
+            input.optionId
+              ? (engine.assertOrganizer(actor),
+                resolveOption(engine, input.optionId))
+              : { listingId: input.listingId },
+          );
+          break;
+        case "/api/confirm-limit":
+          engine.confirmLimit(actor, input.amountCents);
           break;
         case "/api/budget":
           engine.budget(actor, input.amount);

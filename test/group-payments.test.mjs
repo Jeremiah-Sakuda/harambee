@@ -357,3 +357,114 @@ test("a stale revision option is rejected before any sandbox hold is released", 
     ["authorized", "voided", "authorized"],
   );
 });
+
+// PayPal-Request-Id semantics: a repeated key returns the original result instead of acting twice.
+function idempotent(f, name) {
+  const real = f.client[name],
+    seen = new Map();
+  let executed = 0;
+  f.client[name] = async (id, key) => {
+    if (!seen.has(key)) {
+      executed++;
+      seen.set(key, await real(id, key));
+    }
+    return seen.get(key);
+  };
+  return () => executed;
+}
+const age = (f, type) =>
+  f.lab.state.sessions
+    .flatMap((s) => s.operations)
+    .filter((o) => o.type === type)
+    .forEach((o) => (o.at = new Date(Date.now() - 120000).toISOString()));
+
+test("an authorize timeout is settled by replaying the same request ID, not left stuck", async () => {
+  const f = fixture();
+  const executed = idempotent(f, "authorize");
+  const wrapped = f.client.authorize;
+  let lost = true;
+  f.client.authorize = async (id, key) => {
+    if (lost) {
+      lost = false;
+      throw Error("timeout before reaching PayPal");
+    }
+    return wrapped(id, key);
+  };
+  await f.g.approve("maya", 1);
+  const p = f.e.state.payments[0];
+  await assert.rejects(f.g.complete("maya", { paymentId: p.id, version: 1 }));
+  assert.equal(p.status, "authorize_unknown");
+  await f.g.reconcile("maya", p.id);
+  assert.equal(p.status, "authorized");
+  assert.equal(executed(), 1);
+  const ops = f.lab.state.sessions[0].operations.filter(
+    (o) => o.type === "authorize",
+  );
+  assert.equal(ops.length, 1);
+  assert.equal(ops[0].status, "confirmed");
+});
+
+test("a capture that never reached PayPal is released by recovery instead of holding funds", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  f.client.capture = async () => {
+    throw Error("timeout before reaching PayPal");
+  };
+  await assert.rejects(f.g.book("organizer", { version: 1 }));
+  // Too soon to conclude anything: the request might still be in flight.
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.status, "recovery_pending");
+  age(f, "capture");
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+  assert.deepEqual(
+    f.e.state.payments.map((p) => p.status),
+    ["voided", "voided", "voided"],
+  );
+  assert.equal([...f.caps.values()].length, 0);
+});
+
+test("a capture whose response was lost is recovered by replay, never charged twice", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  const executed = idempotent(f, "capture");
+  const wrapped = f.client.capture;
+  let lose = true;
+  f.client.capture = async (id, key) => {
+    const r = await wrapped(id, key);
+    if (lose) {
+      lose = false;
+      throw Error("response lost after PayPal captured");
+    }
+    return r;
+  };
+  await assert.rejects(f.g.book("organizer", { version: 1 }));
+  await f.g.recover("organizer");
+  assert.equal(executed(), 1);
+  assert.equal(f.e.state.status, "cancelled");
+  assert.deepEqual(
+    f.e.state.payments.map((p) => p.status),
+    ["refunded", "voided", "voided"],
+  );
+});
+
+test("a void timeout is settled by replaying the void", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  const executed = idempotent(f, "void");
+  const wrapped = f.client.void;
+  let lost = true;
+  f.client.void = async (id, key) => {
+    if (lost) {
+      lost = false;
+      throw Error("timeout");
+    }
+    return wrapped(id, key);
+  };
+  await assert.rejects(f.g.withdraw("jordan", "jordan"));
+  const jordan = f.e.state.payments.find((p) => p.participantId === "jordan");
+  assert.equal(jordan.status, "void_unknown");
+  await f.g.withdraw("jordan", "jordan");
+  assert.equal(jordan.status, "voided");
+  assert.equal(executed(), 1);
+});

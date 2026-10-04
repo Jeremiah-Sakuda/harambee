@@ -2143,3 +2143,20 @@ dialog .terms {
     justify-content: center;
   }
 }
+.change-why {
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #f0f4e6;
+  border-radius: 6px;
+}
+.demo-as {
+  font-size: 13px;
+  color: var(--warn);
+}
+.limit-quote {
+  margin: 8px 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--forest);
+  background: var(--cream);
+  font-size: 15px;
+}

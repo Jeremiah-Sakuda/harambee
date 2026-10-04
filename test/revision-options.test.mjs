@@ -4,6 +4,8 @@ import { Engine } from "../server/domain.mjs";
 import {
   literalAmounts,
   proposeRevisions,
+  recheckRevisions,
+  resolveOption,
 } from "../server/revision-options.mjs";
 
 const memory = () => {
@@ -82,31 +84,43 @@ test("literal amounts include digits, dollars words and spoken numbers only", ()
   assert.deepEqual(literalAmounts("Sam: maybe a couple hundred"), []);
 });
 
-test("without a key the labeled local planner offers verified cabin options", async () => {
+async function withoutModel(fn) {
   const key = process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_API_KEY;
   try {
-    const out = await proposeRevisions(afterDropout(), { notes: CHAT });
-    assert.equal(out.provider, "local-planner");
-    const pine = out.options.find((o) => o.listingId === "pine");
-    const creek = out.options.find((o) => o.listingId === "creek");
-    assert.deepEqual(
-      pine.rows.map((r) => r.share),
-      [20000, 20000, 20000],
-    );
-    assert.deepEqual(
-      creek.rows.map((r) => r.share),
-      [16000, 16000, 16000],
-    );
-    // The local planner cannot read "can’t go above $170" as a limit.
-    assert.ok(
-      out.options.every((o) =>
-        o.confirmations.every((c) => c.amountCents !== 17000),
-      ),
-    );
+    return await fn();
   } finally {
     if (key) process.env.OPENAI_API_KEY = key;
   }
+}
+
+test("without a key the labeled local planner surfaces mentioned amounts for confirmation", async () => {
+  const out = await withoutModel(() =>
+    proposeRevisions(afterDropout(), { notes: CHAT }),
+  );
+  assert.equal(out.provider, "local-planner");
+  const pine = out.options.find(
+    (o) => o.listingId === "pine" && o.source === "local-planner",
+  );
+  const creek = out.options.find((o) => o.listingId === "creek");
+  assert.deepEqual(
+    pine.rows.map((r) => r.share),
+    [17000, 21500, 21500],
+  );
+  // Maya's latest amount binds here, so she must confirm it; it is never applied for her.
+  assert.deepEqual(
+    pine.confirmations
+      .filter((c) => c.needed)
+      .map((c) => [c.participantId, c.amountCents]),
+    [["maya", 17000]],
+  );
+  assert.equal(pine.ready, false);
+  // At Creekside her share is $160 either way, so nobody needs to confirm anything.
+  assert.deepEqual(
+    creek.rows.map((r) => r.share),
+    [16000, 16000, 16000],
+  );
+  assert.equal(creek.ready, true);
 });
 
 test("model interprets a stated limit; code verifies it and requires that person's confirmation", async () => {
@@ -130,37 +144,56 @@ test("model interprets a stated limit; code verifies it and requires that person
   );
   assert.equal(o.confirmations[0].confirmed, false);
   assert.equal(o.ready, false);
-  // Publishing now would not reproduce these shares.
-  await assert.rejects(
-    async () =>
-      e.revise("organizer", {
-        expectedShares: o.rows.map((r) => ({
-          id: r.participantId,
-          share: r.share,
-        })),
-      }),
-    /changed since this option/,
-  );
-  assert.equal(e.state.version, 1);
+  assert.throws(() => resolveOption(e, o.id), /must confirm/);
+  // Raising or lowering a budget by hand does not count as confirming the option's limit.
   e.budget("maya", 17000);
-  const again = await proposeRevisions(e, {
-    notes: CHAT,
-    recheck: [o.proposal],
-  });
-  assert.equal(again.options[0].ready, true);
-  e.revise("organizer", {
-    expectedShares: again.options[0].rows.map((r) => ({
-      id: r.participantId,
-      share: r.share,
-    })),
-    proposal: { ...o.proposal, model: "stub-model" },
-  });
+  assert.equal(recheckRevisions(e, out.batchId).options[0].ready, false);
+  e.confirmLimit("maya", 17000);
+  const again = recheckRevisions(e, out.batchId).options[0];
+  assert.equal(again.ready, true);
+  e.revise("organizer", resolveOption(e, again.id));
   assert.deepEqual(
     e.current.shares.map((s) => s.share),
     [17000, 21500, 21500],
   );
   assert.equal(e.current.proposal.source, "openai");
+  assert.equal(e.current.proposal.model, "stub-model");
+  assert.match(e.current.reason, /^Sam left/);
   assert.match(e.state.audit.at(-1).text, /verified by code/);
+  // Old options can't be republished once the version moved on.
+  assert.throws(() => recheckRevisions(e, out.batchId), /out of date/);
+});
+
+test("option checks never reveal a private budget", async () => {
+  // Two plans identical except for Maya's private budget must produce identical option output.
+  const probe = async (budget) => {
+    const e = afterDropout();
+    e.budget("maya", budget);
+    const notes = `${CHAT}\nMaya: $183 tops.`;
+    const out = await withoutModel(() => proposeRevisions(e, { notes }));
+    return JSON.stringify(
+      out.options
+        .map((o) => [o.ready, o.feasible, o.confirmations])
+        .filter(Boolean),
+    ).replace(/"at":"[^"]*"/g, "");
+  };
+  assert.equal(await probe(18337), await probe(22000));
+});
+
+test("option requests are limited per version and visible in activity", async () => {
+  const e = afterDropout();
+  await withoutModel(async () => {
+    await proposeRevisions(e, { notes: CHAT });
+    assert.match(
+      e.state.audit.at(-1).text,
+      /asked for revision options .*Maya \$170/,
+    );
+    for (let i = 0; i < 4; i++) await proposeRevisions(e, { notes: CHAT });
+    await assert.rejects(
+      proposeRevisions(e, { notes: CHAT }),
+      /share of suggestions/,
+    );
+  });
 });
 
 test("unverifiable model output is discarded, never shown as an option", async () => {
@@ -230,10 +263,46 @@ test("injected chat instructions cannot raise anyone's share", async () => {
     notes,
   );
   assert.equal(out.discarded[0].title, "Injected");
-  // A "limit" above a saved budget is already satisfied and never increases a share.
+  // A higher "limit" read from chat never raises a share: publishing uses saved budgets.
   const alex = out.options.find((o) => o.title === "Alex limit above budget");
-  assert.ok(alex.rows.every((r) => r.share <= 22000));
-  assert.equal(alex.confirmations[0].confirmed, true);
+  if (alex) {
+    if (alex.ready) e.revise("organizer", resolveOption(e, alex.id));
+    assert.ok(e.current.shares.every((s) => s.share <= 22000));
+  }
+  assert.equal(e.active.find((p) => p.id === "alex").budget, 22000);
+});
+
+test("spelled-out and USD figures in model prose are checked too", async () => {
+  const { out } = await withModel(afterDropout(), {
+    summary: "",
+    options: [
+      option({
+        title: "Spelled",
+        explanation: "Everyone pays two hundred sixty dollars.",
+      }),
+      option({
+        listingId: "creek",
+        title: "Prefixed",
+        explanation: "About USD 90 less each.",
+      }),
+    ],
+    clarifications: [
+      {
+        participantId: null,
+        line: null,
+        question: "Could someone cover 90 bucks?",
+      },
+    ],
+  });
+  assert.ok(
+    out.options
+      .filter((o) => o.source === "openai")
+      .every((o) => o.explanationReplaced),
+  );
+  assert.equal(
+    out.clarifications[0].question,
+    "Please confirm the amount directly with this person.",
+  );
 });
 
 test("figures in model prose must match computed amounts or the explanation is rewritten", async () => {

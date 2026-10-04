@@ -63,6 +63,7 @@ export class SandboxLab {
     if (this.locks.has(session.id))
       throw new DomainError("This sandbox operation is already in progress.");
     this.locks.add(session.id);
+    let replaying = false;
     try {
       if (action === "reconcile" && !session.orderId) {
         const createOp = session.operations.findLast(
@@ -97,7 +98,11 @@ export class SandboxLab {
           const detail = await this.client.getAuthorization(auth.id);
           verifyAmount(detail.amount, session.amount);
           session.authorizationStatus = detail.status;
-          if (detail.status === "VOIDED") session.status = "voided";
+          // An expired or denied authorization holds no funds, like a voided one.
+          if (["VOIDED", "EXPIRED", "DENIED"].includes(detail.status))
+            session.status = "voided";
+          else if (detail.status === "PENDING")
+            session.status = "authorization_pending";
           else if (detail.status === "CREATED") session.status = "authorized";
           else if (detail.status === "CAPTURED")
             session.status = session.captureId ? "captured" : "capture_unknown";
@@ -144,17 +149,63 @@ export class SandboxLab {
             delete op.error;
           }
         }
-        const unresolved = session.operations.find((o) =>
+        let unresolved = session.operations.find((o) =>
           ["pending", "unknown"].includes(o.status),
         );
-        if (unresolved) {
-          session.status = `${unresolved.type}_unknown`;
-          session.investigation =
-            "The provider has not proved the prior operation outcome. Inspect sandbox activity and reconcile again; no replacement charge is allowed.";
-        } else delete session.investigation;
+        const lastCapture = session.operations.findLast(
+          (o) => o.type === "capture",
+        );
+        // PayPal says captured but the response was lost: the same request ID returns that capture.
+        if (
+          session.authorizationStatus === "CAPTURED" &&
+          !session.captureId &&
+          lastCapture
+        ) {
+          lastCapture.status = "unknown";
+          unresolved = lastCapture;
+        }
+        const settledAt = Date.parse(unresolved?.at ?? 0) + 60000;
+        if (
+          unresolved?.type === "capture" &&
+          session.authorizationStatus === "CREATED" &&
+          Date.now() > settledAt
+        ) {
+          // The capture never took effect, so the hold is still open and recovery can void it.
+          // If a late capture lands first, the void fails definitively and the next reconcile replays it.
+          unresolved.status = "failed";
+          unresolved.error =
+            "Not executed at PayPal; the authorization is still open.";
+          session.status = "authorized";
+          unresolved = null;
+        }
+        // Replaying the same PayPal-Request-Id is idempotent: PayPal returns the original
+        // result if it processed the request, or performs it now if it never arrived.
+        const replay =
+          unresolved &&
+          ((unresolved.type === "authorize" &&
+            !auth &&
+            order.status === "APPROVED") ||
+            (unresolved.type === "capture" &&
+              session.authorizationStatus === "CAPTURED") ||
+            (unresolved.type === "void" &&
+              session.authorizationStatus === "CREATED") ||
+            (unresolved.type === "refund" &&
+              session.captureId &&
+              !session.refundId));
         session.lastReconciledAt = new Date().toISOString();
-        this.save();
-        return this.view();
+        if (replay) {
+          action = unresolved.type;
+          replaying = true;
+          delete session.investigation;
+        } else {
+          if (unresolved) {
+            session.status = `${unresolved.type}_unknown`;
+            session.investigation =
+              "The provider has not proved the prior operation outcome. Inspect sandbox activity and reconcile again; no replacement charge is allowed.";
+          } else delete session.investigation;
+          this.save();
+          return this.view();
+        }
       }
       const requirements = {
         authorize: ["approval_required", "buyer_approved"],
@@ -164,6 +215,7 @@ export class SandboxLab {
       };
       if (
         action !== "create" &&
+        !replaying &&
         !requirements[action]?.includes(session.status)
       )
         throw new DomainError(
@@ -174,7 +226,7 @@ export class SandboxLab {
         (o) => o.type === action && o.status !== "failed",
       );
       if (op?.status === "confirmed") return this.view();
-      if (op?.status === "unknown" && action !== "create")
+      if (op?.status === "unknown" && action !== "create" && !replaying)
         throw new DomainError(
           "The previous response is unknown. Reconcile with PayPal before continuing.",
         );

@@ -44,7 +44,7 @@ export default function RevisionOptions({
 }) {
   if (!data)
     return (
-      <section className="rev-panel">
+      <section className="rev-panel" id="revision-options">
         <div className="rev-head">
           <div>
             <h3>Let the group’s own words shape the new plan</h3>
@@ -65,7 +65,7 @@ export default function RevisionOptions({
       </section>
     );
   return (
-    <section className="rev-panel" aria-live="polite">
+    <section className="rev-panel" id="revision-options" aria-live="polite">
       <div className="rev-head">
         <div>
           <h3>Options for the new group</h3>
@@ -193,14 +193,22 @@ export default function RevisionOptions({
                   )}
                 </div>
               ))}
-            <button
-              className="primary full"
-              disabled={busy || !o.ready}
-              onClick={() => onPublish(o)}
-            >
-              Publish this option <ArrowRight size={16} />
-            </button>
-            {o.feasible && !o.ready && (
+            {o.feasible && (
+              <button
+                className="primary full"
+                disabled={busy || !o.ready}
+                onClick={() => onPublish(o)}
+              >
+                Publish this option <ArrowRight size={16} />
+              </button>
+            )}
+            {o.budgetsDiffer && (
+              <small className="rev-wait">
+                Doesn’t match everyone’s saved budgets, so it can’t be published
+                as shown.
+              </small>
+            )}
+            {o.feasible && !o.ready && !o.budgetsDiffer && (
               <small className="rev-wait">
                 Waiting for{" "}
                 {o.confirmations

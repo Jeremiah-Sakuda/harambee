@@ -129,6 +129,7 @@ export function seed() {
       },
     ],
     consents: [],
+    limitConfirmations: [],
     payments: [],
     operations: [],
     audit: [
@@ -149,6 +150,7 @@ export class Engine {
   constructor(store) {
     this.store = store;
     this.state = store.load() ?? seed();
+    this.state.limitConfirmations ??= [];
     this.persist();
   }
   persist() {
@@ -378,10 +380,25 @@ export class Engine {
       listingId,
       total: listing.total,
       shares,
-      reason:
+      reason: [
+        // Names who left since the last version, so each person sees why their share changed.
+        old.shares
+          .filter((s) => !this.active.some((p) => p.id === s.id))
+          .map(
+            (s) =>
+              this.state.participants
+                .find((p) => p.id === s.id)
+                ?.name.split(" ")[0],
+          )
+          .join(" and ")
+          .replace(/^(.+)$/, "$1 left"),
         listingId !== old.listingId
-          ? "A different cabin, a fresh agreement"
-          : "Updated group, refreshed shares",
+          ? "a different cabin needs a fresh agreement"
+          : "shares were refreshed",
+      ]
+        .filter(Boolean)
+        .join("; ")
+        .replace(/^./, (c) => c.toUpperCase()),
       rule: "Equal shares, capped by confirmed budgets; leftover cents assigned in roster order.",
       proposal: provenance(proposal),
     });
@@ -409,10 +426,38 @@ export class Engine {
     const budget = money(value);
     ensure(budget > 0, "Budget must be greater than zero.", 400);
     p.budget = budget;
+    // A later edit replaces any limit this person confirmed for a revision option.
+    this.state.limitConfirmations = (
+      this.state.limitConfirmations ?? []
+    ).filter((c) => c.participantId !== p.id);
     if (budget < this.current.shares.find((s) => s.id === p.id)?.share)
       this.state.status = "revision_required";
     this.log(
       `${p.name} updated their private budget. Existing consent is unchanged; publish a revision if shares need to change.`,
+    );
+  }
+  // A participant explicitly adopts a limit an option read from their own message. It becomes
+  // their saved budget, and only this record (not a budget comparison) unlocks that option.
+  confirmLimit(actor, amount) {
+    this.assertOpen();
+    const p = this.active.find((p) => p.id === actor);
+    ensure(p, "Only participants can confirm their own limit.", 403);
+    const cents = money(amount);
+    ensure(cents > 0, "A limit must be greater than zero.", 400);
+    this.budget(actor, cents);
+    this.state.limitConfirmations.push({
+      participantId: p.id,
+      amountCents: cents,
+      at: timestamp(),
+    });
+    this.log(
+      `${p.name} confirmed a $${(cents / 100).toFixed(2)} limit for the revised plan.`,
+      "revision",
+    );
+  }
+  limitConfirmed(id, amount) {
+    return (this.state.limitConfirmations ?? []).some(
+      (c) => c.participantId === id && c.amountCents === amount,
     );
   }
   book(actor, { version, fault = "none" } = {}) {
