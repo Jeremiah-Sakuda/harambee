@@ -95,6 +95,44 @@ const speakerMatches = (line, person) => {
 // Prose is checked with the same reader as quotes, so "two hundred sixty dollars" or "USD 260" count too.
 const amountsIn = (text) => literalAmounts(String(text));
 
+// Deterministic backstop: some messages are too uncertain to use as a limit no matter what the
+// model says. Code turns them into a question for that person instead.
+const HEDGE =
+  /\b(?:maybe|perhaps|probably|possibly|might|idk|not sure|unsure|around|about|roughly|or so)\b|ish\b|\?/i;
+const body = (line) => line.slice(line.indexOf(":") + 1);
+function ambiguousLimit(lines, index, person, amount) {
+  const first = person.name.split(" ")[0];
+  const text = body(lines[index]);
+  if (literalAmounts(text).length > 1)
+    return {
+      reason: `${first} wrote more than one amount, so code asked instead of choosing.`,
+      question: `${first} mentioned more than one amount. Which is their firm limit?`,
+    };
+  const sentence =
+    text
+      .split(/(?<=[.!?])\s+/)
+      .find((s) => literalAmounts(s).includes(amount)) ?? text;
+  if (HEDGE.test(sentence))
+    return {
+      reason: `${first} sounded unsure about ${usd(amount)}, so code asked instead of using it.`,
+      question: `${first} sounded unsure about ${usd(amount)}. What is their firm limit?`,
+    };
+  if (
+    lines
+      .slice(index + 1)
+      .some(
+        (l) =>
+          speakerMatches(l, person) &&
+          literalAmounts(body(l)).some((a) => a !== amount),
+      )
+  )
+    return {
+      reason: `${first} later wrote a different amount, so code asked instead of choosing.`,
+      question: `${first} wrote different amounts in the chat. Which is their limit now?`,
+    };
+  return null;
+}
+
 function context(engine) {
   const s = engine.state;
   return {
@@ -115,6 +153,7 @@ function evaluate(engine, ctx, lines, option) {
   // An unverifiable limit is removed, not trusted; the rest of the option (its cabin) still counts.
   const caps = new Map(),
     removed = [],
+    clarify = [],
     conflicted = new Set();
   for (const c of option.capRequests ?? []) {
     const person = ctx.active.find((p) => p.id === c.participantId);
@@ -135,6 +174,28 @@ function evaluate(engine, ctx, lines, option) {
             : null;
     if (reason) {
       removed.push(reason);
+      // Someone else reported this person's limit: ask them directly.
+      if (
+        person &&
+        line &&
+        !speakerMatches(line, person) &&
+        new RegExp(`\\b${first}\\b`, "i").test(line)
+      )
+        clarify.push({
+          participantId: person.id,
+          line: c.line,
+          question: `Someone else mentioned ${first}’s limit. Can ${first} confirm it directly?`,
+        });
+      continue;
+    }
+    const ambiguity = ambiguousLimit(lines, c.line - 1, person, c.amountCents);
+    if (ambiguity) {
+      removed.push(ambiguity.reason);
+      clarify.push({
+        participantId: person.id,
+        line: c.line,
+        question: ambiguity.question,
+      });
       continue;
     }
     if (
@@ -181,6 +242,7 @@ function evaluate(engine, ctx, lines, option) {
       listing,
       caps,
       removed,
+      clarify,
       confirmations,
       feasible: false,
       reason: "The limits people stated in the chat cannot cover this cabin.",
@@ -199,6 +261,7 @@ function evaluate(engine, ctx, lines, option) {
       listing,
       caps,
       removed,
+      clarify,
       confirmations,
       feasible: false,
       reason: "Everyone’s saved budgets cannot cover this cabin.",
@@ -208,6 +271,7 @@ function evaluate(engine, ctx, lines, option) {
     listing,
     caps,
     removed,
+    clarify,
     confirmations,
     feasible: true,
     publishable: !waiting,
@@ -237,6 +301,7 @@ const describe = (o) =>
 function finish(engine, ctx, lines, proposed, meta) {
   const options = [],
     discarded = [],
+    codeQuestions = [],
     seen = new Set();
   // The deterministic rebalance is always available as a comparison.
   const all = [
@@ -253,6 +318,7 @@ function finish(engine, ctx, lines, proposed, meta) {
   ];
   for (const [index, p] of all.entries()) {
     const result = evaluate(engine, ctx, lines, p);
+    codeQuestions.push(...(result.clarify ?? []));
     if (result.discarded) {
       discarded.push({
         title: String(p.title).slice(0, 120),
@@ -309,11 +375,46 @@ function finish(engine, ctx, lines, proposed, meta) {
         result.confirmations.every((c) => c.confirmed || !c.needed),
     });
   }
+  // Code also checks each person's latest amount directly, so an uncertain one always gets a
+  // question even when the suggestion ignored it.
+  for (const person of ctx.active) {
+    const index = lines.findLastIndex(
+      (l) => speakerMatches(l, person) && literalAmounts(body(l)).length,
+    );
+    if (index < 0) continue;
+    const ambiguity = ambiguousLimit(
+      lines,
+      index,
+      person,
+      literalAmounts(body(lines[index]))[0],
+    );
+    if (ambiguity)
+      codeQuestions.push({
+        participantId: person.id,
+        line: index + 1,
+        question: ambiguity.question,
+      });
+  }
+  // Questions code raised while checking limits join the model's, without repeats.
+  const clarifications = [...(meta.clarifications ?? [])];
+  for (const q of codeQuestions)
+    if (
+      !clarifications.some(
+        (c) => c.participantId === q.participantId && c.line === q.line,
+      )
+    )
+      clarifications.push({ ...q, source: "code" });
   // The plain rebalance uses saved budgets only; say so when the chat states other limits.
   const stated = options.some((o) => o.confirmations.length);
   for (const o of options)
     o.ignoresStatedLimits = o.source === "rule" && stated;
-  return { ...meta, basedOnVersion: ctx.version, options, discarded };
+  return {
+    ...meta,
+    clarifications,
+    basedOnVersion: ctx.version,
+    options,
+    discarded,
+  };
 }
 
 function localOptions(ctx, lines) {

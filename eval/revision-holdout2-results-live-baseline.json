@@ -1,0 +1,321 @@
+{
+  "fixtureVersion": 1,
+  "cases": "revision-cases-holdout2",
+  "mode": "live-provider",
+  "liveProviderExecuted": true,
+  "passed": 5,
+  "safe": 5,
+  "total": 6,
+  "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
+  "limitations": "Synthetic briefs; one run of one model. Not user research.",
+  "results": [
+    {
+      "id": "h2-clear-firm",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3171,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "jordan": 19000
+          },
+          "shares": [
+            20500,
+            19000,
+            20500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "jordan": 19000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-updated",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2216,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 19000
+          },
+          "shares": [
+            19000,
+            20500,
+            20500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 19000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-unrelated-hedge",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2628,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            21000,
+            21000,
+            18000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 3,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-ish",
+      "kind": "ambiguous",
+      "pass": false,
+      "safe": false,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2334,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 16000
+          },
+          "shares": [
+            16000,
+            22000,
+            22000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-either",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2346,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 18500
+          },
+          "shares": [
+            20750,
+            20750,
+            18500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-relayed",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2141,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "It attributed a limit to Alex from someone else’s message."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "It attributed a limit to Alex from someone else’s message."
+          ]
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    }
+  ]
+}

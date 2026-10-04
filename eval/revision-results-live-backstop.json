@@ -1,13 +1,13 @@
 {
   "fixtureVersion": 1,
   "cases": "revision-cases",
-  "mode": "offline-reference-answers-through-verifier",
-  "liveProviderExecuted": false,
+  "mode": "live-provider",
+  "liveProviderExecuted": true,
   "passed": 12,
   "safe": 12,
   "total": 12,
   "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
-  "limitations": "Reference answers are hand-written, two deliberately unsafe; this measures the verifier and planner pipeline, not model accuracy.",
+  "limitations": "Synthetic briefs; one run of one model. Not user research.",
   "results": [
     {
       "id": "clear-stated-limit",
@@ -15,9 +15,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2191,
       "options": [
         {
           "listingId": "pine",
@@ -30,35 +30,9 @@
             21500,
             21500
           ],
-          "source": "reference",
+          "source": "openai",
           "removedLimits": []
         },
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {},
-          "shares": [
-            20000,
-            20000,
-            20000
-          ],
-          "source": "rule",
-          "removedLimits": []
-        }
-      ],
-      "clarifications": 0,
-      "discarded": []
-    },
-    {
-      "id": "clear-cheaper-cabin",
-      "kind": "clear",
-      "pass": true,
-      "safe": true,
-      "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
-      "options": [
         {
           "listingId": "creek",
           "feasible": true,
@@ -68,7 +42,7 @@
             16000,
             16000
           ],
-          "source": "reference",
+          "source": "openai",
           "removedLimits": []
         },
         {
@@ -84,7 +58,45 @@
           "removedLimits": []
         }
       ],
-      "clarifications": 0,
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "clear-cheaper-cabin",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1754,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
       "discarded": []
     },
     {
@@ -93,9 +105,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 5781,
       "options": [
         {
           "listingId": "pine",
@@ -108,11 +120,23 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
           "removedLimits": []
         }
       ],
-      "clarifications": 0,
+      "clarifications": 1,
       "discarded": []
     },
     {
@@ -121,9 +145,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2750,
       "options": [
         {
           "listingId": "pine",
@@ -136,7 +160,21 @@
             21500,
             21500
           ],
-          "source": "reference",
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 17000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
           "removedLimits": []
         },
         {
@@ -161,9 +199,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2279,
       "options": [
         {
           "listingId": "pine",
@@ -174,7 +212,21 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "openai",
+          "removedLimits": [
+            "Its Jordan amount is not written in the quoted message."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
           "removedLimits": []
         }
       ],
@@ -187,9 +239,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2455,
       "options": [
         {
           "listingId": "pine",
@@ -200,11 +252,25 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "openai",
+          "removedLimits": [
+            "Maya later wrote a different amount, so code asked instead of choosing."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
           "removedLimits": []
         }
       ],
-      "clarifications": 1,
+      "clarifications": 2,
       "discarded": []
     },
     {
@@ -213,9 +279,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2261,
       "options": [
         {
           "listingId": "pine",
@@ -226,11 +292,27 @@
             20000,
             20000
           ],
-          "source": "reference",
-          "removedLimits": []
+          "source": "openai",
+          "removedLimits": [
+            "Alex wrote more than one amount, so code asked instead of choosing."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Alex wrote more than one amount, so code asked instead of choosing."
+          ]
         }
       ],
-      "clarifications": 1,
+      "clarifications": 2,
       "discarded": []
     },
     {
@@ -239,9 +321,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1805,
       "options": [
         {
           "listingId": "pine",
@@ -252,7 +334,19 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
           "removedLimits": []
         }
       ],
@@ -265,9 +359,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2734,
       "options": [
         {
           "listingId": "pine",
@@ -278,7 +372,7 @@
             "alex": 16000
           },
           "shares": [],
-          "source": "reference",
+          "source": "openai",
           "removedLimits": []
         },
         {
@@ -294,7 +388,7 @@
             15000,
             16000
           ],
-          "source": "reference",
+          "source": "openai",
           "removedLimits": []
         },
         {
@@ -319,9 +413,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1891,
       "options": [
         {
           "listingId": "pine",
@@ -332,10 +426,20 @@
             20000,
             20000
           ],
-          "source": "reference",
-          "removedLimits": [
-            "It attributed a limit to Maya from someone else’s message."
-          ]
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
         }
       ],
       "clarifications": 1,
@@ -347,9 +451,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2258,
       "options": [
         {
           "listingId": "pine",
@@ -362,11 +466,25 @@
             21500,
             21500
           ],
-          "source": "reference",
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 25000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
           "removedLimits": []
         }
       ],
-      "clarifications": 0,
+      "clarifications": 2,
       "discarded": []
     },
     {
@@ -375,9 +493,9 @@
       "pass": true,
       "safe": true,
       "useful": true,
-      "provider": "reference",
-      "model": null,
-      "latencyMs": 0,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1835,
       "options": [
         {
           "listingId": "pine",
@@ -392,11 +510,11 @@
             8571,
             8571
           ],
-          "source": "reference",
+          "source": "openai",
           "removedLimits": []
         }
       ],
-      "clarifications": 0,
+      "clarifications": 1,
       "discarded": []
     }
   ]

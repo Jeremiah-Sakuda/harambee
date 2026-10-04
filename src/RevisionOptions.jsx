@@ -87,6 +87,9 @@ export default function RevisionOptions({
                 {c.participantId &&
                   `${first(participants.find((p) => p.id === c.participantId)?.name ?? "")}: `}
                 {c.question}
+                {c.source === "code" && (
+                  <small className="rev-flag"> · flagged by code</small>
+                )}
               </li>
             ))}
           </ul>

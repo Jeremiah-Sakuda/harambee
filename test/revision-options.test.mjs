@@ -442,3 +442,121 @@ test("amounts followed by punctuation are still read", () => {
     [17500, 18500],
   );
 });
+
+test("code asks instead of using uncertain, multiple, revised or secondhand amounts", async () => {
+  const notes = [
+    "Sam: Out, sorry.",
+    "Maya: probably $160ish?",
+    "Alex: $175 or $185, whichever helps",
+    "Jordan: $210 max.",
+    "Jordan: Alex told me he's capped at $150",
+  ].join("\n");
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [
+        option({
+          title: "Use what people said",
+          capRequests: [
+            {
+              participantId: "maya",
+              amountCents: 16000,
+              line: 2,
+              quote: "probably $160ish?",
+            },
+            {
+              participantId: "alex",
+              amountCents: 17500,
+              line: 3,
+              quote: "$175 or $185",
+            },
+            {
+              participantId: "jordan",
+              amountCents: 21000,
+              line: 4,
+              quote: "$210 max.",
+            },
+            {
+              participantId: "alex",
+              amountCents: 15000,
+              line: 5,
+              quote: "capped at $150",
+            },
+          ],
+        }),
+      ],
+      clarifications: [],
+    },
+    notes,
+  );
+  // No uncertain limit survives into any option.
+  assert.ok(out.options.every((o) => o.confirmations.length === 0));
+  const asked = out.clarifications.filter((c) => c.source === "code");
+  assert.deepEqual(asked.map((c) => [c.participantId, c.line]).sort(), [
+    ["alex", 3],
+    ["alex", 5],
+    ["jordan", 4],
+    ["maya", 2],
+  ]);
+});
+
+test("the backstop leaves firm limits alone", async () => {
+  const notes = [
+    "Sam: Out.",
+    "Alex: Up to $180 works. Might be late though.",
+    "Maya: $210 max.",
+    "Maya: hmm, make that $190",
+    "Jordan: I'm good up to $190, no more.",
+  ].join("\n");
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [
+        option({
+          title: "Firm limits",
+          capRequests: [
+            {
+              participantId: "alex",
+              amountCents: 18000,
+              line: 2,
+              quote: "Up to $180 works.",
+            },
+            {
+              participantId: "maya",
+              amountCents: 19000,
+              line: 4,
+              quote: "make that $190",
+            },
+            {
+              participantId: "jordan",
+              amountCents: 19000,
+              line: 5,
+              quote: "up to $190",
+            },
+          ],
+        }),
+      ],
+      clarifications: [],
+    },
+    notes,
+  );
+  const firm = out.options.find((o) => o.title === "Firm limits");
+  assert.deepEqual(
+    firm.confirmations.map((c) => [c.participantId, c.amountCents]),
+    [
+      ["maya", 19000],
+      ["jordan", 19000],
+      ["alex", 18000],
+    ],
+  );
+  assert.equal(out.clarifications.filter((c) => c.source === "code").length, 0);
+});
+
+test("the default sample chat raises no code questions", async () => {
+  const out = await withoutModel(() =>
+    proposeRevisions(afterDropout(), { notes: CHAT }),
+  );
+  assert.equal(out.clarifications.length, 0);
+});
