@@ -2,6 +2,8 @@
 
 **A little agreement. A great escape.** A working local hackathon prototype for group cabin commitments, versioned consent, and transparent payment recovery.
 
+[Browser verification and preview](docs/BROWSER_QA.md)
+
 The complete trip journey uses **simulated payments and local fixture inventory**. An optional, separate PayPal sandbox lab performs genuine sandbox API calls when you supply sandbox credentials. It does **not** fund the trip or confirm a real reservation. No successful live-model or PayPal transactions are claimed by this repository.
 
 ## Run locally
