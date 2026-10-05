@@ -499,6 +499,7 @@ function finish(engine, ctx, lines, proposed, meta) {
     }
   }
   let unusedFirm = false;
+  const firm = new Map();
   // Code also checks each person's latest amount directly, so an uncertain one always gets a
   // question even when the suggestion ignored it.
   for (const person of ctx.active) {
@@ -516,6 +517,7 @@ function finish(engine, ctx, lines, proposed, meta) {
       });
       continue;
     }
+    firm.set(person.id, { amount, name: firstName(person) });
     // A firm limit that would lower this person's share, but no option uses: say so.
     const used = options.some((o) =>
       o.confirmations.some(
@@ -548,6 +550,24 @@ function finish(engine, ctx, lines, proposed, meta) {
       clarifications.push({ ...q, source: "code" });
   // The plain rebalance uses saved budgets only; say so when the chat states other limits.
   const stated = unusedFirm || options.some((o) => o.confirmations.length);
+  // Any option that asks someone for more than they firmly wrote says so on the card.
+  for (const o of options)
+    o.exceedsStated = o.rows
+      .filter((r) => {
+        const f = firm.get(r.participantId);
+        return (
+          f &&
+          r.share > f.amount &&
+          !o.confirmations.some(
+            (c) => c.participantId === r.participantId && c.confirmed,
+          )
+        );
+      })
+      .map((r) => ({
+        name: firm.get(r.participantId).name,
+        statedCents: firm.get(r.participantId).amount,
+        shareCents: r.share,
+      }));
   for (const o of options)
     o.ignoresStatedLimits = o.source === "rule" && stated;
   return {

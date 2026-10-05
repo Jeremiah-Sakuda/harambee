@@ -2248,3 +2248,6 @@ dialog .terms,
   font-size: 13px;
   color: var(--muted);
 }
+.rev-warn {
+  color: var(--warn);
+}

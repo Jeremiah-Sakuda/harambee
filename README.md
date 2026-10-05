@@ -6,6 +6,7 @@
 
 **The problem:** one friend books the $600 cabin, then spends weeks chasing everyone for their share. When someone drops out, that friend absorbs the gap.
 **Who it’s for:** groups of 3–8 friends booking a shared stay.
+*Context, not our data:* in 2017 Airbnb reported that an estimated 38% of guests hadn’t received all the money owed to them from group trips ([VentureBeat](https://venturebeat.com/ai/airbnb-now-lets-groups-of-guests-split-the-cost-of-their-stay)), and in 2024 PayPal relaunched money pools for group trips and gifts, citing customer demand ([TechCrunch](https://techcrunch.com/2024/11/19/paypal-revives-its-money-pooling-feature/)). We have no user research of our own yet.
 
 **How it works:**
 
@@ -13,11 +14,36 @@
 2. When someone drops out, their hold is voided. The group’s chat becomes **verified revision options**: a model proposes, and code checks every quote and computes every share. A limit like “I can’t go above $170” only counts once that person confirms it.
 3. Everyone approves the new version. Earlier approval never covers an increase, so each person authorizes only the difference in their own PayPal checkout. Then Harambee captures and books.
 
+Holds are collected within a 48-hour window and captured as soon as the group books, inside PayPal’s 3-day honor period for authorizations (an authorization stays valid for 29 days and can be reauthorized; see [PayPal: authorization](https://developer.paypal.com/docs/checkout/standard/customize/authorization/)).
+
 | Real | Simulated or pending |
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
-| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (67 tests) | Default no-credentials mode simulates payments |
-| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 26/26 synthetic briefs useful after the backstop, versus 20/26 for the no-AI local planner ([details and caveats](#revision-options-after-a-dropout)) | No user research; synthetic briefs only |
+| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (75 tests) | Default no-credentials mode simulates payments |
+| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; latest live run 25/26 synthetic briefs useful, versus 23/26 for the no-AI local planner ([details and caveats](#revision-options-after-a-dropout)) | No user research; synthetic briefs only |
+
+## How this differs
+
+As of October 2026, in what we found:
+
+| What exists | What it does | What Harambee adds |
+| --- | --- | --- |
+| Split payment at booking ([Airbnb, 2017](https://techcrunch.com/2017/11/28/airbnb-launches-payment-splitting-for-group-trips/); reportedly withdrawn later) | The organizer pays their part; others pay within a deadline or the booking is cancelled | Holds instead of charges for everyone, including the organizer, and a plan that can change after someone leaves |
+| Group collection ([PayPal pools](https://techcrunch.com/2024/11/19/paypal-revives-its-money-pooling-feature/), [Venmo Groups](https://techcrunch.com/2023/11/14/venmo-gets-a-new-way-to-split-expenses-among-groups-like-clubs-teams-trip-buddies-and-more), Splitwise) | Collects or tracks money owed to one person | Each friend’s authorization goes to the merchant; nobody acts as the group’s bank |
+| AI trip planners with group chat ([Mindtrip](https://globetrender.com/2024/09/24/mindtrip-launches-group-chat-feature/)) | Turn shared preferences into an itinerary | Turn a dropout into price options that are checked by code and re-approved by each person |
+| **The new part** | | When the group changes, a new version needs fresh consent from everyone remaining, and each person authorizes only the difference. Earlier approval never covers an increase. |
+
+Each building block (authorizations, split checkout, extracting details from chat with a model) exists elsewhere. The combination built around consent after a dropout is what this project contributes.
+
+## Who is the merchant, and who pays
+
+The cabin operator is the merchant. In a real deployment, each friend’s authorization would be made to the operator’s own PayPal business account, so Harambee never holds or moves the group’s money. PayPal supports this for platforms through its [multiparty](https://developer.paypal.com/docs/multiparty/) integration. An Orders v2 order can name the seller as `payee`, and a platform fee can be set on the order ([multiseller payments](https://developer.paypal.com/docs/multiparty/checkout/multiseller-payments/)). Platforms go live only after PayPal approves them. This prototype is not that integration: sandbox captures land in its own sandbox merchant account.
+
+Hypotheses, not results:
+
+- Operators who take direct bookings would accept several authorizations for one stay, because every share is held before dates are committed.
+- Groups would accept a small disclosed platform fee so that one friend doesn’t front the cost.
+- Who absorbs processing costs on released holds and refunds after a failed booking is an open question for operator conversations.
 
 ## Run locally
 
@@ -49,7 +75,7 @@ The native Node test suite covers exact allocations, private budget projection, 
 
 1. Start with four friends and the $600 Pine & Still cabin. Click **Review** beside each person, review their saved private $220 ceiling (use **Save budget only** for edits), and select **Agree & authorize simulated hold**. The demo role switch intentionally lets one judge act as each participant.
 2. Switch to Organizer. Withdraw Sam using the exit icon. Their hold is voided, and the plan requires a revision.
-3. Choose **Suggest options**. Harambee reads the group chat in **Planning notes**. In the sample chat Sam leaves, Maya says she “can’t go above $170” now, and Alex prefers the cheaper cabin. Code computes every share and top-up for the verified options. Maya’s $170 option waits for **Ask Maya to confirm $170**; the plain rebalance ($200 each) and the cheaper cabin ($160 each) are also offered. An option that produces exactly the same split as another is shown once. See [Revision options](#revision-options-after-a-dropout).
+3. Choose **Suggest options**. Harambee reads the group chat pasted into **Planning notes**. In the sample chat Sam leaves, Maya says she “can’t go above $170” now, and Alex prefers the cheaper cabin. Code computes every share and top-up for the verified options, and each AI option lists the chat lines behind it. Maya’s $170 option waits for her: choose **Send Maya a confirmation request**, then open Maya’s view (**Demo controls → Open Maya’s view**) and confirm there. The organizer’s card updates by itself. The plain rebalance ($200 each) and the cheaper cabin ($160 each) are also offered; an option that produces exactly the same split as another is shown once. See [Revision options](#revision-options-after-a-dropout).
 4. Publish an option. Each remaining friend explicitly approves the new version and their exact top-up. The original version never grants permission for an increase.
 5. Return to Organizer and book. The system locks the plan, captures each simulated payment, and commits local inventory. Open **Activity & receipts** or export the JSON evidence.
 6. Reset and approve the group again. Under **Demo scenarios**, choose a capture failure or timeout before booking. **Reconcile & recover** returns confirmed captures, voids unused holds, and releases inventory. The pending-refund scenario requires a second recovery pass; it cannot falsely report completion.
@@ -85,36 +111,39 @@ Code then decides what is shown:
 - Failing suggestions are listed as discarded, and ambiguity becomes a clarification question.
 - The plain rebalance is always included for comparison.
 
-If a person’s stated limit sets their share in an option, that option can’t be published until they explicitly confirm the limit (**Ask Maya to confirm $170**). Confirming makes it their saved budget. Options are stored on the server and published by ID, so neither the shares nor the “suggested by” record come from the browser. Publishing recomputes the split from saved budgets and refuses if anything changed, before any real authorization is released. Each person then approves their own new share and top-up.
+If a person’s stated limit sets their share in an option, that option can’t be published until they explicitly confirm the limit in their own view (**Send Maya a confirmation request**). Confirming makes it their saved budget. Options are stored on the server and published by ID, so neither the shares nor the “suggested by” record come from the browser. Publishing recomputes the split from saved budgets and refuses if anything changed, before any real authorization is released. Each person then approves their own new share and top-up.
 
-Privacy: the model never receives saved budgets, and nothing compares a proposed limit with anyone’s private budget. While an option still waits on someone’s confirmation, its preview is computed only from limits stated in the chat and the cabin total. Saved budgets don’t enter it, so chat the organizer writes can’t steer a preview into revealing one. Once nothing is waiting, the preview is exactly the split that publishing produces from saved budgets. That split is fixed for each cabin, so chat input can’t probe it, and it reveals only what a published split would. Option requests are also limited to five per plan version, and each is recorded in Activity with the amounts read from the chat.
+Privacy: the model never receives saved budgets, and nothing compares a proposed limit with anyone’s private budget. While an option still waits on someone’s confirmation, its preview is computed only from limits stated in the chat and the cabin total. Saved budgets don’t enter it, so chat the organizer writes can’t steer a preview into revealing one. Once nothing is waiting, the preview is exactly the split that publishing produces from saved budgets. That split is fixed for each cabin, so chat input can’t probe it, and it reveals only what a published split would. Option requests are also limited to five per plan version, and each is recorded in Activity with the amounts read from the chat. Confirmed limits and open requests are visible only to their owner and the organizer, and the shared activity log records that someone confirmed, not the amount.
+
+Requests go to the person, not the organizer’s screen: **Send Maya a confirmation request** puts a card in Maya’s own view, and an uncertain message gets **Ask Maya for a firm limit**, which asks her to type one. **Not now** is recorded for the organizer. Each AI option lists its reasons as quotes from people’s own messages (“Why: … — Alex, line 7”), and the panel shows what the model read. An option identical to the plain rebalance is labelled the standard rule, even when the model also suggested it. Code also flags a firm limit no option uses, and marks any option that asks someone for more than they wrote.
 
 Without a key, or if the model fails, a **local planner (not AI)** takes the latest dollar amount each person wrote, without interpreting wording. Anyone whose share depends on it must confirm.
 
 `npm run eval:revisions` runs 12 frozen briefs from the PRD acceptance spec (clear, ambiguous, infeasible, adversarial) through the real verifier using hand-written reference answers, two of them deliberately unsafe. [`eval/revision-results.json`](eval/revision-results.json) records 12/12 with no unsafe option shown. That measures the verifier, **not** model quality. `npm run eval:revisions:live -- --write` measures the configured model (gpt-4.1-mini, 2–5 s per call). In no live run could a publishable option exceed a saved budget, because every limit stated in chat needs its owner's confirmation and publishing recomputes from saved budgets. By the eval's stricter definition, which also forbids *showing* certain limits, one run was not fully safe: before the backstop, the fresh set recorded [5/6 safe](eval/revision-holdout2-results-live-baseline.json) because a hedged “$160ish” was offered as Maya's pending limit.
 
-**Ambiguity backstop.** Some messages are too uncertain to use as a limit whatever the model says. If the sentence with the amount is hedged (“probably $160ish?”), gives two amounts (“$175 or $185”), contradicts the person’s later message, or reports someone else’s limit, code removes it from every option. Code then asks that person a question, labelled “flagged by code”. It also checks each person’s latest amount itself, so an uncertain one is questioned even if the model ignored it. Firm limits, an updated figure (“make that $190”) and an unrelated “might” in another sentence pass through.
+**Ambiguity backstop.** Some messages are too uncertain to use as a limit whatever the model says. If every sentence stating the amount is hedged (“probably $160ish?”, “I guess $170”, “~$170”), states something other than a ceiling (“I can’t do $170”, “at least $170”), gives two amounts (“$175 or $185”), contradicts the person’s later message, reports someone else’s limit (“Jordan said $170 is fine”), or reads like an instruction to the system, code removes it from every option. Code then asks that person a question, labelled “flagged by code”. It also checks each person’s latest amount itself, so an uncertain one is questioned even if the model ignored it. Firm limits, an updated figure (“make that $190”) and an unrelated “might” in another sentence pass through.
 
 | Live run | Frozen 12 | Held-out 8 | Fresh 6 |
 | --- | --- | --- | --- |
 | [First run](eval/revision-results-live-baseline.json) | 8/12 | [7/8](eval/revision-holdout-results-live-baseline.json) | — |
 | [Prompt change + keep option, drop bad limit](eval/revision-results-live-tuned.json) | 12/12 | [6/8](eval/revision-holdout-results-live-tuned.json) | [5/6](eval/revision-holdout2-results-live-baseline.json), with one hedged limit shown |
 | [Backstop](eval/revision-results-live-backstop.json) | 12/12 | [8/8](eval/revision-holdout-results-live-backstop.json), matched in 2 uncommitted repeats | [6/6](eval/revision-holdout2-results-live-backstop.json), matched in 2 uncommitted repeats |
+| [Round six: reasons, new prompt example, wider backstop](eval/revision-results-live-round6.json) | 11/12 | [8/8](eval/revision-holdout-results-live-round6.json) | [6/6](eval/revision-holdout2-results-live-round6.json) |
+
+In the round-six miss, the model offered the cheaper cabin without applying the stated limits; the card now flags that it asks Jordan for more than the $150 he wrote. [Three live runs of the demo’s own sample chat](eval/demo-chat-live-runs.json) agree on the main result each time: only Maya needs to confirm, at $170 / $215 / $215, and the Creekside option cites Alex’s preference. The model’s other questions vary from run to run.
 
 Read these numbers with care.
 
 - The frozen set and the first held-out set shaped the changes, so their later results are optimistic.
 - The [fresh six](eval/revision-cases-holdout2.json) were committed and run before the backstop existed. But the same developer wrote both the briefs and the rules, after seeing the earlier failure types, so they are not independent.
 - These are small synthetic sets and single committed runs (the two repeats were not saved), with no user data.
-- The [no-AI local planner, run through the same checks](eval/local-planner-baseline.txt), is useful on 21/26 (20/26 counting its one unsafe result, a “$1 for everyone” injection shown as a pending limit, as a miss). That includes the sample chat's $170 / $215 / $215 table, so the model's added value is narrower than the demo alone suggests. The model's wins are asking when no amount was written, refusing limits relayed by someone else (“Alex told me he's capped at $150”), noticing attendance doubts, and ignoring injected instructions.
-- The backstop is a short keyword list, not a language model. It misses phrasings like “~$170” or “I guess $170”, and it can flag a firm sentence that happens to end in a question mark. Per-person confirmation is the real guarantee.
-
-The backstop makes “ask instead of guess” come from code rather than the model, which is the guarantee that matters.
+- The [no-AI local planner, run through the same checks](eval/local-planner-baseline.txt), is useful on 23/26 and safe on 26/26, against the model’s 25/26. It also produces the sample chat’s $170 / $215 / $215 table. On these briefs the model’s measurable edge is the three messages with no dollar amount (“I can stretch a bit”, “I might not come either”, “I could maybe go a little higher”), where it asks instead of staying silent, plus the reasons it shows for each option. The code does most of the work, by design.
+- The backstop is a keyword list, not a language model. It is a floor for common phrasings. Per-person confirmation is the real guarantee.
 
 ## Integrated PayPal sandbox group
 
 1. Configure sandbox merchant credentials in `.env`, run `npm run paypal:check` to confirm PayPal accepts them, restart, and start an unfunded trip with three distinct participants. Set each private ceiling to at least $300 for the $600 trip if demonstrating a dropout to two remaining buyers.
-2. As Organizer choose **Use PayPal sandbox for this group**. Participant links open separate tab-scoped views; they are local demo selectors, not authentication. Use distinct sandbox buyer accounts and separate browser profiles for their PayPal logins.
+2. As Organizer open **Demo controls** and choose **Use PayPal sandbox for this group**. Participant links open separate tab-scoped views; they are local demo selectors, not authentication. Use distinct sandbox buyer accounts and separate browser profiles for their PayPal logins.
 3. Each participant reviews the exact version/share, saves their budget separately, and approves. **Agree & open sandbox checkout** sends that buyer to PayPal in the same tab. After approval PayPal returns them to their participant view, which asks the server to authorize the order; **I approved in PayPal — confirm authorization** remains as a manual fallback. Server state validates the exact USD amount and unique buyer identity. Browser approval alone never counts as a hold. A buyer already holding another participant's share has the new hold voided and is asked to use a different sandbox account.
 4. Withdraw one participant. Their actual sandbox authorization must be voided before the new version is published. Remaining participants explicitly approve the revised version and additional amount only, then complete their top-up checkouts. Original consent cannot authorize an increase.
 5. Book once every exact current share is authorized. Provider captures run sequentially against persisted authorization IDs, followed by a **local fixture** reservation commit. Export the provider-labeled receipt evidence.

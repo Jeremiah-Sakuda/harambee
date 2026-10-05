@@ -227,7 +227,13 @@ export default function RevisionOptions({
                 summary was written by code.
               </p>
             )}
-            {o.ignoresStatedLimits && (
+            {o.exceedsStated?.map((x) => (
+              <p key={x.name} className="rev-note rev-warn">
+                Asks {x.name} for {usd(x.shareCents)}, above the{" "}
+                {usd(x.statedCents)} {x.name} wrote in the chat.
+              </p>
+            ))}
+            {o.ignoresStatedLimits && !o.exceedsStated?.length && (
               <p className="rev-note">
                 Uses saved budgets only. It ignores limits people stated in the
                 chat.

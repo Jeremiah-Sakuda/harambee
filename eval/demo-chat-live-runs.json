@@ -1,0 +1,203 @@
+{
+  "chat": [
+    "Maya: I can spend up to $220. A quiet room would be lovely.",
+    "Jordan: My budget is $220. I’m happy to share a room.",
+    "Alex: Up to $220 works for me. I might arrive late Friday.",
+    "Sam: $220 maximum. I need to leave Sunday morning.",
+    "Sam: Bad news, work moved my deadline. I have to drop out, sorry!",
+    "Maya: Honestly my rent just went up, I can’t go above $170 now.",
+    "Alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+    "Jordan: I can stretch a bit if that keeps us at Pine & Still."
+  ],
+  "runs": 3,
+  "note": "Live runs of the sample chat after Sam withdraws. Narrate only what recurs across runs.",
+  "results": [
+    {
+      "run": 1,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 5549,
+      "summary": "Maya lowered her spending limit from $220 to $170, Alex prefers the cheaper Creekside option if the price rises, and Jordan is willing to pay more to stay at Pine & Still. Alex mentioned possibly arriving late Friday without specifying spending limits or attendance details, which needs clarification.",
+      "needsConfirming": [
+        "maya 170"
+      ],
+      "questions": [
+        "model: alex: You mentioned you might arrive late Friday. Will you still be staying all nights needed at the cabin?"
+      ],
+      "options": [
+        {
+          "listingId": "pine",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            170,
+            215,
+            215
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "jordan: I can stretch a bit if that keeps us at Pine & Still.",
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "alex: Up to $220 works for me. I might arrive late Friday."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "creek",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            160,
+            160,
+            160
+          ],
+          "why": [
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "jordan: My budget is $220. I’m happy to share a room."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "pine",
+          "source": "rule",
+          "matchesRule": false,
+          "shares": [
+            200,
+            200,
+            200
+          ],
+          "why": [],
+          "removed": []
+        }
+      ],
+      "discarded": []
+    },
+    {
+      "run": 2,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 6183,
+      "summary": "Maya lowered her spending limit to $170, replacing her earlier $220 limit. Alex expressed a preference for the cheaper Creekside cabin if costs rise, while Jordan is willing to pay more to keep the Pine & Still cabin. Sam dropped out, which affects the group size and budget. Maya also mentioned wanting a quiet room, and Alex might arrive late Friday, but no spending amounts are tied to those preferences.",
+      "needsConfirming": [
+        "maya 170"
+      ],
+      "questions": [
+        "model: maya: You mentioned a quiet room would be lovely. Could you please clarify if you have any specific room requirements or preferences that we should consider?",
+        "model: alex: You mentioned you might arrive late Friday. Could you please confirm your expected arrival time or if this affects the booking?"
+      ],
+      "options": [
+        {
+          "listingId": "pine",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            170,
+            215,
+            215
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "jordan: I can stretch a bit if that keeps us at Pine & Still.",
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "maya: I can spend up to $220. A quiet room would be lovely.",
+            "alex: Up to $220 works for me. I might arrive late Friday."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "creek",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            160,
+            160,
+            160
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "jordan: I can stretch a bit if that keeps us at Pine & Still."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "pine",
+          "source": "rule",
+          "matchesRule": false,
+          "shares": [
+            200,
+            200,
+            200
+          ],
+          "why": [],
+          "removed": []
+        }
+      ],
+      "discarded": []
+    },
+    {
+      "run": 3,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 5777,
+      "summary": "Maya updated her spending limit down to an amount lower than her original, Alex prefers the cheaper Cabin if prices rise, and Jordan is willing to pay more to stay at Pine & Still. Sam dropped out, so their limit is no longer relevant. Maya and Alex's comments about preferences and budgets shaped the options, and one clarification about exact max spending for Jordan is needed.",
+      "needsConfirming": [
+        "maya 170"
+      ],
+      "questions": [
+        "model: jordan: Jordan, could you please specify how much more than $220 you can stretch your budget if we stay at Pine & Still?"
+      ],
+      "options": [
+        {
+          "listingId": "pine",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            170,
+            215,
+            215
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "jordan: I can stretch a bit if that keeps us at Pine & Still."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "creek",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            160,
+            160,
+            160
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "pine",
+          "source": "openai",
+          "matchesRule": true,
+          "shares": [
+            200,
+            200,
+            200
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "jordan: I can stretch a bit if that keeps us at Pine & Still."
+          ],
+          "removed": []
+        }
+      ],
+      "discarded": []
+    }
+  ]
+}

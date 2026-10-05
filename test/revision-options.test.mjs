@@ -790,3 +790,24 @@ test("declining a limit request is recorded for the organizer", () => {
   assert.equal(e.view("organizer").limitRequests[0].status, "declined");
   assert.match(e.state.audit.at(-1).text, /isn’t ready/);
 });
+
+test("an option asking someone for more than they firmly wrote is flagged on the card", async () => {
+  const notes =
+    "Sam: Out, sorry.\nMaya: $170 max.\nJordan: $150 is my hard max.\nAlex: $160 tops for me.";
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [
+        option({ listingId: "creek", title: "Cheaper cabin", capRequests: [] }),
+      ],
+      clarifications: [],
+    },
+    notes,
+  );
+  const creek = out.options.find((o) => o.listingId === "creek");
+  assert.deepEqual(
+    creek.exceedsStated.map((x) => [x.name, x.statedCents, x.shareCents]),
+    [["Jordan", 15000, 16000]],
+  );
+});
