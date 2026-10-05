@@ -17,7 +17,7 @@
       "useful": true,
       "provider": "reference",
       "model": null,
-      "latencyMs": 0,
+      "latencyMs": 1,
       "options": [
         {
           "listingId": "pine",
@@ -108,7 +108,7 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
@@ -174,7 +174,7 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
@@ -200,7 +200,7 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
@@ -226,7 +226,7 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
@@ -252,7 +252,7 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
@@ -332,13 +332,13 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": [
             "It attributed a limit to Maya from someone else’s message."
           ]
         }
       ],
-      "clarifications": 1,
+      "clarifications": 2,
       "discarded": []
     },
     {
@@ -392,7 +392,7 @@
             8571,
             8571
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],

@@ -32,6 +32,7 @@ import {
 import "./style.css";
 import SandboxLab from "./SandboxLab.jsx";
 import RevisionOptions from "./RevisionOptions.jsx";
+import LimitRequest from "./LimitRequest.jsx";
 const usd = (n) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -158,6 +159,17 @@ function App() {
   useEffect(() => {
     load();
   }, [actor]);
+  // Other people act in their own windows; keep this one current while it's visible.
+  useEffect(() => {
+    const refresh = () =>
+      document.visibilityState === "visible" && !modal && !busy && load();
+    const timer = setInterval(refresh, 3000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [actor, modal, busy]);
   useEffect(() => {
     const q = paypalReturn.current;
     const result = q.get("paypal");
@@ -265,16 +277,44 @@ function App() {
       );
     }
   }
-  async function confirmLimit(c) {
+  // The organizer asks one person; the request appears in that person's own view.
+  async function requestLimit(c, kind) {
+    await act(
+      "request-limit",
+      {
+        batchId: revOptions?.batchId,
+        participantId: c.participantId,
+        kind,
+        amountCents: c.amountCents ?? null,
+      },
+      "organizer",
+    );
+  }
+  async function answerLimit(request, amountCents) {
     if (
       await act(
         "confirm-limit",
-        { amountCents: c.amountCents },
-        c.participantId,
+        { amountCents, requestId: request.id },
+        request.participantId,
       )
     ) {
       setModal(null);
-      await load("organizer");
+      setNotice(
+        "Limit saved. Nothing was charged; you’ll review your new share once the organizer publishes it.",
+      );
+      await load();
+    }
+  }
+  async function declineLimit(request) {
+    if (
+      await act(
+        "decline-limit",
+        { requestId: request.id },
+        request.participantId,
+      )
+    ) {
+      setModal(null);
+      await load();
     }
   }
   async function review(p, suggestion = null) {
@@ -341,6 +381,10 @@ function App() {
         (c) => c.participantId === id && c.version === state.version,
       ),
     pays = (id) => state.payments.filter((p) => p.participantId === id),
+    heldFor = (id) =>
+      pays(id)
+        .filter((p) => p.status === "authorized")
+        .reduce((s, p) => s + p.amount, 0),
     held = state.payments
       .filter((p) => p.status === "authorized")
       .reduce((s, p) => s + p.amount, 0),
@@ -358,7 +402,14 @@ function App() {
     ),
     currentPerson = active.find((p) => p.id === actor),
     isOrganizer = actor === "organizer",
-    modalPerson = state.participants.find((p) => p.id === modal?.id);
+    modalPerson = state.participants.find((p) => p.id === modal?.id),
+    departedNames = state.participants
+      .filter((p) => !p.active)
+      .map((p) => p.name.split(" ")[0])
+      .join(" and "),
+    myRequests = (state.limitRequests ?? []).filter(
+      (r) => r.participantId === actor && r.status === "pending",
+    );
   const statusText = {
     collecting: "Getting the group together",
     ready: "Everyone’s in. Let’s go.",
@@ -451,46 +502,48 @@ function App() {
           </div>
         </div>
         <section className="session-panel">
-          <strong>
-            {isOrganizer
-              ? "Participant review links"
-              : `Participant view: ${currentPerson?.name || actor}`}
-          </strong>
-          <p>
-            Local demo links select a participant in this browser tab. They are
-            not authentication; anyone with local access can switch roles.
-          </p>
-          {isOrganizer && (
-            <div className="session-links">
-              {active.map((p) => (
-                <a
-                  key={p.id}
-                  href={`/?participant=${p.id}`}
-                  target="_blank"
-                  rel="noreferrer"
+          {isOrganizer ? (
+            <details className="demo-controls-panel">
+              <summary>Demo controls</summary>
+              <p>
+                Open each friend’s view in a new tab. These are demo links, not
+                sign-in; anyone with local access can switch roles.
+              </p>
+              <div className="session-links">
+                {active.map((p) => (
+                  <a
+                    key={p.id}
+                    href={`/?participant=${p.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open {p.name.split(" ")[0]}’s view
+                  </a>
+                ))}
+              </div>
+              {state.payments.length === 0 && (
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    act("provider", {
+                      provider:
+                        state.provider === "paypal-sandbox"
+                          ? "simulated"
+                          : "paypal-sandbox",
+                    })
+                  }
                 >
-                  Open {p.name.split(" ")[0]}’s review
-                </a>
-              ))}
-            </div>
-          )}
-          {isOrganizer && state.payments.length === 0 && (
-            <button
-              className="secondary"
-              disabled={busy}
-              onClick={() =>
-                act("provider", {
-                  provider:
-                    state.provider === "paypal-sandbox"
-                      ? "simulated"
-                      : "paypal-sandbox",
-                })
-              }
-            >
-              {state.provider === "paypal-sandbox"
-                ? "Use simulator"
-                : "Use PayPal sandbox for this group"}
-            </button>
+                  {state.provider === "paypal-sandbox"
+                    ? "Use simulator"
+                    : "Use PayPal sandbox for this group"}
+                </button>
+              )}
+            </details>
+          ) : (
+            <p className="viewing-as">
+              Viewing as {currentPerson?.name || actor} · demo link, not sign-in
+            </p>
           )}
           {!isOrganizer &&
             state.provider === "paypal-sandbox" &&
@@ -619,6 +672,19 @@ function App() {
                     </div>
                   </div>
                 )}
+                {!isOrganizer &&
+                  currentPerson &&
+                  myRequests.map((r) => (
+                    <LimitRequest
+                      key={r.id}
+                      request={r}
+                      person={currentPerson}
+                      departed={departedNames}
+                      busy={busy}
+                      onConfirm={(cents) => answerLimit(r, cents)}
+                      onDecline={() => declineLimit(r)}
+                    />
+                  ))}
                 {state.status === "revision_required" && isOrganizer && (
                   <RevisionOptions
                     data={revOptions}
@@ -628,17 +694,15 @@ function App() {
                     onSuggest={() => suggestOptions()}
                     onPublish={publishOption}
                     onEditNotes={() => setTab("notes")}
-                    onConfirm={(c) => {
-                      setRevOptions((prev) => ({
-                        ...prev,
-                        asked: [...(prev.asked ?? []), c.participantId],
-                      }));
+                    requests={state.limitRequests ?? []}
+                    onRequest={requestLimit}
+                    onDemoAnswer={(request) =>
                       setModal({
                         kind: "limit",
-                        id: c.participantId,
-                        limit: c,
-                      });
-                    }}
+                        id: request.participantId,
+                        request,
+                      })
+                    }
                   />
                 )}
                 <section
@@ -812,8 +876,8 @@ function App() {
                     <div>
                       <h3>Your budget stays yours.</h3>
                       <p>
-                        Only you and the allocation service can see your private
-                        limit.
+                        Nobody sees your budget. If it caps your share, your
+                        share will equal it, and everyone sees shares.
                       </p>
                     </div>
                   </div>
@@ -1232,15 +1296,37 @@ function App() {
                   <RefreshCw size={16} />
                 </button>
               ) : state.status === "cancelled" ? (
-                <button
-                  className="primary full"
-                  onClick={() => {
-                    setActor("organizer");
-                    setModal({ kind: "reset" });
-                  }}
-                >
-                  Plan another escape <ArrowRight size={16} />
-                </button>
+                <>
+                  {isOrganizer && (
+                    <button
+                      className="primary full"
+                      disabled={busy}
+                      onClick={() =>
+                        act(
+                          "create",
+                          {
+                            title: state.title,
+                            names: active.map((p) => p.name).join(", "),
+                            listingId: state.listingId,
+                          },
+                          "organizer",
+                        )
+                      }
+                    >
+                      Start a new round with the same group{" "}
+                      <ArrowRight size={16} />
+                    </button>
+                  )}
+                  <button
+                    className="secondary full"
+                    onClick={() => {
+                      setActor("organizer");
+                      setModal({ kind: "reset" });
+                    }}
+                  >
+                    Restart the demo
+                  </button>
+                </>
               ) : state.status === "revision_required" ? (
                 <button
                   className="primary full"
@@ -1274,6 +1360,17 @@ function App() {
                   Book our weekend <ArrowRight size={17} />
                 </button>
               )}
+              {state.status === "revision_required" &&
+                !isOrganizer &&
+                currentPerson && (
+                  <button
+                    className="secondary full"
+                    disabled={busy}
+                    onClick={() => review(currentPerson)}
+                  >
+                    Update my budget
+                  </button>
+                )}
               {!isOrganizer && (
                 <button
                   className="text-button switch-back"
@@ -1357,38 +1454,51 @@ function App() {
               belongs to {modalPerson.name} in the local demo.
             </p>
             {(() => {
-              const before = state.versions
-                .find((v) => v.number === state.version - 1)
-                ?.shares.find((s) => s.id === modalPerson.id)?.share;
+              // Compare with what this person approved before and what is still held now.
+              const prior = state.versions.find(
+                (v) => v.number === state.version - 1,
+              );
+              const before = prior?.shares.find(
+                (s) => s.id === modalPerson.id,
+              )?.share;
+              const share = shareFor(modalPerson.id);
+              const held = heldFor(modalPerson.id);
+              if (before === undefined || before === share) return null;
               return (
-                before !== undefined &&
-                before !== shareFor(modalPerson.id) && (
-                  <p className="change-why">
-                    {state.current.reason}. Your share changes from{" "}
-                    {usd(before)} to {usd(shareFor(modalPerson.id))}. Your
-                    earlier approval doesn’t cover the difference.
-                  </p>
-                )
+                <p className="change-why">
+                  {state.current.reason}.{" "}
+                  {prior.listingId !== state.listingId
+                    ? `Your earlier hold is released, and you approve ${usd(share)} for ${listing.name}.`
+                    : held > 0
+                      ? `Your share changes from ${usd(before)} to ${usd(share)}. You’ll approve only the extra ${usd(share - held)}.`
+                      : `Your share changes from ${usd(before)} to ${usd(share)}. Your earlier hold is released, and you approve the new amount.`}
+                </p>
               );
             })()}
-            <div className="consent-amount">
-              <span>Your exact share</span>
-              <strong>{usd(shareFor(modalPerson.id))}</strong>
-              <small>
-                {usd(
-                  Math.max(
-                    0,
-                    shareFor(modalPerson.id) -
-                      pays(modalPerson.id)
-                        .filter((p) => p.status === "authorized")
-                        .reduce((s, p) => s + p.amount, 0),
-                  ),
-                )}{" "}
-                additional{" "}
-                {state.provider === "paypal-sandbox" ? "sandbox" : "simulated"}{" "}
-                hold
-              </small>
-            </div>
+            {(() => {
+              const share = shareFor(modalPerson.id);
+              const held = heldFor(modalPerson.id);
+              const extra = Math.max(0, share - held);
+              const kind =
+                state.provider === "paypal-sandbox" ? "sandbox" : "simulated";
+              return (
+                <div className="consent-amount">
+                  <span>{held > 0 ? "Approve now" : "Your exact share"}</span>
+                  <strong>
+                    {held > 0
+                      ? extra
+                        ? `+${usd(extra)}`
+                        : "No new hold"
+                      : usd(share)}
+                  </strong>
+                  <small>
+                    {held > 0
+                      ? `New share ${usd(share)} · ${usd(held)} already held · ${kind} hold, not a charge`
+                      : `A ${kind} hold, not a charge`}
+                  </small>
+                </div>
+              );
+            })()}
             <label className="field">
               Your private budget ceiling (USD)
               <input
@@ -1457,9 +1567,8 @@ function App() {
             {notice && <p role="status">{notice}</p>}
             {state.status === "revision_required" && (
               <p role="status">
-                The saved budget needs a new allocation. Close this dialog and
-                ask the organizer to publish revised shares; then review the new
-                amount.
+                Saved. Your organizer will publish new shares that fit. You can
+                change your budget again until then.
               </p>
             )}
             <p className="secure-note">
@@ -1470,48 +1579,51 @@ function App() {
               . Save edits before approving. A lower ceiling may require a
               revised plan.
             </p>
-            <button
-              className="primary full"
-              disabled={
-                busy ||
-                !isOpen ||
-                actor !== modalPerson.id ||
-                modalPerson.budget == null ||
-                Math.round(Number(budget) * 100) !== modalPerson.budget ||
-                modalPerson.budget < shareFor(modalPerson.id) ||
-                state.status === "revision_required"
-              }
-              onClick={async () => {
-                const next = await act(
-                  "approve",
-                  { version: state.version },
-                  modalPerson.id,
-                );
-                if (next) {
-                  const checkout = next.payments?.findLast(
-                    (p) => p.participantId === modalPerson.id && p.approvalUrl,
-                  );
-                  if (
-                    next.provider === "paypal-sandbox" &&
-                    checkout?.status === "approval_required"
-                  )
-                    return location.assign(checkout.approvalUrl);
-                  setModal(null);
-                  setNotice(
-                    state.provider === "paypal-sandbox"
-                      ? "Consent recorded. Complete your PayPal sandbox checkout below, then confirm the authorization."
-                      : "Your agreement and simulated hold are recorded. Nothing has been charged.",
-                  );
+            {state.status !== "revision_required" && (
+              <button
+                className="primary full"
+                disabled={
+                  busy ||
+                  !isOpen ||
+                  actor !== modalPerson.id ||
+                  modalPerson.budget == null ||
+                  Math.round(Number(budget) * 100) !== modalPerson.budget ||
+                  modalPerson.budget < shareFor(modalPerson.id) ||
+                  state.status === "revision_required"
                 }
-              }}
-            >
-              {busy
-                ? "Recording your approval…"
-                : state.provider === "paypal-sandbox"
-                  ? "Agree & open sandbox checkout"
-                  : "Agree & authorize simulated hold"}
-              <Check size={17} />
-            </button>
+                onClick={async () => {
+                  const next = await act(
+                    "approve",
+                    { version: state.version },
+                    modalPerson.id,
+                  );
+                  if (next) {
+                    const checkout = next.payments?.findLast(
+                      (p) =>
+                        p.participantId === modalPerson.id && p.approvalUrl,
+                    );
+                    if (
+                      next.provider === "paypal-sandbox" &&
+                      checkout?.status === "approval_required"
+                    )
+                      return location.assign(checkout.approvalUrl);
+                    setModal(null);
+                    setNotice(
+                      state.provider === "paypal-sandbox"
+                        ? "Consent recorded. Complete your PayPal sandbox checkout below, then confirm the authorization."
+                        : "Your agreement and simulated hold are recorded. Nothing has been charged.",
+                    );
+                  }
+                }}
+              >
+                {busy
+                  ? "Recording your approval…"
+                  : state.provider === "paypal-sandbox"
+                    ? `Agree & open sandbox checkout for ${usd(Math.max(0, shareFor(modalPerson.id) - heldFor(modalPerson.id)) || shareFor(modalPerson.id))}`
+                    : "Agree & authorize simulated hold"}
+                <Check size={17} />
+              </button>
+            )}
             <p className="secure-note">
               {state.provider === "paypal-sandbox"
                 ? "Sandbox buyers approve their own exact additional amount in PayPal. No real money."
@@ -1664,53 +1776,15 @@ function App() {
           </>
         )}
         {modal?.kind === "limit" && modalPerson && (
-          <>
-            <span className="eyebrow">A QUICK QUESTION</span>
-            <p className="demo-as">
-              Demo: shown to {modalPerson.name}. In a real trip only they would
-              see this.
-            </p>
-            <h2>
-              Use {usd(modal.limit.amountCents)} as your limit,{" "}
-              {modalPerson.name.split(" ")[0]}?
-            </h2>
-            <p>
-              {state.participants
-                .filter((p) => !p.active)
-                .map((p) => p.name.split(" ")[0])
-                .join(" and ") || "Someone"}{" "}
-              left, so the organizer is choosing a new plan. One option uses
-              what you wrote:
-            </p>
-            <blockquote className="limit-quote">
-              “{modal.limit.quote.replace(/^[^:]*:\s*/, "")}”
-            </blockquote>
-            <p>
-              Confirming saves {usd(modal.limit.amountCents)} as your private
-              budget. The group sees that you confirmed this amount, which you
-              already shared in the chat. Nothing is charged; you’ll still
-              review and approve your new share.
-            </p>
-            {error && (
-              <p className="inline-error" role="alert">
-                {error}
-              </p>
-            )}
-            <button
-              className="primary full"
-              disabled={busy}
-              onClick={() => confirmLimit(modal.limit)}
-            >
-              Confirm {usd(modal.limit.amountCents)} as my limit
-            </button>
-            <button
-              className="secondary full"
-              disabled={busy}
-              onClick={() => setModal(null)}
-            >
-              Not now
-            </button>
-          </>
+          <LimitRequest
+            request={modal.request}
+            person={modalPerson}
+            departed={departedNames}
+            busy={busy}
+            demo
+            onConfirm={(cents) => answerLimit(modal.request, cents)}
+            onDecline={() => declineLimit(modal.request)}
+          />
         )}
         {modal?.kind === "allocation" && (
           <>
@@ -1775,6 +1849,15 @@ function App() {
                 <p>
                   Each person approves the exact version and authorizes their
                   own share.
+                </p>
+              </li>
+              <li>
+                <strong>Plans can change.</strong>
+                <p>
+                  If someone drops out, their hold is released and the group
+                  gets new options. Everyone approves the new version, and only
+                  ever authorizes the difference; an earlier yes never covers a
+                  higher price.
                 </p>
               </li>
               <li>

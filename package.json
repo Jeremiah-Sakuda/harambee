@@ -10,7 +10,7 @@
     "build": "vite build",
     "start": "node server/index.mjs",
     "test": "node --test test/*.test.mjs",
-    "eval": "node scripts/evaluate.mjs && node scripts/evaluate-revisions.mjs >/dev/null",
+    "eval": "node scripts/evaluate.mjs && node scripts/evaluate-revisions.mjs >/dev/null && node scripts/evaluate-revisions.mjs --holdout >/dev/null && node scripts/evaluate-revisions.mjs --holdout2 >/dev/null",
     "eval:live": "node --env-file-if-exists=.env scripts/evaluate.mjs --live",
     "paypal:check": "node scripts/paypal-check.mjs",
     "eval:revisions": "node scripts/evaluate-revisions.mjs",

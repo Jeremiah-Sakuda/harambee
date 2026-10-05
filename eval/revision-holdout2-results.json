@@ -17,7 +17,7 @@
       "useful": true,
       "provider": "reference",
       "model": null,
-      "latencyMs": 0,
+      "latencyMs": 1,
       "options": [
         {
           "listingId": "pine",
@@ -137,7 +137,7 @@
       "useful": true,
       "provider": "reference",
       "model": null,
-      "latencyMs": 0,
+      "latencyMs": 1,
       "options": [
         {
           "listingId": "pine",
@@ -148,7 +148,7 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
@@ -174,7 +174,7 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
@@ -200,11 +200,11 @@
             20000,
             20000
           ],
-          "source": "reference",
+          "source": "rule",
           "removedLimits": []
         }
       ],
-      "clarifications": 1,
+      "clarifications": 2,
       "discarded": []
     }
   ]

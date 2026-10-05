@@ -292,8 +292,42 @@ const server = http.createServer(async (req, res) => {
               : { listingId: input.listingId },
           );
           break;
+        case "/api/request-limit": {
+          engine.assertOrganizer(actor);
+          // Quote, line and amount come from the server's own options, never from the browser.
+          const options = recheckRevisions(engine, input.batchId);
+          const confirm = [
+            ...options.options.flatMap((o) => o.confirmations),
+            // Firm amounts code found in the chat that no option used yet.
+            ...options.clarifications.filter((c) => c.amountCents),
+          ].find(
+            (c) =>
+              c.participantId === input.participantId &&
+              c.amountCents === input.amountCents,
+          );
+          const ask = options.clarifications.find(
+            (c) => c.participantId === input.participantId,
+          );
+          if (input.kind === "confirm" ? !confirm : !ask)
+            throw new DomainError(
+              "That request isn’t part of these options.",
+              400,
+            );
+          engine.requestLimit(actor, {
+            participantId: input.participantId,
+            kind: input.kind,
+            amountCents: confirm?.amountCents,
+            quote: (confirm?.quote ?? "").replace(/^[^:]*:\s*/, ""),
+            line: confirm?.line ?? ask?.line,
+            question: ask?.question,
+          });
+          break;
+        }
         case "/api/confirm-limit":
-          engine.confirmLimit(actor, input.amountCents);
+          engine.confirmLimit(actor, input.amountCents, input.requestId);
+          break;
+        case "/api/decline-limit":
+          engine.declineLimit(actor, input.requestId);
           break;
         case "/api/budget":
           engine.budget(actor, input.amount);

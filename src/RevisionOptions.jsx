@@ -39,9 +39,52 @@ export default function RevisionOptions({
   participants,
   onSuggest,
   onPublish,
-  onConfirm,
   onEditNotes,
+  requests = [],
+  onRequest,
+  onDemoAnswer,
 }) {
+  // The latest request to each person about this amount (or any "ask"), with its status.
+  const requestFor = (participantId, kind, amountCents = null) =>
+    [...requests]
+      .reverse()
+      .find(
+        (r) =>
+          r.participantId === participantId &&
+          r.kind === kind &&
+          (kind === "ask" || r.amountCents === amountCents),
+      );
+  const RequestStatus = ({
+    request,
+    name,
+    kind,
+    amountCents = null,
+    participantId,
+    label,
+  }) =>
+    request?.status === "pending" ? (
+      <span className="rev-request">
+        <button className="secondary" disabled>
+          Waiting for {name}…
+        </button>
+        <button className="link-button" onClick={() => onDemoAnswer(request)}>
+          Demo shortcut: answer as {name}
+        </button>
+      </span>
+    ) : (
+      <span className="rev-request">
+        {request?.status === "declined" && (
+          <small className="rev-wait">{name} isn’t ready yet.</small>
+        )}
+        <button
+          className="secondary"
+          disabled={busy}
+          onClick={() => onRequest({ participantId, amountCents }, kind)}
+        >
+          {request?.status === "declined" ? "Ask again" : label}
+        </button>
+      </span>
+    );
   if (!data)
     return (
       <section className="rev-panel" id="revision-options">
@@ -69,7 +112,14 @@ export default function RevisionOptions({
       <div className="rev-head">
         <div>
           <h3>Options for the new group</h3>
-          {data.summary && <p>{data.summary}</p>}
+          {data.summary && (
+            <p className="rev-summary">
+              {data.provider === "openai" && (
+                <strong>What the AI read: </strong>
+              )}
+              {data.summary}
+            </p>
+          )}
           <Provenance data={data} />
         </div>
         <button className="secondary" disabled={busy} onClick={onSuggest}>
@@ -84,11 +134,49 @@ export default function RevisionOptions({
           <ul>
             {data.clarifications.map((c, i) => (
               <li key={i}>
-                {c.participantId &&
-                  `${first(participants.find((p) => p.id === c.participantId)?.name ?? "")}: `}
+                {(() => {
+                  const name = first(
+                    participants.find((p) => p.id === c.participantId)?.name ??
+                      "",
+                  );
+                  // Skip the "Maya:" prefix when the question already starts with her name.
+                  return name && !c.question.startsWith(name)
+                    ? `${name}: `
+                    : "";
+                })()}
                 {c.question}
                 {c.source === "code" && (
                   <small className="rev-flag"> · flagged by code</small>
+                )}
+                {c.participantId && c.amountCents ? (
+                  <RequestStatus
+                    request={requestFor(
+                      c.participantId,
+                      "confirm",
+                      c.amountCents,
+                    )}
+                    name={first(
+                      participants.find((p) => p.id === c.participantId)
+                        ?.name ?? "",
+                    )}
+                    kind="confirm"
+                    amountCents={c.amountCents}
+                    participantId={c.participantId}
+                    label={`Send ${first(participants.find((p) => p.id === c.participantId)?.name ?? "")} a confirmation request (${usd(c.amountCents)})`}
+                  />
+                ) : (
+                  c.participantId && (
+                    <RequestStatus
+                      request={requestFor(c.participantId, "ask")}
+                      name={first(
+                        participants.find((p) => p.id === c.participantId)
+                          ?.name ?? "",
+                      )}
+                      kind="ask"
+                      label={`Ask ${first(participants.find((p) => p.id === c.participantId)?.name ?? "")} for a firm limit`}
+                      participantId={c.participantId}
+                    />
+                  )
                 )}
               </li>
             ))}
@@ -105,14 +193,28 @@ export default function RevisionOptions({
               <h4>{o.title}</h4>
               <span className="rev-tag">
                 {o.source === "openai"
-                  ? "AI suggestion"
+                  ? o.matchesRule
+                    ? "AI suggestion · same split as the standard rule"
+                    : "AI suggestion"
                   : o.source === "local-planner"
                     ? "Local planner"
-                    : "Standard rule"}
+                    : o.alsoSuggested
+                      ? "Standard rule · also suggested by AI"
+                      : "Standard rule"}
               </span>
             </header>
             <p className="rev-explain">{o.explanation}</p>
             {o.tradeoff && <p className="rev-tradeoff">{o.tradeoff}</p>}
+            {o.basis?.length > 0 && (
+              <ul className="rev-basis" aria-label="Why the AI suggested this">
+                {o.basis.map((b, i) => (
+                  <li key={i}>
+                    <strong>Why:</strong> “{b.quote}” — {first(b.name)}, line{" "}
+                    {b.line}
+                  </li>
+                ))}
+              </ul>
+            )}
             {o.removedLimits?.length > 0 && (
               <p className="rev-note">
                 Code removed a limit this suggestion used:{" "}
@@ -174,7 +276,8 @@ export default function RevisionOptions({
               .filter(
                 (c) =>
                   c.needed ||
-                  (c.confirmed && data.asked?.includes(c.participantId)),
+                  (c.confirmed &&
+                    requestFor(c.participantId, "confirm", c.amountCents)),
               )
               .map((c) => (
                 <div key={c.participantId} className="rev-confirm">
@@ -192,13 +295,18 @@ export default function RevisionOptions({
                     )}
                   </p>
                   {!c.confirmed && (
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => onConfirm(c)}
-                    >
-                      Ask {first(c.name)} to confirm {usd(c.amountCents)}
-                    </button>
+                    <RequestStatus
+                      request={requestFor(
+                        c.participantId,
+                        "confirm",
+                        c.amountCents,
+                      )}
+                      name={first(c.name)}
+                      kind="confirm"
+                      amountCents={c.amountCents}
+                      participantId={c.participantId}
+                      label={`Send ${first(c.name)} a confirmation request`}
+                    />
                   )}
                 </div>
               ))}

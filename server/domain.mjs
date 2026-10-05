@@ -130,6 +130,7 @@ export function seed() {
     ],
     consents: [],
     limitConfirmations: [],
+    limitRequests: [],
     payments: [],
     operations: [],
     audit: [
@@ -151,6 +152,7 @@ export class Engine {
     this.store = store;
     this.state = store.load() ?? seed();
     this.state.limitConfirmations ??= [];
+    this.state.limitRequests ??= [];
     this.persist();
   }
   persist() {
@@ -438,22 +440,92 @@ export class Engine {
   }
   // A participant explicitly adopts a limit an option read from their own message. It becomes
   // their saved budget, and only this record (not a budget comparison) unlocks that option.
-  confirmLimit(actor, amount) {
+  // The organizer asks one person, in their own view, to confirm a limit an option read from
+  // their message ("confirm") or to give a firm limit where the message was uncertain ("ask").
+  requestLimit(
+    actor,
+    { participantId, kind, amountCents, quote, line, question },
+  ) {
+    this.assertOrganizer(actor);
+    this.assertOpen();
+    const p = this.active.find((p) => p.id === participantId);
+    ensure(p, "That person is not in the group.", 400);
+    ensure(["confirm", "ask"].includes(kind), "Unknown request.", 400);
+    const same = this.state.limitRequests.find(
+      (r) =>
+        r.participantId === p.id &&
+        r.version === this.state.version &&
+        r.kind === kind &&
+        r.amountCents === (amountCents ?? null) &&
+        r.status === "pending",
+    );
+    if (same) return same;
+    const request = {
+      id: randomUUID(),
+      participantId: p.id,
+      kind,
+      amountCents: kind === "confirm" ? money(amountCents) : null,
+      quote: String(quote ?? "").slice(0, 200),
+      line: Number.isInteger(line) ? line : null,
+      question: String(question ?? "").slice(0, 300),
+      version: this.state.version,
+      status: "pending",
+      at: timestamp(),
+    };
+    this.state.limitRequests.push(request);
+    this.log(
+      `The organizer asked ${p.name} to confirm a limit for the revised plan.`,
+      "revision",
+    );
+    return request;
+  }
+  // A participant explicitly adopts a limit an option read from their own message. It becomes
+  // their saved budget, and only this record (not a budget comparison) unlocks that option.
+  confirmLimit(actor, amount, requestId) {
     this.assertOpen();
     const p = this.active.find((p) => p.id === actor);
     ensure(p, "Only participants can confirm their own limit.", 403);
     const cents = money(amount);
     ensure(cents > 0, "A limit must be greater than zero.", 400);
+    const request = requestId
+      ? this.state.limitRequests.find((r) => r.id === requestId)
+      : null;
+    if (requestId) {
+      ensure(
+        request &&
+          request.participantId === p.id &&
+          request.status === "pending",
+        "That request is no longer open.",
+        409,
+      );
+      ensure(
+        request.kind === "ask" || request.amountCents === cents,
+        "Confirm the amount you were asked about, or save a different budget instead.",
+        400,
+      );
+    }
     this.budget(actor, cents);
     this.state.limitConfirmations.push({
       participantId: p.id,
       amountCents: cents,
       at: timestamp(),
     });
-    this.log(
-      `${p.name} confirmed a $${(cents / 100).toFixed(2)} limit for the revised plan.`,
-      "revision",
+    if (request) request.status = "confirmed";
+    // The amount stays out of the shared log; the organizer sees it on the option they chose.
+    this.log(`${p.name} confirmed a limit for the revised plan.`, "revision");
+  }
+  declineLimit(actor, requestId) {
+    const request = this.state.limitRequests.find((r) => r.id === requestId);
+    ensure(
+      request &&
+        request.participantId === actor &&
+        request.status === "pending",
+      "That request is no longer open.",
+      409,
     );
+    request.status = "declined";
+    const p = this.state.participants.find((p) => p.id === actor);
+    this.log(`${p.name} isn’t ready to confirm a limit yet.`, "revision");
   }
   limitConfirmed(id, amount) {
     return (this.state.limitConfirmations ?? []).some(
@@ -654,6 +726,12 @@ export class Engine {
     for (const p of s.participants) {
       if (p.id !== actor) delete p.budget;
     }
+    // Confirmed limits and open requests are visible to their owner and the organizer only.
+    const mine = (r) => actor === "organizer" || r.participantId === actor;
+    s.limitConfirmations = s.limitConfirmations.filter(mine);
+    s.limitRequests = s.limitRequests.filter(
+      (r) => mine(r) && r.version === s.version,
+    );
     s.catalog = catalog;
     s.current = s.versions.find((v) => v.number === s.version);
     s.actor = actor;
