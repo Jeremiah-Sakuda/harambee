@@ -51,6 +51,10 @@ for (let i = 0; i < runs; i++) {
       matchesRule: !!o.matchesRule,
       shares: o.rows.map((r) => r.share / 100),
       why: o.basis.map((b) => `${b.participantId}: ${b.quote}`),
+      // Verified quotes that argue for a different option are shown apart, never as "Why".
+      pointsElsewhere: o.considered.map(
+        (b) => `${b.participantId}: ${b.quote}`,
+      ),
       removed: o.removedLimits,
     })),
     discarded: out.discarded,

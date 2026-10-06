@@ -68,7 +68,8 @@ export function literalAmounts(line) {
       found.add(Math.round(Number(t.replaceAll(",", "")) * 100));
   };
   for (const m of line.matchAll(/\$\s?([0-9][0-9,]*(?:\.[0-9]{1,2})?)/g))
-    digits(m[1]);
+    // "$1.2k" is an abbreviation, not $1.20; code asks about it instead of reading it.
+    if (!/^\s?[kKmM]\b/.test(line.slice(m.index + m[0].length))) digits(m[1]);
   for (const m of line.matchAll(
     /\b([0-9][0-9,]*(?:\.[0-9]{1,2})?)\s*(?:dollars|bucks|usd)\b/gi,
   ))
@@ -92,8 +93,19 @@ const speakerMatches = (line, person) => {
     speaker === person.name.split(" ")[0].toLowerCase()
   );
 };
-// Prose is checked with the same reader as quotes, so "two hundred sixty dollars" or "USD 260" count too.
-const amountsIn = (text) => literalAmounts(String(text));
+// Prose is checked with the same reader as quotes, so "two hundred sixty dollars" or "USD 260" count
+// too, plus bare numbers ("Alex covers 300"). Small counts like "sleeps 6" or "line 4" are left alone.
+const amountsIn = (text) => [
+  ...literalAmounts(String(text)),
+  ...[
+    ...String(text).matchAll(
+      /(?<![\w.,:]|\bline\s)(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?(?![\w%]|[.,:]\d)/g,
+    ),
+  ]
+    .map((m) => Number(m[0].replaceAll(",", "")))
+    .filter((n) => n > 12)
+    .map((n) => Math.round(n * 100)),
+];
 
 // Deterministic backstop: some messages are too uncertain to use as a limit no matter what the
 // model says. Code turns them into a question for that person instead. It is a floor for common
@@ -114,6 +126,26 @@ const BELOW =
 // Text that reads like an instruction to the system is never a limit.
 const COMMAND =
   /\b(?:ignore|disregard)\b.*\b(?:instructions?|budgets?|limits?|rules?)\b|\bset (?:every(?:one|body)|all)\b/i;
+// Amounts that aren't a spending ceiling: money already moved, a nightly rate, a lifted cap, or a
+// share someone accepts ("$170 is fine") without calling it their limit.
+const NOT_A_LIMIT =
+  /\b(?:sent|paid|spent|transferred|venmo['’]?d|put in|chipped in|owe[sd]?|deposit(?:ed)?|refund(?:ed)?|reimbursed?)\s+(?:you\s+|him\s+|her\s+|them\s+|back\s+)?\$?\d|\$?\d[\d,.]*\s*(?:for gas|for food|for groceries|deposit|(?:per|a|each|\/)\s?night|nightly)\b|\b(?:no longer|not)\s+(?:capped|limited)\b/i;
+const ACCEPTS =
+  /\b(?:is fine|works for me|fine (?:by|for|with) me|ok(?:ay)? (?:for|with) me|sounds good)\b/i;
+// Words that make an amount a ceiling. Only these can be confirmed in one click.
+const CEILING =
+  /\b(?:max(?:imum)?|limit|cap|capped|can['’]?t go|cannot go|up to|tops|budget|no more than|at most|beyond|above|over)\b/i;
+const ABBREVIATED = /\$\s?\d[\d,.]*\s?[kKmM]\b/;
+const sentencesWith = (text, amount) => {
+  const found = text
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => literalAmounts(s).includes(amount));
+  return found.length ? found : [text];
+};
+const notALimit = (text, amount) =>
+  sentencesWith(text, amount).every(
+    (s) => NOT_A_LIMIT.test(s) || (ACCEPTS.test(s) && !CEILING.test(s)),
+  );
 const body = (line) => line.slice(line.indexOf(":") + 1);
 const firstName = (p) => p.name.split(" ")[0];
 const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -129,7 +161,15 @@ function ambiguousLimit(lines, index, person, amount, active = []) {
     return ask(
       `${first}’s message reads like an instruction, not a limit, so code ignored it.`,
     );
-  if (literalAmounts(text).length > 1)
+  if (ABBREVIATED.test(text))
+    return ask(
+      `${first} wrote an abbreviated amount, so code asked instead of reading it.`,
+    );
+  if (notALimit(text, amount))
+    return ask(
+      `${first}’s message doesn’t read as a spending limit, so code asked instead of using it.`,
+    );
+  if (literalAmounts(text).filter((a) => !notALimit(text, a)).length > 1)
     return ask(
       `${first} wrote more than one amount, so code asked instead of choosing.`,
     );
@@ -147,11 +187,8 @@ function ambiguousLimit(lines, index, person, amount, active = []) {
       `${first} passed on what someone else said, so code asked instead of using it.`,
     );
   // Hedged only if every sentence that states the amount hedges it.
-  const sentences = text
-    .split(/(?<=[.!?])\s+/)
-    .filter((s) => literalAmounts(s).includes(amount));
   if (
-    (sentences.length ? sentences : [text]).every(
+    sentencesWith(text, amount).every(
       (s) => HEDGE.test(s) || BELOW.test(s) || /\?\s*$/.test(s.trim()),
     )
   )
@@ -164,7 +201,9 @@ function ambiguousLimit(lines, index, person, amount, active = []) {
       .some(
         (l) =>
           speakerMatches(l, person) &&
-          literalAmounts(body(l)).some((a) => a !== amount),
+          literalAmounts(body(l)).some(
+            (a) => a !== amount && !notALimit(body(l), a),
+          ),
       )
   )
     return ask(
@@ -172,6 +211,36 @@ function ambiguousLimit(lines, index, person, amount, active = []) {
     );
   return null;
 }
+
+// A reason is shown as "Why" only if it supports this option: it doesn't point to a different
+// cabin, and no amount in it is below what this option asks that person to pay. Other verified
+// reasons are kept as "points to another option", never silently dropped.
+const cabinWord = (l) => l.name.split(/\s/)[0].toLowerCase();
+function supports(b, listing, shares, lines) {
+  const text = b.quote.toLowerCase();
+  if (
+    !text.includes(cabinWord(listing)) &&
+    catalog.some((l) => l.id !== listing.id && text.includes(cabinWord(l)))
+  )
+    return false;
+  const share = shares?.find((s) => s.id === b.participantId)?.share;
+  const amounts = [
+    ...literalAmounts(b.quote),
+    ...(b.kind === "limit" ? literalAmounts(body(lines[b.line - 1])) : []),
+  ];
+  return (
+    share === undefined || !amounts.length || share <= Math.max(...amounts)
+  );
+}
+// People who answered the organizer's question for this version; their limit is settled.
+const answered = (engine) =>
+  new Set(
+    (engine.state.limitRequests ?? [])
+      .filter(
+        (r) => r.version === engine.state.version && r.status === "confirmed",
+      )
+      .map((r) => r.participantId),
+  );
 
 function context(engine) {
   const s = engine.state;
@@ -272,14 +341,35 @@ function evaluate(engine, ctx, lines, option) {
   for (const b of option.basis ?? []) {
     const person = ctx.active.find((p) => p.id === b.participantId);
     const line = lines[b.line - 1];
+    // A reason must be a real phrase, not a name or a two-word fragment like "pay more".
+    const words =
+      typeof b.quote === "string"
+        ? b.quote
+            .replace(
+              new RegExp(
+                ctx.active.map((p) => escapeRe(firstName(p))).join("|"),
+                "gi",
+              ),
+              "",
+            )
+            .match(/[a-z]{2,}/gi)
+        : null;
     if (
       person &&
       line &&
       typeof b.quote === "string" &&
-      b.quote.trim().length > 3 &&
+      b.quote.trim().length >= 12 &&
+      (words?.length ?? 0) >= 3 &&
       line.includes(b.quote) &&
       speakerMatches(line, person)
-    )
+    ) {
+      // The same quote listed twice is one reason.
+      if (
+        basis.some(
+          (x) => x.line === b.line && x.quote === b.quote.slice(0, 160),
+        )
+      )
+        continue;
       basis.push({
         participantId: person.id,
         name: person.name,
@@ -287,7 +377,7 @@ function evaluate(engine, ctx, lines, option) {
         quote: b.quote.slice(0, 160),
         kind: b.kind,
       });
-    else
+    } else
       removed.push({
         text: "Code dropped a reason it couldn’t find in that person’s own message.",
         participantId: null,
@@ -352,13 +442,16 @@ function evaluate(engine, ctx, lines, option) {
       reason: "Everyone’s saved budgets cannot cover this cabin.",
     };
   const sameCabin = listing.id === ctx.listingId;
-  // Only mention a removed limit where it could have changed that person's share here.
+  const settled = answered(engine);
+  // Only mention a removed limit where it could have changed that person's share here, and not
+  // once that person has answered the organizer's question about it.
   const notes = removed
     .filter(
       (r) =>
         r.amountCents === null ||
-        (shares.find((s) => s.id === r.participantId)?.share ?? 0) >
-          r.amountCents,
+        (!settled.has(r.participantId) &&
+          (shares.find((s) => s.id === r.participantId)?.share ?? 0) >
+            r.amountCents),
     )
     .map((r) => r.text);
   return {
@@ -366,7 +459,8 @@ function evaluate(engine, ctx, lines, option) {
     caps,
     removed: notes,
     clarify,
-    basis,
+    basis: basis.filter((b) => supports(b, listing, shares, lines)),
+    considered: basis.filter((b) => !supports(b, listing, shares, lines)),
     confirmations,
     feasible: true,
     publishable: !waiting,
@@ -456,6 +550,7 @@ function finish(engine, ctx, lines, proposed, meta) {
       removedLimits: result.removed,
       source: p.source ?? meta.provider,
       basis: result.basis ?? [],
+      considered: result.considered ?? [],
       listingId: result.listing.id,
       listingName: result.listing.name,
       total: result.listing.total,
@@ -482,11 +577,16 @@ function finish(engine, ctx, lines, proposed, meta) {
     const suggested = [earlier, option].find((o) => o.source !== "rule");
     if (suggested && [earlier, option].some((o) => o.source === "rule")) {
       merged.matchesRule = true;
+      // A confirmed limit made the rule produce this split: say why one card replaced two.
+      merged.combinedAfter = suggested.confirmations
+        .filter((c) => c.confirmed)
+        .map((c) => firstName(c));
       if (merged.source === "rule") {
         // The plain rule already gives this split with nothing to confirm. Keep the model's
         // verified reasons and stated limits visible, but nothing waits on them.
         merged.alsoSuggested = true;
         merged.basis = suggested.basis;
+        merged.considered = suggested.considered;
         merged.confirmations = suggested.confirmations.map((c) => ({
           ...c,
           needed: false,
@@ -503,11 +603,17 @@ function finish(engine, ctx, lines, proposed, meta) {
   // Code also checks each person's latest amount directly, so an uncertain one always gets a
   // question even when the suggestion ignored it.
   for (const person of ctx.active) {
+    // The latest message where this person wrote an amount that could be a limit. Money already
+    // sent, nightly rates and lifted caps are skipped; an abbreviation like "$1.2k" is asked about.
     const index = lines.findLastIndex(
-      (l) => speakerMatches(l, person) && literalAmounts(body(l)).length,
+      (l) =>
+        speakerMatches(l, person) &&
+        (ABBREVIATED.test(body(l)) ||
+          literalAmounts(body(l)).some((a) => !notALimit(body(l), a))),
     );
     if (index < 0) continue;
-    const amount = literalAmounts(body(lines[index]))[0];
+    const text = body(lines[index]);
+    const amount = literalAmounts(text).find((a) => !notALimit(text, a));
     const ambiguity = ambiguousLimit(lines, index, person, amount, ctx.active);
     if (ambiguity) {
       codeQuestions.push({
@@ -532,9 +638,9 @@ function finish(engine, ctx, lines, proposed, meta) {
       codeQuestions.push({
         participantId: person.id,
         line: index + 1,
-        // A firm amount can be confirmed directly, not just asked about.
-        amountCents: amount,
-        quote: body(lines[index]).trim().slice(0, 200),
+        // An amount stated as a ceiling can be confirmed directly; anything else is only asked about.
+        ...(CEILING.test(text) ? { amountCents: amount } : {}),
+        quote: text.trim().slice(0, 200),
         question: `${firstName(person)} wrote “${body(lines[index]).trim().slice(0, 90)}”, but no option uses ${usd(amount)} yet. Should it be ${firstName(person)}’s limit?`,
       });
     }
@@ -780,7 +886,45 @@ export function resolveOption(engine, optionId) {
   };
 }
 
-export async function proposeRevisions(engine, { notes = "" } = {}) {
+// The organizer asks one person about their limit. What is asked (amount, quote, line) comes from
+// the server's own options for this version, never from the browser.
+export function resolveLimitRequest(
+  engine,
+  { batchId, participantId, kind, amountCents },
+) {
+  const b = batchFor(engine, batchId);
+  const out = present(engine, batchId, b);
+  const person = engine.active.find((p) => p.id === participantId);
+  const confirm = [
+    ...out.options.flatMap((o) => o.confirmations),
+    // Firm amounts code found in the chat that no option used yet.
+    ...out.clarifications.filter((c) => c.amountCents),
+  ].find(
+    (c) => c.participantId === participantId && c.amountCents === amountCents,
+  );
+  const ask = out.clarifications.find((c) => c.participantId === participantId);
+  const found = kind === "confirm" ? confirm : kind === "ask" ? ask : null;
+  if (!person || !found)
+    throw new DomainError("That request isn’t part of these options.", 400);
+  const line = b.notes.split("\n")[found.line - 1];
+  return {
+    participantId,
+    kind,
+    amountCents: kind === "confirm" ? confirm.amountCents : undefined,
+    // Only that person's own words are shown back to them.
+    quote:
+      line && speakerMatches(line, person)
+        ? body(line).trim().slice(0, 200)
+        : "",
+    line: found.line,
+    question: ask?.question,
+  };
+}
+
+export async function proposeRevisions(
+  engine,
+  { notes = "", isCurrent = () => true } = {},
+) {
   if (typeof notes !== "string" || notes.length > 8000)
     throw new DomainError(
       "Use up to 8,000 characters of consented group chat.",
@@ -802,9 +946,11 @@ export async function proposeRevisions(engine, { notes = "" } = {}) {
   // suggestions describe an old group and must not be published against the new one.
   const before = `${engine.state.id}|${engine.state.version}|${engine.active.map((p) => p.id)}`;
   const result = await suggest(engine, ctx, notes, lines);
+  // isCurrent also catches a reset or new trip that replaced this engine during the model call.
   if (
+    !isCurrent() ||
     before !==
-    `${engine.state.id}|${engine.state.version}|${engine.active.map((p) => p.id)}`
+      `${engine.state.id}|${engine.state.version}|${engine.active.map((p) => p.id)}`
   ) {
     requests.set(key, used - 1);
     throw new DomainError(

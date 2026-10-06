@@ -2039,7 +2039,7 @@ dialog .terms {
 }
 .rev-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
   margin-top: 14px;
 }
@@ -2097,8 +2097,17 @@ dialog .terms {
   font-weight: 500;
   padding-bottom: 4px;
 }
+.rev-table th,
 .rev-table td {
-  padding: 6px 0;
+  padding-right: 10px;
+}
+.rev-table th:last-child,
+.rev-table td:last-child {
+  padding-right: 0;
+}
+.rev-table td {
+  padding-top: 6px;
+  padding-bottom: 6px;
   border-top: 1px solid var(--line);
   vertical-align: top;
 }
@@ -2250,4 +2259,34 @@ dialog .terms,
 }
 .rev-warn {
   color: var(--warn);
+}
+
+.rev-considered {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.rev-answered {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--forest);
+  font-size: var(--fs-sm);
+}
+.rev-stuck {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.rev-stuck p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.limit-request {
+  scroll-margin-top: 16px;
 }

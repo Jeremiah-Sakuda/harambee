@@ -50,7 +50,11 @@ export class PayPalSandbox {
       );
     return data;
   }
-  createOrder(cents, key, { returnUrl, cancelUrl, description } = {}) {
+  createOrder(
+    cents,
+    key,
+    { returnUrl, cancelUrl, description, customId } = {},
+  ) {
     if (!Number.isSafeInteger(cents) || cents < 1)
       throw new Error("Whole positive cents required");
     return this.request("/v2/checkout/orders", {
@@ -61,6 +65,8 @@ export class PayPalSandbox {
           {
             amount: { currency_code: "USD", value: (cents / 100).toFixed(2) },
             ...(description ? { description: description.slice(0, 127) } : {}),
+            // Links the PayPal order back to this plan and payment in the dashboard.
+            ...(customId ? { custom_id: customId.slice(0, 127) } : {}),
           },
         ],
         ...(returnUrl

@@ -1,4 +1,5 @@
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,7 @@ import { SandboxLab } from "./sandbox-lab.mjs";
 import {
   proposeRevisions,
   recheckRevisions,
+  resolveLimitRequest,
   resolveOption,
 } from "./revision-options.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -113,10 +115,15 @@ const server = http.createServer(async (req, res) => {
       if (url.pathname === "/api/revision-options") {
         engine.assertOrganizer(actor);
         engine.assertOpen();
+        // A reset or another change during the model call must not let this old engine save.
+        const started = engine;
         return json(
           res,
           200,
-          await proposeRevisions(engine, { notes: input.notes }),
+          await proposeRevisions(started, {
+            notes: input.notes,
+            isCurrent: () => started === engine && !mutating,
+          }),
         );
       }
       if (url.pathname === "/api/revision-options/recheck") {
@@ -269,6 +276,21 @@ const server = http.createServer(async (req, res) => {
           s.versions[0].listingId = listing.id;
           s.versions[0].total = listing.total;
           s.versions[0].shares = allocate(listing.total, s.participants);
+          // A new round keeps the previous round's outcome on record.
+          if (["cancelled", "confirmed"].includes(engine.state.status)) {
+            const returned = engine.state.payments
+              .filter((p) => p.status === "refunded")
+              .reduce((n, p) => n + p.amount, 0);
+            s.audit.push({
+              id: randomUUID(),
+              at: new Date().toISOString(),
+              type: "plan",
+              text:
+                engine.state.status === "confirmed"
+                  ? `Previous round “${engine.state.title}” was booked and paid.`
+                  : `Previous round “${engine.state.title}” ended without a booking: $${(returned / 100).toFixed(2)} returned and every hold released.`,
+            });
+          }
           store.save(s);
           engine = new Engine(store);
           break;
@@ -292,37 +314,10 @@ const server = http.createServer(async (req, res) => {
               : { listingId: input.listingId },
           );
           break;
-        case "/api/request-limit": {
+        case "/api/request-limit":
           engine.assertOrganizer(actor);
-          // Quote, line and amount come from the server's own options, never from the browser.
-          const options = recheckRevisions(engine, input.batchId);
-          const confirm = [
-            ...options.options.flatMap((o) => o.confirmations),
-            // Firm amounts code found in the chat that no option used yet.
-            ...options.clarifications.filter((c) => c.amountCents),
-          ].find(
-            (c) =>
-              c.participantId === input.participantId &&
-              c.amountCents === input.amountCents,
-          );
-          const ask = options.clarifications.find(
-            (c) => c.participantId === input.participantId,
-          );
-          if (input.kind === "confirm" ? !confirm : !ask)
-            throw new DomainError(
-              "That request isn’t part of these options.",
-              400,
-            );
-          engine.requestLimit(actor, {
-            participantId: input.participantId,
-            kind: input.kind,
-            amountCents: confirm?.amountCents,
-            quote: (confirm?.quote ?? "").replace(/^[^:]*:\s*/, ""),
-            line: confirm?.line ?? ask?.line,
-            question: ask?.question,
-          });
+          engine.requestLimit(actor, resolveLimitRequest(engine, input));
           break;
-        }
         case "/api/confirm-limit":
           engine.confirmLimit(actor, input.amountCents, input.requestId);
           break;
@@ -340,6 +335,9 @@ const server = http.createServer(async (req, res) => {
           break;
         case "/api/expire":
           await payments.expire(actor);
+          break;
+        case "/api/cancel":
+          await payments.cancel(actor);
           break;
         default:
           throw new DomainError("Not found.", 404);

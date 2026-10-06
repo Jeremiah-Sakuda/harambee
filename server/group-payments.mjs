@@ -336,6 +336,19 @@ export class GroupPayments {
         "recovery",
       );
   }
+  // The organizer ends an open trip: every real hold is voided through PayPal, nothing captured.
+  async cancel(actor) {
+    this.engine.assertOrganizer(actor);
+    need(
+      ["collecting", "ready", "revision_required"].includes(this.s.status),
+      "Only an open plan can be cancelled.",
+    );
+    this.engine.expireRequests();
+    this.s.status = "cancelling";
+    this.engine.persist();
+    this.engine.log("The organizer cancelled the trip.", "recovery");
+    await this.recover(actor);
+  }
   async expire(actor) {
     this.engine.assertOrganizer(actor);
     need(

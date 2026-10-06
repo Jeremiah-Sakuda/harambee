@@ -5,6 +5,7 @@ import {
   literalAmounts,
   proposeRevisions,
   recheckRevisions,
+  resolveLimitRequest,
   resolveOption,
 } from "../server/revision-options.mjs";
 
@@ -810,4 +811,286 @@ test("an option asking someone for more than they firmly wrote is flagged on the
     creek.exceedsStated.map((x) => [x.name, x.statedCents, x.shareCents]),
     [["Jordan", 15000, 16000]],
   );
+});
+
+test("a reason is shown as Why only on an option it supports", async () => {
+  const creekside = {
+    participantId: "alex",
+    line: 6,
+    quote: "rather do the cheaper Creekside place",
+    kind: "prefers_listing",
+  };
+  const limit = {
+    participantId: "maya",
+    line: 5,
+    quote: "I can’t go above $170 now",
+    kind: "limit",
+  };
+  const { out } = await withModel(afterDropout(), {
+    summary: "",
+    options: [
+      option({ capRequests: [mayaCap], basis: [limit, creekside] }),
+      option({
+        listingId: "creek",
+        title: "Cheaper cabin",
+        basis: [creekside, limit],
+      }),
+      // Plain $200 each: Maya's $170 argues against it.
+      option({ title: "Even split", basis: [limit] }),
+      // Fragments and bare names are not reasons.
+      option({
+        listingId: "creek",
+        title: "Fragments",
+        basis: [
+          { participantId: "maya", line: 5, quote: "Maya", kind: "limit" },
+          {
+            participantId: "alex",
+            line: 6,
+            quote: "cheaper",
+            kind: "prefers_listing",
+          },
+        ],
+      }),
+    ],
+    clarifications: [],
+  });
+  const why = (o) => o.basis.map((b) => b.participantId);
+  const pine = out.options.find((o) => o.title.includes("Maya’s new limit"));
+  assert.deepEqual(why(pine), ["maya"]);
+  assert.deepEqual(
+    pine.considered.map((b) => b.participantId),
+    ["alex"],
+  );
+  const creek = out.options.find((o) => o.listingId === "creek");
+  assert.deepEqual(why(creek).sort(), ["alex", "maya"]);
+  const even = out.options.find((o) => o.rows.every((r) => r.share === 20000));
+  assert.equal(even.basis.length, 0);
+  assert.deepEqual(
+    even.considered.map((b) => b.participantId),
+    ["maya"],
+  );
+  assert.ok(
+    out.options.every((o) => !o.basis.some((b) => b.quote.length < 12)),
+  );
+});
+
+test("bare numbers in model prose, summaries and questions are checked too", async () => {
+  const { out } = await withModel(afterDropout(), {
+    summary: "Alex is happy to pay 300 for Pine.",
+    options: [
+      option({
+        title: "Alex covers 300, Maya and Jordan 150 each",
+        explanation: "Alex takes 300 and the others 150.",
+        tradeoff: "",
+      }),
+      option({
+        listingId: "creek",
+        title: "Creekside sleeps 6 for 2 nights",
+        explanation: "Everyone pays 160, up from 150.",
+        tradeoff: "",
+      }),
+    ],
+    clarifications: [
+      {
+        participantId: "alex",
+        line: 3,
+        question: "Alex, can you confirm 300?",
+      },
+    ],
+  });
+  const titles = out.options.map((o) => o.title).join(" | ");
+  assert.doesNotMatch(titles, /300/);
+  assert.ok(out.options.some((o) => o.title.includes("sleeps 6")));
+  assert.equal(out.summary, "");
+  assert.doesNotMatch(
+    out.clarifications.map((c) => c.question).join(" "),
+    /300/,
+  );
+});
+
+test("money already sent, nightly rates, lifted caps and abbreviations are not one-click limits", async () => {
+  for (const line of [
+    "Jordan: I already sent you $50 for gas.",
+    "Jordan: I'm no longer capped at $170.",
+    "Jordan: Anything under $100 a night works.",
+    "Jordan: $170 is fine for me.",
+    "Jordan: I can do $1.2k if needed",
+  ]) {
+    const { out } = await withModel(
+      afterDropout(),
+      {
+        summary: "",
+        options: [option({ title: "Same cabin", capRequests: [] })],
+        clarifications: [],
+      },
+      `Sam: out\n${line}`,
+    );
+    assert.ok(
+      out.clarifications.every((c) => !c.amountCents),
+      `no confirm request for: ${line}`,
+    );
+    assert.ok(
+      out.options.every((o) => !o.exceedsStated.length),
+      `no warning for: ${line}`,
+    );
+    assert.doesNotMatch(
+      out.clarifications.map((c) => c.question).join(" "),
+      /\$1\.20/,
+    );
+  }
+  assert.deepEqual(literalAmounts("I can do $1.2k"), []);
+});
+
+test("a one-click confirmation can lower a saved budget but never raise it", () => {
+  const e = afterDropout();
+  const up = e.requestLimit("organizer", {
+    participantId: "maya",
+    kind: "confirm",
+    amountCents: 40000,
+    quote: "I can't go above $400",
+  });
+  assert.throws(
+    () => e.confirmLimit("maya", 40000, up.id),
+    /raise your saved budget/,
+  );
+  assert.equal(e.state.participants[0].budget, 22000);
+  // A typed answer to "what's your firm limit?" is the person's own edit.
+  const ask = e.requestLimit("organizer", {
+    participantId: "jordan",
+    kind: "ask",
+  });
+  e.confirmLimit("jordan", 25000, ask.id);
+  assert.equal(
+    e.state.participants.find((p) => p.id === "jordan").budget,
+    25000,
+  );
+  // The organizer learns that Jordan answered, not the amount; the log stays single.
+  const seen = e
+    .view("organizer")
+    .limitConfirmations.find((c) => c.participantId === "jordan");
+  assert.equal(seen.amountCents, undefined);
+  assert.equal(e.view("jordan").limitConfirmations[0].amountCents, 25000);
+  assert.equal(
+    e.state.audit.filter((a) => /private budget/.test(a.text)).length,
+    0,
+  );
+});
+
+test("limit requests belong to one plan version", () => {
+  const e = afterDropout();
+  const request = e.requestLimit("organizer", {
+    participantId: "maya",
+    kind: "confirm",
+    amountCents: 17000,
+  });
+  e.revise("organizer", {});
+  assert.equal(e.state.limitRequests[0].status, "expired");
+  assert.throws(
+    () => e.confirmLimit("maya", 17000, request.id),
+    /no longer open/,
+  );
+  assert.throws(() => e.declineLimit("maya", request.id), /no longer open/);
+  assert.equal(e.view("maya").limitRequests.length, 0);
+});
+
+test("organizer limit requests resolve only from the server's own options", async () => {
+  const e = afterDropout();
+  const out = await withoutModel(() =>
+    proposeRevisions(e, { notes: `${CHAT}\nJordan: probably $160ish?` }),
+  );
+  const ok = resolveLimitRequest(e, {
+    batchId: out.batchId,
+    participantId: "maya",
+    kind: "confirm",
+    amountCents: 17000,
+  });
+  assert.equal(
+    ok.quote,
+    "Honestly my rent just went up, I can’t go above $170 now.",
+  );
+  const ask = resolveLimitRequest(e, {
+    batchId: out.batchId,
+    participantId: "jordan",
+    kind: "ask",
+  });
+  // The person sees their own words, not the organizer's instruction.
+  assert.equal(ask.quote, "probably $160ish?");
+  for (const bad of [
+    { participantId: "maya", kind: "confirm", amountCents: 40000 },
+    { participantId: "alex", kind: "ask" },
+    { participantId: "sam", kind: "confirm", amountCents: 17000 },
+    { participantId: "maya", kind: "raise", amountCents: 17000 },
+  ])
+    assert.throws(
+      () => resolveLimitRequest(e, { batchId: out.batchId, ...bad }),
+      /isn’t part of these options/,
+      JSON.stringify(bad),
+    );
+  e.revise("organizer", {});
+  assert.throws(
+    () =>
+      resolveLimitRequest(e, {
+        batchId: out.batchId,
+        participantId: "maya",
+        kind: "confirm",
+        amountCents: 17000,
+      }),
+    /out of date/,
+  );
+});
+
+test("suggestions finished after the plan was replaced are not saved", async () => {
+  const e = afterDropout();
+  const before = e.state.audit.length;
+  await assert.rejects(
+    withoutModel(() =>
+      proposeRevisions(e, { notes: CHAT, isCurrent: () => false }),
+    ),
+    /plan changed/,
+  );
+  assert.equal(e.state.audit.length, before);
+});
+
+test("after someone answers, the organizer's card stops asking about them", async () => {
+  const e = afterDropout();
+  const notes = "Sam: out\nMaya: probably $160ish?";
+  const out = await withoutModel(() => proposeRevisions(e, { notes }));
+  const removedBefore = out.options.flatMap((o) => o.removedLimits).join(" ");
+  assert.match(removedBefore, /Maya/);
+  const request = e.requestLimit(
+    "organizer",
+    resolveLimitRequest(e, {
+      batchId: out.batchId,
+      participantId: "maya",
+      kind: "ask",
+    }),
+  );
+  e.confirmLimit("maya", 16500, request.id);
+  const again = recheckRevisions(e, out.batchId);
+  assert.doesNotMatch(
+    again.options.flatMap((o) => o.removedLimits).join(" "),
+    /Maya/,
+  );
+  assert.equal(e.view("organizer").limitRequests[0].status, "confirmed");
+});
+
+test("a confirmed limit that makes the rule match says why the cards combined", async () => {
+  const e = afterDropout();
+  const out = await withoutModel(() => proposeRevisions(e, { notes: CHAT }));
+  assert.equal(out.options.filter((o) => o.listingId === "pine").length, 2);
+  const request = e.requestLimit(
+    "organizer",
+    resolveLimitRequest(e, {
+      batchId: out.batchId,
+      participantId: "maya",
+      kind: "confirm",
+      amountCents: 17000,
+    }),
+  );
+  e.confirmLimit("maya", 17000, request.id);
+  const pine = recheckRevisions(e, out.batchId).options.filter(
+    (o) => o.listingId === "pine",
+  );
+  assert.equal(pine.length, 1);
+  assert.deepEqual(pine[0].combinedAfter, ["Maya"]);
 });

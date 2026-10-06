@@ -17,13 +17,23 @@ export default function LimitRequest({
   demo,
   onConfirm,
   onDecline,
+  onUpdateBudget,
 }) {
   const first = person.name.split(" ")[0];
   const [amount, setAmount] = useState("");
   const cents = Math.round(Number(amount) * 100);
   const valid = Number.isFinite(cents) && cents > 0;
+  // One click may lower a saved budget, never raise it; raising is a deliberate edit.
+  const raises =
+    request.kind === "confirm" &&
+    person.budget != null &&
+    request.amountCents > person.budget;
   return (
-    <section className="limit-request" aria-label={`Question for ${first}`}>
+    <section
+      className="limit-request"
+      id="limit-request"
+      aria-label={`Question for ${first}`}
+    >
       <span className="eyebrow">A QUICK QUESTION FROM YOUR ORGANIZER</span>
       {demo && (
         <p className="demo-as">
@@ -38,42 +48,73 @@ export default function LimitRequest({
           </h2>
           <p>
             {departed || "Someone"} left, so the group is choosing a new plan.
-            One option uses what you wrote:
+            The group chat your organizer pasted shows this message from you:
           </p>
           {request.quote && (
             <blockquote className="limit-quote">“{request.quote}”</blockquote>
           )}
-          <p>
-            Confirming saves {usd(request.amountCents)} as your budget. Nothing
-            is charged; you’ll still review and approve your new share.
-          </p>
-          <button
-            className="primary full"
-            disabled={busy}
-            onClick={() => onConfirm(request.amountCents)}
-          >
-            Confirm {usd(request.amountCents)} as my limit
-          </button>
+          {raises ? (
+            <>
+              <p>
+                That’s above your saved budget of {usd(person.budget)}, so it
+                can’t be confirmed in one click. If you really can go higher,
+                update your budget yourself.
+              </p>
+              {onUpdateBudget && (
+                <button
+                  className="primary full"
+                  disabled={busy}
+                  onClick={onUpdateBudget}
+                >
+                  Update my budget
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <p>
+                Confirming saves {usd(request.amountCents)} as your budget
+                {person.budget != null && ` (now ${usd(person.budget)})`}.
+                Nothing is charged; you’ll still review and approve your new
+                share.
+              </p>
+              <button
+                className="primary full"
+                disabled={busy}
+                onClick={() => onConfirm(request.amountCents)}
+              >
+                Confirm {usd(request.amountCents)} as my limit
+              </button>
+            </>
+          )}
         </>
       ) : (
         <>
           <h2>What’s your firm limit, {first}?</h2>
           <p>
-            The group is choosing a new plan, and Harambee won’t guess from an
-            uncertain message.
+            {departed || "Someone"} left, so the group is choosing a new plan.
+            {request.quote ? " You wrote:" : ""}
           </p>
-          {request.question && (
-            <blockquote className="limit-quote">{request.question}</blockquote>
+          {request.quote && (
+            <blockquote className="limit-quote">“{request.quote}”</blockquote>
           )}
+          <p>
+            What’s the most you can put toward this trip? Harambee won’t guess
+            from an uncertain message.
+          </p>
           <label className="field">
             My firm limit (USD)
             <input
               inputMode="decimal"
               value={amount}
-              placeholder="e.g. 160"
+              placeholder="Amount in USD"
               onChange={(e) => setAmount(e.target.value)}
             />
           </label>
+          <p className="secure-note">
+            Your organizer sees that you answered, not this number. If it caps
+            your share, your new share will equal it.
+          </p>
           <button
             className="primary full"
             disabled={busy || !valid}

@@ -43,6 +43,7 @@ export default function RevisionOptions({
   requests = [],
   onRequest,
   onDemoAnswer,
+  onCancelTrip,
 }) {
   // The latest request to each person about this amount (or any "ask"), with its status.
   const requestFor = (participantId, kind, amountCents = null) =>
@@ -54,7 +55,8 @@ export default function RevisionOptions({
           r.kind === kind &&
           (kind === "ask" || r.amountCents === amountCents),
       );
-  const RequestStatus = ({
+  // Called as a function, not rendered as a component, so its buttons survive each 3 s refresh.
+  const requestStatus = ({
     request,
     name,
     kind,
@@ -62,7 +64,13 @@ export default function RevisionOptions({
     participantId,
     label,
   }) =>
-    request?.status === "pending" ? (
+    request?.status === "confirmed" ? (
+      <span className="rev-request">
+        <small className="rev-answered">
+          <CheckCircle2 size={14} /> {name} answered · their limit now applies
+        </small>
+      </span>
+    ) : request?.status === "pending" ? (
       <span className="rev-request">
         <button className="secondary" disabled>
           Waiting for {name}…
@@ -123,7 +131,7 @@ export default function RevisionOptions({
           <Provenance data={data} />
         </div>
         <button className="secondary" disabled={busy} onClick={onSuggest}>
-          {busy ? "Reading…" : "Ask again"}
+          {busy ? "Reading…" : "Re-read the chat"}
         </button>
       </div>
       {data.clarifications?.length > 0 && (
@@ -148,39 +156,49 @@ export default function RevisionOptions({
                 {c.source === "code" && (
                   <small className="rev-flag"> · flagged by code</small>
                 )}
-                {c.participantId && c.amountCents ? (
-                  <RequestStatus
-                    request={requestFor(
-                      c.participantId,
-                      "confirm",
-                      c.amountCents,
-                    )}
-                    name={first(
-                      participants.find((p) => p.id === c.participantId)
-                        ?.name ?? "",
-                    )}
-                    kind="confirm"
-                    amountCents={c.amountCents}
-                    participantId={c.participantId}
-                    label={`Send ${first(participants.find((p) => p.id === c.participantId)?.name ?? "")} a confirmation request (${usd(c.amountCents)})`}
-                  />
-                ) : (
-                  c.participantId && (
-                    <RequestStatus
-                      request={requestFor(c.participantId, "ask")}
-                      name={first(
+                {c.participantId && c.amountCents
+                  ? requestStatus({
+                      request: requestFor(
+                        c.participantId,
+                        "confirm",
+                        c.amountCents,
+                      ),
+                      name: first(
                         participants.find((p) => p.id === c.participantId)
                           ?.name ?? "",
-                      )}
-                      kind="ask"
-                      label={`Ask ${first(participants.find((p) => p.id === c.participantId)?.name ?? "")} for a firm limit`}
-                      participantId={c.participantId}
-                    />
-                  )
-                )}
+                      ),
+                      kind: "confirm",
+                      amountCents: c.amountCents,
+                      participantId: c.participantId,
+                      label: `Send ${first(participants.find((p) => p.id === c.participantId)?.name ?? "")} a confirmation request (${usd(c.amountCents)})`,
+                    })
+                  : c.participantId &&
+                    requestStatus({
+                      request: requestFor(c.participantId, "ask"),
+                      name: first(
+                        participants.find((p) => p.id === c.participantId)
+                          ?.name ?? "",
+                      ),
+                      kind: "ask",
+                      label: `Ask ${first(participants.find((p) => p.id === c.participantId)?.name ?? "")} for a firm limit`,
+                      participantId: c.participantId,
+                    })}
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {data.options.length > 0 && !data.options.some((o) => o.feasible) && (
+        <div className="rev-stuck">
+          <strong>No option fits everyone’s limits.</strong>
+          <p>
+            Anyone who can go higher can raise their own budget in their view;
+            then re-read the chat. Or end the trip: every hold is released and
+            nobody is charged.
+          </p>
+          <button className="secondary" disabled={busy} onClick={onCancelTrip}>
+            Cancel trip & release every hold
+          </button>
         </div>
       )}
       <div className="rev-options">
@@ -197,7 +215,9 @@ export default function RevisionOptions({
                     ? "AI suggestion · same split as the standard rule"
                     : "AI suggestion"
                   : o.source === "local-planner"
-                    ? "Local planner"
+                    ? o.matchesRule
+                      ? "Local planner · same split as the standard rule"
+                      : "Local planner"
                     : o.alsoSuggested
                       ? "Standard rule · also suggested by AI"
                       : "Standard rule"}
@@ -214,6 +234,20 @@ export default function RevisionOptions({
                   </li>
                 ))}
               </ul>
+            )}
+            {o.considered?.length > 0 && (
+              <p className="rev-considered">
+                Points to another option:{" "}
+                {o.considered
+                  .map((b) => `“${b.quote}” — ${first(b.name)}`)
+                  .join("; ")}
+              </p>
+            )}
+            {o.combinedAfter?.length > 0 && (
+              <p className="rev-note">
+                After {o.combinedAfter.join(" and ")} confirmed, the standard
+                rule gives this same split, so it’s shown once.
+              </p>
             )}
             {o.removedLimits?.length > 0 && (
               <p className="rev-note">
@@ -300,20 +334,19 @@ export default function RevisionOptions({
                       </>
                     )}
                   </p>
-                  {!c.confirmed && (
-                    <RequestStatus
-                      request={requestFor(
+                  {!c.confirmed &&
+                    requestStatus({
+                      request: requestFor(
                         c.participantId,
                         "confirm",
                         c.amountCents,
-                      )}
-                      name={first(c.name)}
-                      kind="confirm"
-                      amountCents={c.amountCents}
-                      participantId={c.participantId}
-                      label={`Send ${first(c.name)} a confirmation request`}
-                    />
-                  )}
+                      ),
+                      name: first(c.name),
+                      kind: "confirm",
+                      amountCents: c.amountCents,
+                      participantId: c.participantId,
+                      label: `Send ${first(c.name)} a confirmation request`,
+                    })}
                 </div>
               ))}
             {o.feasible && (

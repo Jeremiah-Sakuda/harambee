@@ -317,7 +317,7 @@ function App() {
       await load();
     }
   }
-  async function review(p, suggestion = null) {
+  async function review(p, suggestion = null, kind = "approve") {
     setBusy(true);
     setError("");
     setNotice("");
@@ -331,7 +331,7 @@ function App() {
       setActor(p.id);
       setState(own);
       setBudget(person.budget === null ? "" : String(person.budget / 100));
-      setModal({ kind: "approve", id: p.id, suggestion });
+      setModal({ kind, id: p.id, suggestion });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -385,8 +385,9 @@ function App() {
       pays(id)
         .filter((p) => p.status === "authorized")
         .reduce((s, p) => s + p.amount, 0),
+    // A capture that failed leaves the authorization in place until recovery releases it.
     held = state.payments
-      .filter((p) => p.status === "authorized")
+      .filter((p) => ["authorized", "failed"].includes(p.status))
       .reduce((s, p) => s + p.amount, 0),
     captured = state.payments
       .filter((p) => p.status === "captured" || p.status === "refund_pending")
@@ -400,6 +401,10 @@ function App() {
     isOpen = ["collecting", "ready", "revision_required"].includes(
       state.status,
     ),
+    // Mirrors the server: a new trip can't replace one with money still held or in motion.
+    locked =
+      !["collecting", "cancelled", "confirmed"].includes(state.status) ||
+      state.payments.some((p) => !["voided", "refunded"].includes(p.status)),
     currentPerson = active.find((p) => p.id === actor),
     isOrganizer = actor === "organizer",
     modalPerson = state.participants.find((p) => p.id === modal?.id),
@@ -409,14 +414,37 @@ function App() {
       .join(" and "),
     myRequests = (state.limitRequests ?? []).filter(
       (r) => r.participantId === actor && r.status === "pending",
-    );
+    ),
+    firstOf = (id) =>
+      state.participants.find((p) => p.id === id)?.name.split(" ")[0],
+    // Plain-language account of a stopped booking, so nobody has to read an operations log.
+    stopped = (() => {
+      if (state.status !== "recovery_pending") return null;
+      const by = (statuses) =>
+        state.payments.filter((p) => statuses.includes(p.status));
+      const failed = [
+        ...new Set(by(["failed"]).map((p) => firstOf(p.participantId))),
+      ];
+      const unknown = by(["unknown", "capture_pending"]).length > 0;
+      const taken = by(["captured", "refund_pending"]);
+      const takenText = taken.length
+        ? `${[...new Set(taken.map((p) => firstOf(p.participantId)))].join(" and ")}’s ${usd(taken.reduce((n, p) => n + p.amount, 0))} will be returned`
+        : "Nothing was taken";
+      return `${
+        failed.length
+          ? `${failed.join(" and ")}’s payment didn’t go through.`
+          : unknown
+            ? "PayPal didn’t confirm one payment in time; Harambee checks with PayPal before doing anything else."
+            : "The cabin couldn’t be reserved."
+      } Nothing more will be collected. ${takenText}, and every other hold is released. Nobody is charged twice.`;
+    })();
   const statusText = {
     collecting: "Getting the group together",
     ready: "Everyone’s in. Let’s go.",
     revision_required: "A new plan starts here.",
     booking: "Booking in progress",
     confirmed: "See you in the Catskills.",
-    recovery_pending: "A little care is needed.",
+    recovery_pending: "Booking stopped.",
     cancelled: "All settled. No booking.",
   }[state.status];
   return (
@@ -431,9 +459,7 @@ function App() {
             : "Simulated payments"}{" "}
           · No real money
         </span>
-        <span className="demo-right">
-          Built for going together <ArrowUpRight size={13} />
-        </span>
+        <span className="demo-right">Built for going together</span>
       </div>
       <header className="header">
         <a className="brand" href="/" aria-label="Harambee home">
@@ -447,7 +473,7 @@ function App() {
             Your trips
           </button>
           <button onClick={() => setModal({ kind: "how" })}>
-            How it works <ArrowUpRight size={13} />
+            How it works
           </button>
         </nav>
         <label className="identity">
@@ -593,6 +619,20 @@ function App() {
         </section>
         <div className="layout">
           <div className="main-column">
+            {!isOrganizer &&
+              currentPerson &&
+              myRequests.map((r) => (
+                <LimitRequest
+                  key={r.id}
+                  request={r}
+                  person={currentPerson}
+                  departed={departedNames}
+                  busy={busy}
+                  onConfirm={(cents) => answerLimit(r, cents)}
+                  onDecline={() => declineLimit(r)}
+                  onUpdateBudget={() => review(currentPerson, null, "budget")}
+                />
+              ))}
             <section className="trip-hero">
               <div className="hero-art">
                 <Cabin />
@@ -672,19 +712,14 @@ function App() {
                     </div>
                   </div>
                 )}
-                {!isOrganizer &&
-                  currentPerson &&
-                  myRequests.map((r) => (
-                    <LimitRequest
-                      key={r.id}
-                      request={r}
-                      person={currentPerson}
-                      departed={departedNames}
-                      busy={busy}
-                      onConfirm={(cents) => answerLimit(r, cents)}
-                      onDecline={() => declineLimit(r)}
-                    />
-                  ))}
+                {stopped && (
+                  <div className="alert error stopped" role="status">
+                    <AlertCircle size={18} />
+                    <span>
+                      <strong>Booking stopped.</strong> {stopped}
+                    </span>
+                  </div>
+                )}
                 {state.status === "revision_required" && isOrganizer && (
                   <RevisionOptions
                     data={revOptions}
@@ -696,6 +731,7 @@ function App() {
                     onEditNotes={() => setTab("notes")}
                     requests={state.limitRequests ?? []}
                     onRequest={requestLimit}
+                    onCancelTrip={() => setModal({ kind: "cancel" })}
                     onDemoAnswer={(request) =>
                       setModal({
                         kind: "limit",
@@ -740,7 +776,7 @@ function App() {
                               {!p.active
                                 ? "Left the trip"
                                 : p.id === actor
-                                  ? "You’re viewing this participant"
+                                  ? "You"
                                   : i === 0
                                     ? "Bringing the good playlist"
                                     : i === 1
@@ -778,20 +814,22 @@ function App() {
                           ) : state.status === "cancelled" ? (
                             <span className="status neutral">Settled</span>
                           ) : state.status === "recovery_pending" ? (
-                            <span className="status amber">
+                            <span className="status neutral">
                               {payment.some((x) => x.status === "unknown")
-                                ? "Reconciling"
+                                ? "Checking with PayPal"
                                 : charge
                                   ? `${usd(charge)} to return`
-                                  : payment.every((x) =>
-                                        [
-                                          "voided",
-                                          "refunded",
-                                          "abandoned",
-                                        ].includes(x.status),
-                                      )
-                                    ? "Settled · nothing owed"
-                                    : "Release hold"}
+                                  : payment.some((x) => x.status === "failed")
+                                    ? "Payment failed · hold to release"
+                                    : payment.every((x) =>
+                                          [
+                                            "voided",
+                                            "refunded",
+                                            "abandoned",
+                                          ].includes(x.status),
+                                        )
+                                      ? "Settled · nothing owed"
+                                      : "Hold to release"}
                             </span>
                           ) : approved(p.id) ? (
                             <>
@@ -816,7 +854,8 @@ function App() {
                           {p.active &&
                             isOpen &&
                             state.status !== "revision_required" &&
-                            !approved(p.id) && (
+                            !approved(p.id) &&
+                            (isOrganizer || actor === p.id) && (
                               <button
                                 className="review-button"
                                 disabled={busy}
@@ -967,22 +1006,35 @@ function App() {
                     maxLength={8000}
                   />
                 </label>
-                <div className="notes-actions">
-                  <span>
-                    {state.aiAvailable
-                      ? "AI model connected · source-checked output"
-                      : "Local parser · no model key configured"}
-                  </span>
-                  <button
-                    className="primary"
-                    disabled={busy}
-                    onClick={() => act("interpret", { text: notes })}
-                  >
-                    <Sparkles size={16} />
-                    {busy ? "Reading the room…" : "Find the preferences"}
-                  </button>
-                </div>
-                {insight && (
+                {state.status === "revision_required" ? (
+                  // One chat reader at a time: during a revision, the options read these notes.
+                  <div className="notes-actions">
+                    <span>
+                      “Suggest options” reads this chat. Edit it here, then go
+                      back to choose a new plan.
+                    </span>
+                    <button className="primary" onClick={() => setTab("board")}>
+                      Back to the new plan <ArrowRight size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="notes-actions">
+                    <span>
+                      {state.aiAvailable
+                        ? "AI model connected · source-checked output"
+                        : "Local parser · no model key configured"}
+                    </span>
+                    <button
+                      className="primary"
+                      disabled={busy}
+                      onClick={() => act("interpret", { text: notes })}
+                    >
+                      <Sparkles size={16} />
+                      {busy ? "Reading the room…" : "Find the preferences"}
+                    </button>
+                  </div>
+                )}
+                {insight && state.status !== "revision_required" && (
                   <div className="insights">
                     <div className="insight-intro">
                       <span className="eyebrow">
@@ -1269,11 +1321,13 @@ function App() {
                       : state.status === "confirmed"
                         ? "Your local fixture reservation is confirmed. View each person’s receipt below."
                         : state.status === "recovery_pending"
-                          ? "We stopped collecting. Reconcile uncertain results and return captured funds."
+                          ? "Return what was taken and release every hold. Harambee checks each payment with the provider first."
                           : state.status === "cancelled"
                             ? "Collection is closed. Released holds and refunds are recorded in activity."
                             : state.status === "revision_required"
-                              ? "The organizer needs to publish new shares before anyone approves."
+                              ? myRequests.length
+                                ? "Your organizer asked you a question about your limit."
+                                : "The organizer needs to publish new shares before anyone approves."
                               : `${active.length - count} ${active.length - count === 1 ? "friend still needs" : "friends still need"} to review and approve this version.`}
                   </p>
                 </div>
@@ -1292,7 +1346,7 @@ function App() {
                   disabled={busy || !isOrganizer}
                   onClick={() => act("recover")}
                 >
-                  {busy ? "Reconciling…" : "Reconcile & recover"}
+                  {busy ? "Checking payments…" : "Return money & release holds"}
                   <RefreshCw size={16} />
                 </button>
               ) : state.status === "cancelled" ? (
@@ -1301,17 +1355,22 @@ function App() {
                     <button
                       className="primary full"
                       disabled={busy}
-                      onClick={() =>
-                        act(
-                          "create",
-                          {
-                            title: state.title,
-                            names: active.map((p) => p.name).join(", "),
-                            listingId: state.listingId,
-                          },
-                          "organizer",
+                      onClick={async () => {
+                        if (
+                          await act(
+                            "create",
+                            {
+                              title: state.title,
+                              names: active.map((p) => p.name).join(", "),
+                              listingId: state.listingId,
+                            },
+                            "organizer",
+                          )
                         )
-                      }
+                          setNotice(
+                            "New round started. Everyone saves a budget and approves again; the last round’s outcome is the first line in Activity.",
+                          );
+                      }}
                     >
                       Start a new round with the same group{" "}
                       <ArrowRight size={16} />
@@ -1327,6 +1386,20 @@ function App() {
                     Restart the demo
                   </button>
                 </>
+              ) : state.status === "revision_required" &&
+                !isOrganizer &&
+                myRequests.length ? (
+                <button
+                  className="primary full"
+                  disabled={busy}
+                  onClick={() =>
+                    document
+                      .getElementById("limit-request")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                >
+                  Answer your organizer’s question <ArrowRight size={16} />
+                </button>
               ) : state.status === "revision_required" ? (
                 <button
                   className="primary full"
@@ -1366,7 +1439,7 @@ function App() {
                   <button
                     className="secondary full"
                     disabled={busy}
-                    onClick={() => review(currentPerson)}
+                    onClick={() => review(currentPerson, null, "budget")}
                   >
                     Update my budget
                   </button>
@@ -1565,12 +1638,6 @@ function App() {
               Save budget only
             </button>
             {notice && <p role="status">{notice}</p>}
-            {state.status === "revision_required" && (
-              <p role="status">
-                Saved. Your organizer will publish new shares that fit. You can
-                change your budget again until then.
-              </p>
-            )}
             <p className="secure-note">
               Saved ceiling:{" "}
               {modalPerson.budget == null
@@ -1629,6 +1696,88 @@ function App() {
                 ? "Sandbox buyers approve their own exact additional amount in PayPal. No real money."
                 : "No PayPal checkout is called in simulator mode."}
             </p>
+          </>
+        )}
+        {modal?.kind === "budget" && modalPerson && (
+          <>
+            <span className="eyebrow">YOUR PRIVATE BUDGET</span>
+            <h2>Change your budget, {modalPerson.name.split(" ")[0]}?</h2>
+            <p>
+              Only you and the planner use this number. The organizer doesn’t
+              see it, though if it caps your share, your share will equal it.
+              Nothing is approved or charged; you’ll review your new share once
+              the organizer publishes a new plan.
+            </p>
+            <label className="field">
+              Your private budget ceiling (USD)
+              <input
+                type="number"
+                min="1"
+                max="100000"
+                step="0.01"
+                value={budget}
+                onChange={(e) => {
+                  setBudget(e.target.value);
+                  setModal({ ...modal, saved: false });
+                }}
+              />
+            </label>
+            {error && (
+              <p className="inline-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button
+              className="primary full"
+              disabled={busy || !isOpen || !budget || actor !== modalPerson.id}
+              onClick={async () => {
+                if (
+                  await act(
+                    "budget",
+                    { amount: Math.round(Number(budget) * 100) },
+                    modalPerson.id,
+                  )
+                )
+                  setModal({ ...modal, saved: true });
+              }}
+            >
+              Save my budget
+            </button>
+            {modal.saved && (
+              <p role="status">
+                Saved. Your organizer will publish new shares that fit. You can
+                change it again until then.
+              </p>
+            )}
+            <p className="secure-note">
+              Saved ceiling:{" "}
+              {modalPerson.budget == null
+                ? "not yet set"
+                : usd(modalPerson.budget)}
+            </p>
+          </>
+        )}
+        {modal?.kind === "cancel" && (
+          <>
+            <span className="eyebrow">SOMETIMES IT’S NOT THE WEEKEND</span>
+            <h2>Cancel this trip?</h2>
+            <p>
+              Every hold is released through{" "}
+              {state.provider === "paypal-sandbox"
+                ? "PayPal sandbox"
+                : "the simulator"}
+              , nothing is charged, and the plan closes. You can start a new
+              round with the same group afterwards.
+            </p>
+            <button
+              className="primary full"
+              disabled={busy}
+              onClick={async () => {
+                if (await act("cancel")) setModal(null);
+              }}
+            >
+              Cancel trip & release every hold
+            </button>
           </>
         )}
         {modal?.kind === "withdraw" && (
@@ -1740,12 +1889,19 @@ function App() {
               budget before approval. Starting a new trip replaces the current
               uncommitted demo plan.
             </p>
+            {locked && (
+              <p className="inline-error" role="status">
+                {held > 0 ? `${usd(held)} is held` : "Money is still in motion"}{" "}
+                for the current trip. Finish it or start the demo fresh before
+                creating another.
+              </p>
+            )}
             {error && (
               <p className="inline-error" role="alert">
                 {error}
               </p>
             )}
-            <button className="primary full" disabled={busy}>
+            <button className="primary full" disabled={busy || locked}>
               Create our trip <Plus size={16} />
             </button>
           </form>
@@ -1791,6 +1947,12 @@ function App() {
             <span className="eyebrow">TRANSPARENT BY DESIGN</span>
             <h2>Every cent has a place.</h2>
             <p>{state.current.rule}</p>
+            {state.status === "revision_required" && (
+              <p role="status">
+                A new plan is being chosen. These are version {state.version}’s
+                shares, from before {departedNames || "the change"}.
+              </p>
+            )}
             <div className="allocation">
               {state.current.shares.map((s) => (
                 <div key={s.id}>

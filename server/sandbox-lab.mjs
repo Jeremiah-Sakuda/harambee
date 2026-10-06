@@ -248,6 +248,9 @@ export class SandboxLab {
                 returnUrl: session.returnUrl,
                 cancelUrl: session.cancelUrl,
                 description: session.description,
+                customId: [session.groupPlanId, session.id]
+                  .filter(Boolean)
+                  .join(":"),
               })
             : action === "authorize"
               ? await this.client.authorize(session.orderId, op.id)

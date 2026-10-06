@@ -344,6 +344,7 @@ export class Engine {
     this.state.payments
       .filter((p) => p.participantId === person.id)
       .forEach((p) => this.voidPayment(p));
+    this.expireRequests();
     this.state.status = "revision_required";
     this.log(
       `${person.name} left. Their holds were released. Remaining participants must approve a new plan.`,
@@ -374,6 +375,7 @@ export class Engine {
           .filter((v) => v.participantId === p.id)
           .forEach((v) => this.voidPayment(v));
     }
+    this.expireRequests();
     this.state.version++;
     this.state.listingId = listingId;
     this.state.versions.push({
@@ -421,7 +423,12 @@ export class Engine {
       "revision",
     );
   }
-  budget(actor, value) {
+  // Questions about limits belong to one plan version; a new version closes the open ones.
+  expireRequests() {
+    for (const r of this.state.limitRequests ?? [])
+      if (r.status === "pending") r.status = "expired";
+  }
+  budget(actor, value, { quiet = false } = {}) {
     this.assertOpen();
     const p = this.active.find((p) => p.id === actor);
     ensure(p, "Only participants can update their own budget.", 403);
@@ -434,6 +441,7 @@ export class Engine {
     ).filter((c) => c.participantId !== p.id);
     if (budget < this.current.shares.find((s) => s.id === p.id)?.share)
       this.state.status = "revision_required";
+    if (quiet) return this.persist();
     this.log(
       `${p.name} updated their private budget. Existing consent is unchanged; publish a revision if shares need to change.`,
     );
@@ -499,15 +507,29 @@ export class Engine {
         409,
       );
       ensure(
+        request.version === this.state.version,
+        "That request is from an earlier plan.",
+        409,
+      );
+      ensure(
         request.kind === "ask" || request.amountCents === cents,
         "Confirm the amount you were asked about, or save a different budget instead.",
         400,
       );
     }
-    this.budget(actor, cents);
+    // A one-click confirmation of chat the organizer pasted can lower a saved budget, never raise
+    // it. Raising it is a deliberate budget edit by the person.
+    ensure(
+      request?.kind === "ask" || p.budget === null || cents <= p.budget,
+      `This would raise your saved budget from $${(p.budget / 100).toFixed(2)}. Use “Update my budget” instead.`,
+      400,
+    );
+    this.budget(actor, cents, { quiet: true });
     this.state.limitConfirmations.push({
       participantId: p.id,
       amountCents: cents,
+      // An answer the person typed stays private; the organizer sees only that they answered.
+      kind: request?.kind ?? "confirm",
       at: timestamp(),
     });
     if (request) request.status = "confirmed";
@@ -515,11 +537,13 @@ export class Engine {
     this.log(`${p.name} confirmed a limit for the revised plan.`, "revision");
   }
   declineLimit(actor, requestId) {
+    this.assertOpen();
     const request = this.state.limitRequests.find((r) => r.id === requestId);
     ensure(
       request &&
         request.participantId === actor &&
-        request.status === "pending",
+        request.status === "pending" &&
+        request.version === this.state.version,
       "That request is no longer open.",
       409,
     );
@@ -706,6 +730,22 @@ export class Engine {
       "recovery",
     );
   }
+  // The organizer ends an open trip: every hold is released and nothing is charged.
+  cancel(actor) {
+    this.assertOrganizer(actor);
+    ensure(
+      ["collecting", "ready", "revision_required"].includes(this.state.status),
+      "Only an open plan can be cancelled.",
+    );
+    this.state.status = "cancelling";
+    for (const p of this.state.payments) this.voidPayment(p);
+    this.expireRequests();
+    this.state.status = "cancelled";
+    this.log(
+      "The organizer cancelled the trip. Every hold was released and nobody was charged.",
+      "recovery",
+    );
+  }
   expire(actor) {
     this.assertOrganizer(actor);
     ensure(
@@ -728,7 +768,12 @@ export class Engine {
     }
     // Confirmed limits and open requests are visible to their owner and the organizer only.
     const mine = (r) => actor === "organizer" || r.participantId === actor;
-    s.limitConfirmations = s.limitConfirmations.filter(mine);
+    s.limitConfirmations = s.limitConfirmations.filter(mine).map((c) =>
+      // A typed answer's amount is the person's own; others see only that they answered.
+      c.kind === "ask" && c.participantId !== actor
+        ? { participantId: c.participantId, kind: c.kind, at: c.at }
+        : c,
+    );
     s.limitRequests = s.limitRequests.filter(
       (r) => mine(r) && r.version === s.version,
     );
