@@ -1,0 +1,1346 @@
+{
+  "startedSource": {
+    "commit": "6cb7f0ae03ef2bd907904996d86716668ab5920f",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "c76b80e9f9d77284074e6356262d01dff3981217843131535e7b5ca58dcb834a",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "finishedSource": {
+    "commit": "6cb7f0ae03ef2bd907904996d86716668ab5920f",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "c76b80e9f9d77284074e6356262d01dff3981217843131535e7b5ca58dcb834a",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "at": "2026-10-08T22:32:09.355Z",
+  "mode": "offline-provider-simulation",
+  "providerCalls": 0,
+  "scenarioCount": 16,
+  "counts": {
+    "passed": 16,
+    "known-failure": 0,
+    "unexpected-failure": 0
+  },
+  "limitations": "Synthetic resource transitions exercise application behavior; they do not establish actual PayPal timing, risk decisions, or sandbox feasibility.",
+  "results": [
+    {
+      "id": "duplicate-book",
+      "title": "Repeated booking after confirmation does not capture twice",
+      "status": "passed",
+      "observation": {
+        "trip": "confirmed",
+        "payments": [
+          "captured",
+          "captured",
+          "captured"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 3,
+          "void": 0,
+          "refund": 0
+        }
+      }
+    },
+    {
+      "id": "deadline-release",
+      "title": "Expiring a funded trip releases every hold without capture",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "voided",
+          "voided",
+          "voided"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 0,
+          "void": 3,
+          "refund": 0
+        }
+      }
+    },
+    {
+      "id": "expired-authorization",
+      "title": "An expired authorization removes readiness and prevents capture",
+      "status": "passed",
+      "observation": {
+        "trip": "collecting",
+        "payments": [
+          "voided",
+          "authorized",
+          "authorized"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 0,
+          "void": 0,
+          "refund": 0
+        }
+      }
+    },
+    {
+      "id": "pending-authorization",
+      "title": "Pending buyer authorization cannot fund booking; CREATED later restores readiness",
+      "status": "passed",
+      "observation": {
+        "trip": "confirmed",
+        "payments": [
+          "captured",
+          "captured",
+          "captured"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 3,
+          "void": 0,
+          "refund": 0
+        },
+        "pending": [
+          "authorization_pending",
+          "authorization_pending",
+          "authorization_pending"
+        ]
+      }
+    },
+    {
+      "id": "capture-currency-mismatch",
+      "title": "Mismatched capture currency stays unverified during reconciliation",
+      "status": "passed",
+      "resolvedLegacyGap": "Legacy October 8 finding: reconciliation copied CAPTURED authorization status before rejecting the capture. Passes when the capture is verified first.",
+      "observation": {
+        "trip": "recovery_pending",
+        "payments": [
+          "capture_unknown",
+          "voided",
+          "voided"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "unknown"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 1,
+          "void": 2,
+          "refund": 0
+        }
+      }
+    },
+    {
+      "id": "pending-capture-completes",
+      "title": "Pending capture stops collection; later completion refunds once on recovery",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "refunded",
+          "voided",
+          "voided"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 1,
+          "void": 2,
+          "refund": 1
+        },
+        "pending": {
+          "trip": "recovery_pending",
+          "payments": [
+            "capture_pending",
+            "voided",
+            "voided"
+          ],
+          "operations": [
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "confirmed"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "void",
+              "status": "confirmed"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "void",
+              "status": "confirmed"
+            }
+          ],
+          "uniqueWrites": {
+            "createOrder": 3,
+            "authorize": 3,
+            "capture": 1,
+            "void": 2,
+            "refund": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "lost-refund-after-effect",
+      "title": "Lost refund response after execution reconciles without another refund",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "refunded",
+          "refunded",
+          "refunded"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 3,
+          "void": 0,
+          "refund": 3
+        },
+        "uncertain": {
+          "trip": "recovery_pending",
+          "payments": [
+            "refund_unknown",
+            "refund_unknown",
+            "refund_unknown"
+          ],
+          "operations": [
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "confirmed"
+            },
+            {
+              "type": "refund",
+              "status": "unknown"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "confirmed"
+            },
+            {
+              "type": "refund",
+              "status": "unknown"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "confirmed"
+            },
+            {
+              "type": "refund",
+              "status": "unknown"
+            }
+          ],
+          "uniqueWrites": {
+            "createOrder": 3,
+            "authorize": 3,
+            "capture": 3,
+            "void": 0,
+            "refund": 3
+          }
+        }
+      }
+    },
+    {
+      "id": "lost-refund-before-effect",
+      "title": "Refund timeout before execution replays its original request ID",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "refunded",
+          "refunded",
+          "refunded"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 3,
+          "void": 0,
+          "refund": 3
+        },
+        "attempts": [
+          {
+            "id": "CAO1",
+            "requestId": "d6ebbab4-e231-4a1b-9289-8cf46921d8f9"
+          },
+          {
+            "id": "CAO2",
+            "requestId": "7288ba1f-5357-4b46-b43f-6340908812d9"
+          },
+          {
+            "id": "CAO3",
+            "requestId": "438e01e3-2592-44e8-bd46-c390bf771d52"
+          },
+          {
+            "id": "CAO1",
+            "requestId": "d6ebbab4-e231-4a1b-9289-8cf46921d8f9"
+          },
+          {
+            "id": "CAO2",
+            "requestId": "7288ba1f-5357-4b46-b43f-6340908812d9"
+          },
+          {
+            "id": "CAO3",
+            "requestId": "438e01e3-2592-44e8-bd46-c390bf771d52"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lost-void-after-effect",
+      "title": "Lost void response after execution settles across restart without another void",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "voided",
+          "voided",
+          "voided"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 0,
+          "void": 3,
+          "refund": 0
+        },
+        "uncertain": {
+          "trip": "recovery_pending",
+          "payments": [
+            "void_unknown",
+            "void_unknown",
+            "void_unknown"
+          ],
+          "operations": [
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "void",
+              "status": "unknown"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "void",
+              "status": "unknown"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "void",
+              "status": "unknown"
+            }
+          ],
+          "uniqueWrites": {
+            "createOrder": 3,
+            "authorize": 3,
+            "capture": 0,
+            "void": 3,
+            "refund": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "transient-reconcile-error",
+      "title": "Read-side provider outage keeps recovery open and later settles without another capture",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "refunded",
+          "voided",
+          "voided"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 1,
+          "void": 2,
+          "refund": 1
+        },
+        "unavailable": {
+          "trip": "recovery_pending",
+          "payments": [
+            "captured",
+            "voided",
+            "voided"
+          ],
+          "operations": [
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "unknown"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "void",
+              "status": "confirmed"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "void",
+              "status": "confirmed"
+            }
+          ],
+          "uniqueWrites": {
+            "createOrder": 3,
+            "authorize": 3,
+            "capture": 1,
+            "void": 2,
+            "refund": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "refund-save-boundary",
+      "title": "Refund persisted before coordinator save is recovered without a duplicate write",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "refunded",
+          "refunded",
+          "refunded"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 3,
+          "void": 0,
+          "refund": 3
+        }
+      }
+    },
+    {
+      "id": "cancel-unapproved-checkout",
+      "title": "Cancel closes an unapproved checkout and rejects a late buyer callback",
+      "status": "passed",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "abandoned"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 1,
+          "authorize": 0,
+          "capture": 0,
+          "void": 0,
+          "refund": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-declined-capture",
+      "title": "Terminal DECLINED capture releases its unused hold without retrying capture",
+      "status": "passed",
+      "resolvedLegacyGap": "Legacy October 7 panel finding: declined capture remains pending. Passes when the terminal-state fix is present.",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "voided",
+          "voided",
+          "voided"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "failed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 0,
+          "void": 3,
+          "refund": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-failed-refund",
+      "title": "Terminal FAILED refund shows its reason without retrying automatically",
+      "status": "passed",
+      "resolvedLegacyGap": "Legacy October 7 panel finding: failed refund remains pending. Passes when terminal failure is classified and explained.",
+      "observation": {
+        "trip": "recovery_pending",
+        "payments": [
+          "refund_failed",
+          "refund_failed",
+          "refund_failed"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "failed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "failed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "failed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 3,
+          "void": 0,
+          "refund": 3
+        },
+        "guidance": [
+          "PayPal reports the refund failed. The money is still captured; nothing was retried automatically.",
+          "PayPal reports the refund failed. The money is still captured; nothing was retried automatically.",
+          "PayPal reports the refund failed. The money is still captured; nothing was retried automatically."
+        ]
+      }
+    },
+    {
+      "id": "capture-amount-mismatch",
+      "title": "Wrong USD capture amount stays unverified during reconciliation",
+      "status": "passed",
+      "resolvedLegacyGap": "Legacy October 8 finding: reconciliation copied CAPTURED authorization status before rejecting the capture. Passes when the capture is verified first.",
+      "observation": {
+        "trip": "recovery_pending",
+        "payments": [
+          "capture_unknown",
+          "voided",
+          "voided"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "unknown"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "void",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 1,
+          "void": 2,
+          "refund": 0
+        }
+      }
+    },
+    {
+      "id": "deliberate-failed-refund-retry",
+      "title": "Only deliberate retry of a confirmed failed refund creates a fresh request ID",
+      "status": "passed",
+      "resolvedLegacyGap": "Legacy October 7 panel finding: failed refund remains pending. Passes when terminal failure is classified and explained.",
+      "observation": {
+        "trip": "cancelled",
+        "payments": [
+          "refunded",
+          "refunded",
+          "refunded"
+        ],
+        "operations": [
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "failed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "failed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          },
+          {
+            "type": "create",
+            "status": "confirmed"
+          },
+          {
+            "type": "authorize",
+            "status": "confirmed"
+          },
+          {
+            "type": "capture",
+            "status": "confirmed"
+          },
+          {
+            "type": "refund",
+            "status": "failed"
+          },
+          {
+            "type": "refund",
+            "status": "confirmed"
+          }
+        ],
+        "uniqueWrites": {
+          "createOrder": 3,
+          "authorize": 3,
+          "capture": 3,
+          "void": 0,
+          "refund": 6
+        },
+        "beforeRetry": {
+          "trip": "recovery_pending",
+          "payments": [
+            "refund_failed",
+            "refund_failed",
+            "refund_failed"
+          ],
+          "operations": [
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "confirmed"
+            },
+            {
+              "type": "refund",
+              "status": "failed"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "confirmed"
+            },
+            {
+              "type": "refund",
+              "status": "failed"
+            },
+            {
+              "type": "create",
+              "status": "confirmed"
+            },
+            {
+              "type": "authorize",
+              "status": "confirmed"
+            },
+            {
+              "type": "capture",
+              "status": "confirmed"
+            },
+            {
+              "type": "refund",
+              "status": "failed"
+            }
+          ],
+          "uniqueWrites": {
+            "createOrder": 3,
+            "authorize": 3,
+            "capture": 3,
+            "void": 0,
+            "refund": 3
+          },
+          "guidance": [
+            "PayPal reports the refund failed. The money is still captured; nothing was retried automatically.",
+            "PayPal reports the refund failed. The money is still captured; nothing was retried automatically.",
+            "PayPal reports the refund failed. The money is still captured; nothing was retried automatically."
+          ]
+        },
+        "refundKeys": [
+          "967ab904-d74a-49d5-bd3a-d870c2542443",
+          "594af664-89c7-4e9a-b2d2-00cce1322c68",
+          "c08f167c-dd2a-4e73-8c67-98cbd15c1a67",
+          "c2c1159e-123d-4fd7-b558-5df40e590195",
+          "e26ffb02-0b61-4f69-a34a-b34cbbcfb186",
+          "2419e0d4-2eb8-482a-b575-2ddb6859f30b"
+        ]
+      }
+    }
+  ],
+  "sourceStable": true
+}

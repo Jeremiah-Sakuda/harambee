@@ -11,7 +11,7 @@ npm run test:sandbox
 
 The matrix drives the real trip coordinator and diagnostic lab through a synthetic PayPal provider. It blocks network access, preserves provider resources across application restarts, and models duplicate request IDs. This tests application behavior; it does not prove PayPal's timing, retention windows, risk decisions, or whether a particular status can be forced in the real sandbox.
 
-On October 7, the matrix returned **14 passed, 2 known failures, 0 unexpected failures**. The full suite returned **109 passed and 2 TODO findings** across 111 tests. The [JSON report](evidence/2026-10-07-offline-sandbox-matrix/results.json) records the evaluated commit and hashes of the payment source files. The source files remained stable during the run.
+On October 8, on commit `6cb7f0a`, the matrix returned **16 passed, 0 known failures, 0 unexpected failures**, and the full suite **113 passed** ([report](evidence/2026-10-08-offline-sandbox-matrix/results.json)). On October 7 it had returned 14 passed and 2 known failures ([report](evidence/2026-10-07-offline-sandbox-matrix/results.json)); both are fixed. Each report records the evaluated commit and hashes of the payment source files, which stayed stable during the run.
 
 | Scenario | Result | Checked behavior |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ On October 7, the matrix returned **14 passed, 2 known failures, 0 unexpected fa
 | Deadline expires | Pass | Every authorized hold released without capture |
 | Authorization expires | Pass | Booking readiness removed; no capture |
 | Authorization pending | Pass | No booking until authorization becomes usable |
-| Capture currency mismatch | Known failure | Recovery exposes `captured` despite unverified currency |
+| Capture currency mismatch | Pass (failed October 7) | Unverified capture stays `capture_unknown`; no refund or second capture |
 | Pending capture completes | Pass | Recovery refunds the eventual completed capture |
 | Refund response lost after execution | Pass | Restart reconciliation avoids a second refund |
 | Refund response lost before execution | Pass | Recovery reuses the persisted request ID |
@@ -29,7 +29,7 @@ On October 7, the matrix returned **14 passed, 2 known failures, 0 unexpected fa
 | Cancel before buyer approval | Pass | Late checkout callback rejected |
 | Capture definitively declined | Pass | No capture retry; unused holds released |
 | Refund definitively failed | Pass | Failure explained; no automatic retry |
-| Capture amount mismatch | Known failure | Recovery exposes `captured` despite unverified amount |
+| Capture amount mismatch | Pass (failed October 7) | Unverified capture stays `capture_unknown`; no refund or second capture |
 | Explicit retry of failed refunds | Pass | New refund request IDs used only after organizer requests retry |
 
 Known failures are reported separately from passes. `--strict` exits with status 1 when any known or unexpected failure remains. The Node suite marks only the exact recognized assertions as TODO; an unrelated assertion or a scenario setup failure fails the test normally. A fixed scenario automatically counts as passed.

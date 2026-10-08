@@ -23,7 +23,7 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | Real | Simulated or pending |
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
-| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (97 tests, including declined captures, failed refunds and orders PayPal dropped) | Default no-credentials mode simulates payments |
+| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (113 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
 | AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last four live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 8–9/10 versus 0/10 ([details and caveats](#revision-options-after-a-dropout)) | No user research; synthetic briefs only |
 
 ## How this differs
@@ -87,7 +87,7 @@ npm test
 
 The native Node test suite covers exact allocations, private budget projection, role checks, stale version rejection, explicit top-ups, duplicate operations, deadlines, cabin capacity, restart persistence, capture failures and timeouts, refunds pending confirmation, merchant failures, and sandbox adapter contracts. GitHub Actions runs tests and a production build.
 
-For the additional 16-scenario payment matrix, strict checks of known failures, and isolated $1 PayPal sandbox recovery tests, see [Sandbox testing](docs/SANDBOX_TESTING.md). The October 7 matrix has two known amount/currency state-label failures; they are reported separately from passing checks.
+For the additional 16-scenario payment matrix, strict checks of known failures, and isolated $1 PayPal sandbox recovery tests, see [Sandbox testing](docs/SANDBOX_TESTING.md). The [October 8 run](docs/evidence/2026-10-08-offline-sandbox-matrix/README.md) passes all sixteen scenarios; the two amount/currency failures recorded on October 7 are fixed.
 
 ## Demo walkthrough
 
