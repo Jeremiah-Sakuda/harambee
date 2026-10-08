@@ -77,6 +77,8 @@ npm test
 
 The native Node test suite covers exact allocations, private budget projection, role checks, stale version rejection, explicit top-ups, duplicate operations, deadlines, cabin capacity, restart persistence, capture failures and timeouts, refunds pending confirmation, merchant failures, and sandbox adapter contracts. GitHub Actions runs tests and a production build.
 
+For the additional 16-scenario payment matrix, strict checks of known failures, and isolated $1 PayPal sandbox recovery tests, see [Sandbox testing](docs/SANDBOX_TESTING.md). The October 7 matrix has two known amount/currency state-label failures; they are reported separately from passing checks.
+
 ## Demo walkthrough
 
 1. Start with four friends and the $600 Pine & Still cabin. Click **Review** beside each person, review their saved private $220 ceiling (use **Save budget only** for edits), and select **Agree & authorize simulated hold**. The demo role switch intentionally lets one judge act as each participant.

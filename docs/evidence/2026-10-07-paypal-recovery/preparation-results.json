@@ -1,0 +1,151 @@
+{
+  "mode": "actual-paypal-sandbox-with-local-response-loss",
+  "startedAt": "2026-10-08T03:28:53.179Z",
+  "source": {
+    "commit": "26a95dee89e0628da9a15d9e8be31d55f706425d",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "980d3c597ca0c295783107cc23f13cd5a350791fb8115d5bc83fea01bb2621d8",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "provider": "https://api-m.sandbox.paypal.com",
+  "testAmountPerOrderCents": 100,
+  "results": [
+    {
+      "id": "refund-create-and-read",
+      "at": "2026-10-08T03:28:54.725Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "2FA82945TT2119253",
+        "status": "PAYER_ACTION_REQUIRED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "1.00"
+        }
+      }
+    },
+    {
+      "id": "refund-create-idempotency",
+      "at": "2026-10-08T03:28:55.476Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "2FA82945TT2119253",
+        "requestId": "d4148945-0a27-4886-88fc-786552175b5f"
+      }
+    },
+    {
+      "id": "void-create-and-read",
+      "at": "2026-10-08T03:28:56.774Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "2D2181096H692804U",
+        "status": "PAYER_ACTION_REQUIRED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "1.00"
+        }
+      }
+    },
+    {
+      "id": "void-create-idempotency",
+      "at": "2026-10-08T03:28:57.644Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "2D2181096H692804U",
+        "requestId": "a273e003-c182-4047-9519-11761a7e73f4"
+      }
+    },
+    {
+      "id": "unapproved-order-cannot-authorize",
+      "at": "2026-10-08T03:28:58.147Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "2D2181096H692804U",
+        "status": "approval_required",
+        "operationStatus": "failed"
+      }
+    }
+  ],
+  "calls": [
+    {
+      "at": "2026-10-08T03:28:53.180Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "d4148945-0a27-4886-88fc-786552175b5f",
+      "resourceId": "2FA82945TT2119253",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-08T03:28:54.426Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/2FA82945TT2119253",
+      "requestId": null,
+      "resourceId": "2FA82945TT2119253",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-08T03:28:54.727Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "d4148945-0a27-4886-88fc-786552175b5f",
+      "resourceId": "2FA82945TT2119253",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-08T03:28:55.480Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "a273e003-c182-4047-9519-11761a7e73f4",
+      "resourceId": "2D2181096H692804U",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-08T03:28:56.256Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/2D2181096H692804U",
+      "requestId": null,
+      "resourceId": "2D2181096H692804U",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-08T03:28:56.776Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "a273e003-c182-4047-9519-11761a7e73f4",
+      "resourceId": "2D2181096H692804U",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-08T03:28:57.647Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders/2D2181096H692804U/authorize",
+      "requestId": "a3a3449c-e27a-4e53-9803-4c9b1f10fa58",
+      "successful": false,
+      "httpStatus": 422,
+      "issue": "ORDER_NOT_APPROVED"
+    }
+  ],
+  "finishedSource": {
+    "commit": "26a95dee89e0628da9a15d9e8be31d55f706425d",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "980d3c597ca0c295783107cc23f13cd5a350791fb8115d5bc83fea01bb2621d8",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "sourceStable": true,
+  "updatedAt": "2026-10-08T03:28:58.178Z"
+}
