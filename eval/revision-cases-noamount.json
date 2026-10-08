@@ -1,0 +1,107 @@
+[
+  {
+    "id": "na-stretch",
+    "note": "Willingness to pay more, no figure. Ask Jordan how far; his words support keeping Pine.",
+    "chat": [
+      "Sam: Bad news, I have to drop out, sorry!",
+      "Jordan: I can stretch a bit if that keeps us at Pine & Still."
+    ],
+    "expect": {
+      "askWho": "jordan",
+      "support": [{ "participantId": "jordan", "listingId": "pine" }]
+    }
+  },
+  {
+    "id": "na-maybe-out",
+    "note": "Attendance doubt. Ask Alex before re-splitting.",
+    "chat": [
+      "Sam: I'm out, work trip got moved.",
+      "Alex: honestly I might not come either, work is chaos right now"
+    ],
+    "expect": { "askWho": "alex" }
+  },
+  {
+    "id": "na-objection-pine",
+    "note": "An objection to the current cabin. Never a Why on Pine; a Why on Creekside.",
+    "chat": [
+      "Sam: Can't make it anymore, sorry all.",
+      "Maya: Please not Pine & Still again, the heating was awful last time."
+    ],
+    "expect": {
+      "objection": [{ "participantId": "maya", "listingId": "pine" }],
+      "support": [{ "participantId": "maya", "listingId": "creek" }]
+    }
+  },
+  {
+    "id": "na-higher-vague",
+    "note": "Vague willingness, no figure. Ask Jordan for a number.",
+    "chat": [
+      "Sam: Dropping out, so sorry.",
+      "Jordan: I could maybe go a little higher if we really need to"
+    ],
+    "expect": { "askWho": "jordan" }
+  },
+  {
+    "id": "na-no-more",
+    "note": "Refuses any increase, no figure. Ask Alex for a firm limit; not a Why on any option that raises Alex's share.",
+    "chat": [
+      "Sam: I have to bail, sorry.",
+      "Alex: I really can't pay any more than I already have."
+    ],
+    "expect": { "askWho": "alex" }
+  },
+  {
+    "id": "na-prefer-cheaper",
+    "note": "Preference for the cheaper cabin, no figure.",
+    "chat": [
+      "Sam: Out, sorry everyone.",
+      "Maya: Whatever's cheapest works for me, honestly."
+    ],
+    "expect": { "support": [{ "participantId": "maya", "listingId": "creek" }] }
+  },
+  {
+    "id": "na-keep-cabin",
+    "note": "Preference for the current cabin, no figure.",
+    "chat": [
+      "Sam: Gotta drop, family stuff.",
+      "Alex: I'd love to keep the Pine place, the hot tub is the whole point."
+    ],
+    "expect": { "support": [{ "participantId": "alex", "listingId": "pine" }] }
+  },
+  {
+    "id": "na-relayed-preference",
+    "note": "Someone reports another person's view. Ask Maya directly.",
+    "chat": [
+      "Sam: Sorry, I can't come.",
+      "Jordan: Maya told me she really doesn't want the Creekside place"
+    ],
+    "expect": { "askWho": "maya" }
+  },
+  {
+    "id": "na-two-voices",
+    "note": "Two people want different cabins. Each one's words back their own choice.",
+    "chat": [
+      "Sam: I'm out, sorry.",
+      "Maya: Creekside is totally fine by me.",
+      "Alex: Pine & Still or I'm honestly not that excited."
+    ],
+    "expect": {
+      "support": [
+        { "participantId": "maya", "listingId": "creek" },
+        { "participantId": "alex", "listingId": "pine" }
+      ]
+    }
+  },
+  {
+    "id": "na-cover-friend",
+    "note": "An offer to cover part of someone's share, no figure. Ask Jordan how much; it supports Pine.",
+    "chat": [
+      "Sam: Can't do it, sorry guys.",
+      "Jordan: I'll cover a bit of Maya's share so we can stay at Pine & Still."
+    ],
+    "expect": {
+      "askWho": "jordan",
+      "support": [{ "participantId": "jordan", "listingId": "pine" }]
+    }
+  }
+]
