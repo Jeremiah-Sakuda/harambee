@@ -621,6 +621,11 @@ export class Engine {
       });
       if (["failed", "unknown"].includes(p.status)) {
         this.state.status = "recovery_pending";
+        this.state.stop = {
+          reason:
+            p.status === "failed" ? "capture_declined" : "capture_unknown",
+          participantId: p.participantId,
+        };
         this.log(
           "Capture interrupted. New captures stopped; recovery is required.",
           "recovery",
@@ -630,6 +635,10 @@ export class Engine {
     }
     if (["reservation_failure", "lease_expiry"].includes(fault)) {
       this.state.status = "recovery_pending";
+      this.state.stop = {
+        reason:
+          fault === "lease_expiry" ? "lease_expired" : "reservation_failed",
+      };
       this.state.reservation.status =
         fault === "lease_expiry" ? "expired" : "commit_failed";
       this.log(
@@ -640,6 +649,7 @@ export class Engine {
     }
     if (fault === "commit_timeout") {
       this.state.status = "recovery_pending";
+      this.state.stop = { reason: "reservation_unknown" };
       this.state.reservation.status = "unknown";
       this.state.reservation.providerResult = "committed";
       this.log(
@@ -738,6 +748,7 @@ export class Engine {
       "Only an open plan can be cancelled.",
     );
     this.state.status = "cancelling";
+    this.state.stop = { reason: "cancelled" };
     for (const p of this.state.payments) this.voidPayment(p);
     this.expireRequests();
     this.state.status = "cancelled";
@@ -754,6 +765,7 @@ export class Engine {
     );
     this.state.deadline = timestamp();
     this.state.status = "cancelling";
+    this.state.stop = { reason: "expired" };
     for (const p of this.state.payments) this.voidPayment(p);
     this.state.status = "cancelled";
     this.log(

@@ -12,6 +12,35 @@ const verifyAmount = (amount, expected) => {
       502,
     );
 };
+// Final PayPal outcomes that moved no money. They are recorded with PayPal's reason, never retried
+// silently, and never left looking like "still pending".
+const CAPTURE_NOT_TAKEN = ["DECLINED", "FAILED"];
+const REFUND_NOT_MADE = ["FAILED", "CANCELLED"];
+const reasonOf = (r) =>
+  r?.status_details?.reason
+    ? ` (${String(r.status_details.reason).toLowerCase().replaceAll("_", " ")})`
+    : "";
+function captureNotTaken(session, capture) {
+  session.declinedCaptureId = capture.id;
+  delete session.captureId;
+  session.providerIssue = `PayPal ${capture.status.toLowerCase()} the capture${reasonOf(capture)}; nothing was taken.`;
+  for (const op of session.operations)
+    if (op.type === "capture" && op.status !== "failed") {
+      op.status = "failed";
+      op.error = session.providerIssue;
+    }
+}
+function refundNotMade(session, refund) {
+  session.status = "refund_failed";
+  session.failedRefundId = refund.id;
+  delete session.refundId;
+  session.providerIssue = `PayPal reports the refund ${refund.status.toLowerCase()}${reasonOf(refund)}. The money is still captured; nothing was retried automatically.`;
+  for (const op of session.operations)
+    if (op.type === "refund" && op.status !== "failed") {
+      op.status = "failed";
+      op.error = session.providerIssue;
+    }
+}
 export class SandboxLab {
   constructor(store, client) {
     this.store = store;
@@ -80,7 +109,29 @@ export class SandboxLab {
       }
       if (action === "reconcile") {
         const previousStatus = session.status;
-        const order = await this.client.getOrder(session.orderId);
+        let order;
+        try {
+          order = await this.client.getOrder(session.orderId);
+        } catch (error) {
+          // PayPal drops orders nobody approved. With no authorization or capture, nothing was held.
+          if (
+            error.status === 404 &&
+            !session.authorizationId &&
+            !session.captureId
+          ) {
+            session.status = "expired_unapproved";
+            session.providerIssue =
+              "PayPal no longer has this order: it expired before the buyer approved it, so nothing was held.";
+            for (const op of session.operations)
+              if (["pending", "unknown"].includes(op.status)) {
+                op.status = "failed";
+                op.error = session.providerIssue;
+              }
+            this.save();
+            return this.view();
+          }
+          throw error;
+        }
         session.payerId =
           order.payer?.payer_id ||
           order.payment_source?.paypal?.account_id ||
@@ -92,7 +143,11 @@ export class SandboxLab {
         const orderCapture = order.purchase_units?.flatMap(
           (u) => u.payments?.captures ?? [],
         )[0];
-        if (orderCapture?.id) session.captureId = orderCapture.id;
+        if (
+          orderCapture?.id &&
+          !CAPTURE_NOT_TAKEN.includes(orderCapture.status)
+        )
+          session.captureId = orderCapture.id;
         if (auth) {
           session.authorizationId = auth.id;
           const detail = await this.client.getAuthorization(auth.id);
@@ -107,9 +162,14 @@ export class SandboxLab {
           else if (detail.status === "CAPTURED")
             session.status = session.captureId ? "captured" : "capture_unknown";
         }
+        const capture = session.captureId
+          ? await this.client.getCapture(session.captureId)
+          : null;
+        if (capture) verifyAmount(capture.amount, session.amount);
+        // Nothing was taken; the authorization's own status (above) says whether a hold remains.
+        if (capture && CAPTURE_NOT_TAKEN.includes(capture.status))
+          captureNotTaken(session, capture);
         if (session.captureId) {
-          const capture = await this.client.getCapture(session.captureId);
-          verifyAmount(capture.amount, session.amount);
           session.status =
             capture.status === "REFUNDED"
               ? "refunded"
@@ -119,8 +179,11 @@ export class SandboxLab {
           if (session.refundId) {
             const refund = await this.client.getRefund(session.refundId);
             verifyAmount(refund.amount, session.amount);
-            session.status =
-              refund.status === "COMPLETED" ? "refunded" : "refund_pending";
+            if (REFUND_NOT_MADE.includes(refund.status))
+              refundNotMade(session, refund);
+            else
+              session.status =
+                refund.status === "COMPLETED" ? "refunded" : "refund_pending";
           } else if (
             previousStatus.startsWith("refund_") &&
             capture.status !== "REFUNDED"
@@ -137,9 +200,12 @@ export class SandboxLab {
           authorize:
             !!session.authorizationId &&
             !session.status.startsWith("authorization_"),
-          capture: ["captured", "refunded", "refund_pending"].includes(
-            session.status,
-          ),
+          capture: [
+            "captured",
+            "refunded",
+            "refund_pending",
+            "refund_failed",
+          ].includes(session.status),
           void: session.status === "voided",
           refund: session.status === "refunded",
         };
@@ -211,7 +277,8 @@ export class SandboxLab {
         authorize: ["approval_required", "buyer_approved"],
         capture: ["authorized"],
         void: ["authorized"],
-        refund: ["captured"],
+        // A refund PayPal reported as failed can be retried only on purpose, with a new request ID.
+        refund: ["captured", "refund_failed"],
       };
       if (
         action !== "create" &&
@@ -297,16 +364,26 @@ export class SandboxLab {
           session.captureId = r.id;
           const capture = r.amount ? r : await this.client.getCapture(r.id);
           verifyAmount(capture.amount, session.amount);
-          session.status =
-            capture.status === "COMPLETED" ? "captured" : "capture_pending";
+          if (CAPTURE_NOT_TAKEN.includes(capture.status)) {
+            captureNotTaken(session, capture);
+            // Reconcile decides from the authorization whether a hold still needs releasing.
+            session.status = "capture_declined";
+          } else
+            session.status =
+              capture.status === "COMPLETED" ? "captured" : "capture_pending";
         }
         if (action === "void") session.status = "voided";
         if (action === "refund") {
           session.refundId = r.id;
           const refund = r.amount ? r : await this.client.getRefund(r.id);
           verifyAmount(refund.amount, session.amount);
-          session.status =
-            refund.status === "COMPLETED" ? "refunded" : "refund_pending";
+          if (REFUND_NOT_MADE.includes(refund.status))
+            refundNotMade(session, refund);
+          else {
+            delete session.providerIssue;
+            session.status =
+              refund.status === "COMPLETED" ? "refunded" : "refund_pending";
+          }
         }
         this.save();
         return this.view();

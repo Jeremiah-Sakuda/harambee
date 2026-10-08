@@ -331,7 +331,7 @@ const server = http.createServer(async (req, res) => {
           await payments.book(actor, input);
           break;
         case "/api/recover":
-          await payments.recover(actor);
+          await payments.recover(actor, { retryRefunds: !!input.retryRefunds });
           break;
         case "/api/expire":
           await payments.expire(actor);

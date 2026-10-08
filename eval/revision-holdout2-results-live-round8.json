@@ -1,0 +1,275 @@
+{
+  "fixtureVersion": 1,
+  "cases": "revision-cases-holdout2",
+  "mode": "live-provider",
+  "liveProviderExecuted": true,
+  "passed": 6,
+  "safe": 6,
+  "total": 6,
+  "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
+  "limitations": "Synthetic briefs; one run of one model. Not user research.",
+  "results": [
+    {
+      "id": "h2-clear-firm",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 4651,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "jordan": 19000
+          },
+          "shares": [
+            20500,
+            19000,
+            20500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "jordan": 19000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 2,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-updated",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 4235,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 19000
+          },
+          "shares": [
+            19000,
+            20500,
+            20500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 19000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 2,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-unrelated-hedge",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 6051,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            21000,
+            21000,
+            18000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 2,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-ish",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2683,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "Maya didn’t state $160 as a firm limit, so code asked instead of using it.",
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        }
+      ],
+      "clarifications": 3,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-either",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3535,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "Alex wrote more than one amount, so code asked instead of choosing."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-relayed",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3375,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "It attributed a limit to Alex from someone else’s message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        }
+      ],
+      "clarifications": 8,
+      "discarded": []
+    }
+  ]
+}

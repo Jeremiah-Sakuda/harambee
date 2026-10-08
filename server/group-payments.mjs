@@ -25,15 +25,18 @@ export class GroupPayments {
       (s) => s.id === p.sandboxSessionId,
     );
     if (!session) return;
-    // A definitely rejected order create left nothing at PayPal.
-    p.status =
-      session.status === "create_failed" ? "abandoned" : session.status;
+    // A definitely rejected order create, or an order PayPal dropped before approval, left nothing held.
+    p.status = ["create_failed", "expired_unapproved"].includes(session.status)
+      ? "abandoned"
+      : session.status;
+    p.providerIssue = session.providerIssue ?? null;
     p.providerId = session.authorizationId || session.orderId || null;
     p.captureId = session.captureId;
     p.refundId = session.refundId;
     p.payerId = session.payerId;
     p.approvalUrl = session.approvalUrl;
-    p.investigation = session.investigation;
+    // A provider-reported failure is itself the guidance for what to do next.
+    p.investigation = session.investigation ?? session.providerIssue ?? null;
     for (const op of session.operations) {
       const entry = {
         ...op,
@@ -147,11 +150,18 @@ export class GroupPayments {
     );
     need(this.engine.approved(actor), "Review the current agreement first.");
     await this.run(p, "authorize");
+    await this.distinctBuyer(p);
+    this.s.status = this.engine.ready() ? "ready" : "collecting";
+    this.engine.persist();
+  }
+  // Every hold that becomes authorized, by checkout return or by reconcile, must be its own buyer's.
+  async distinctBuyer(p) {
+    if (p.status !== "authorized") return;
     const shared =
       !p.payerId ||
       this.s.payments.some(
         (other) =>
-          other.participantId !== actor &&
+          other.participantId !== p.participantId &&
           !terminal(other) &&
           other.payerId === p.payerId,
       );
@@ -162,8 +172,6 @@ export class GroupPayments {
         "Each participant needs their own sandbox buyer. That buyer already holds another share, so this hold was voided. Approve again and log in with a different sandbox buyer account.",
       );
     }
-    this.s.status = this.engine.ready() ? "ready" : "collecting";
-    this.engine.persist();
   }
   async reconcile(actor, paymentId) {
     const p = this.s.payments.find((p) => p.id === paymentId);
@@ -177,6 +185,8 @@ export class GroupPayments {
         ? "reconcile"
         : "create",
     );
+    if (["collecting", "ready"].includes(this.s.status))
+      await this.distinctBuyer(p);
     if (["collecting", "ready"].includes(this.s.status))
       this.s.status = this.engine.ready() ? "ready" : "collecting";
     this.engine.persist();
@@ -280,7 +290,9 @@ export class GroupPayments {
         await this.run(p, "capture");
         need(
           p.status === "captured",
-          "Capture is not confirmed. Recovery required.",
+          p.status === "capture_declined"
+            ? `${p.providerIssue} Recovery required.`
+            : "Capture is not confirmed. Recovery required.",
         );
       }
       need(
@@ -299,13 +311,34 @@ export class GroupPayments {
       );
     } catch (error) {
       this.s.status = "recovery_pending";
+      // What stopped it, so the board can say so plainly.
+      const failing = this.s.payments.find((p) =>
+        ["capture_declined", "capture_unknown", "capture_pending"].includes(
+          p.status,
+        ),
+      );
+      this.s.stop = failing
+        ? {
+            reason:
+              failing.status === "capture_declined"
+                ? "capture_declined"
+                : "capture_unknown",
+            participantId: failing.participantId,
+          }
+        : {
+            reason: /lease expired/i.test(error.message)
+              ? "lease_expired"
+              : "reservation_failed",
+          };
       e.log(`Booking stopped: ${error.message}`, "recovery");
       throw error;
     }
   }
-  async recover(actor) {
+  async recover(actor, { retryRefunds = false } = {}) {
     const e = this.engine;
     e.assertOrganizer(actor);
+    // Like the simulator: running recovery again on a settled trip changes nothing.
+    if (["cancelled", "confirmed"].includes(this.s.status)) return;
     need(
       ["booking", "recovery_pending", "cancelling"].includes(this.s.status),
       "There is no recovery to run.",
@@ -316,7 +349,10 @@ export class GroupPayments {
       try {
         await this.run(p, "reconcile");
         if (p.status === "captured") await this.run(p, "refund");
-        else if (!["refund_pending", "refunded"].includes(p.status))
+        // A refund PayPal reported as failed is retried only when the organizer asks, with a new request ID.
+        else if (p.status === "refund_failed") {
+          if (retryRefunds) await this.run(p, "refund");
+        } else if (!["refund_pending", "refunded"].includes(p.status))
           await this.release(p);
       } catch (error) {
         p.recoveryError = error.message;
@@ -332,7 +368,9 @@ export class GroupPayments {
       );
     } else
       e.log(
-        "Recovery remains open. Reconcile unresolved provider operations; no replacement charges are issued.",
+        this.s.payments.some((p) => p.status === "refund_failed")
+          ? "Recovery remains open: PayPal reported a refund as failed. Nothing was retried automatically; check the sandbox dashboard, then retry the refund."
+          : "Recovery remains open. Reconcile unresolved provider operations; no replacement charges are issued.",
         "recovery",
       );
   }
@@ -345,6 +383,7 @@ export class GroupPayments {
     );
     this.engine.expireRequests();
     this.s.status = "cancelling";
+    this.s.stop = { reason: "cancelled" };
     this.engine.persist();
     this.engine.log("The organizer cancelled the trip.", "recovery");
     await this.recover(actor);
@@ -357,6 +396,7 @@ export class GroupPayments {
     );
     this.s.deadline = new Date().toISOString();
     this.s.status = "cancelling";
+    this.s.stop = { reason: "expired" };
     this.engine.persist();
     await this.recover(actor);
   }

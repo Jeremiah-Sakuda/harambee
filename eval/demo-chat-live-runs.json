@@ -16,14 +16,13 @@
       "run": 1,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 7000,
-      "summary": "Maya updated her budget down to a lower limit, and Alex prefers the cheaper Creekside listing if the cost is too high. Jordan is willing to pay more to stay at Pine & Still. Sam dropped out, so their prior limit is no longer considered. We asked about Maya's preference for a quiet room and about Jordan's maximum stretch amount.",
+      "latencyMs": 5174,
+      "summary": "Maya lowered her personal spending limit from $220 to $170, Alex prefers the cheaper cabin if the price rises, and Jordan is willing to pay more to stay at the Pine & Still cabin. Sam has dropped out. Maya's revised limit and Alex's preference for Creekside shape the options and Jordan's flexibility allows staying at Pine.",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: maya: How important is having a quiet room to you compared to budget constraints?",
-        "model: jordan: How much more can you stretch your budget to keep the Pine & Still Cabin?"
+        "model: jordan: You mentioned your budget is $220 but also that you can stretch a bit to keep us at Pine & Still. Could you specify the maximum you could pay?"
       ],
       "options": [
         {
@@ -39,8 +38,8 @@
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
             "jordan: I can stretch a bit if that keeps us at Pine & Still."
           ],
-          "pointsElsewhere": [
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+          "notWhy": [
+            "elsewhere: alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
           ],
           "removed": []
         },
@@ -54,25 +53,23 @@
             160
           ],
           "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
             "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
           ],
-          "pointsElsewhere": [],
+          "notWhy": [],
           "removed": []
         },
         {
           "listingId": "pine",
-          "source": "openai",
-          "matchesRule": true,
+          "source": "rule",
+          "matchesRule": false,
           "shares": [
             200,
             200,
             200
           ],
-          "why": [
-            "maya: Maya: I can spend up to $220. A quiet room would be lovely.",
-            "jordan: Jordan: I can stretch a bit if that keeps us at Pine & Still."
-          ],
-          "pointsElsewhere": [],
+          "why": [],
+          "notWhy": [],
           "removed": []
         }
       ],
@@ -82,15 +79,13 @@
       "run": 2,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 8367,
-      "summary": "Maya lowered her spending limit from $220 to $170. Alex prefers the cheaper Creekside listing if the price rises, and Jordan is willing to pay more to keep the Pine & Still cabin. Sam dropped out, removing their $220 limit. We do not have clear confirmations about arrival times or room sharing preferences for cap requests.",
+      "latencyMs": 4414,
+      "summary": "Maya lowered her spending limit to a firm maximum, Alex expressed a preference for the cheaper listing but did not state a firm limit, and Jordan is willing to pay more to keep the pricier cabin. Alex's preference for the less expensive cabin is balanced against Jordan's willingness to pay more, with Maya's firm limit shaping the options.",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: alex: You mentioned possibly arriving late Friday. Will you be attending the full stay otherwise?",
-        "model: maya: You mentioned wanting a quiet room. Do you have preferences on room sharing or sleeping arrangements?",
-        "model: jordan: You said you’re happy to share a room. Any preferences on roommates or bed type?"
+        "model: alex: Would you be willing to pay more than $220 if needed to stay at Pine & Still, or is Creekside your firm preference below that amount?"
       ],
       "options": [
         {
@@ -106,82 +101,8 @@
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
             "jordan: I can stretch a bit if that keeps us at Pine & Still."
           ],
-          "pointsElsewhere": [
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
-          ],
-          "removed": []
-        },
-        {
-          "listingId": "creek",
-          "source": "openai",
-          "matchesRule": false,
-          "shares": [
-            160,
-            160,
-            160
-          ],
-          "why": [
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
-            "maya: Honestly my rent just went up, I can’t go above $170 now."
-          ],
-          "pointsElsewhere": [
-            "jordan: I can stretch a bit if that keeps us at Pine & Still."
-          ],
-          "removed": []
-        },
-        {
-          "listingId": "pine",
-          "source": "openai",
-          "matchesRule": true,
-          "shares": [
-            200,
-            200,
-            200
-          ],
-          "why": [
-            "jordan: I can stretch a bit if that keeps us at Pine & Still."
-          ],
-          "pointsElsewhere": [
-            "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
-          ],
-          "removed": []
-        }
-      ],
-      "discarded": []
-    },
-    {
-      "run": 3,
-      "provider": "openai",
-      "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 5913,
-      "summary": "Maya lowered her spending limit to a lower amount than before, Alex prefers the cheaper cabin if the cost goes up, and Jordan is open to paying more to keep the more expensive cabin. Sam's earlier limit is irrelevant as they dropped out. Maya's preference for a quiet room is noted. There is some uncertainty about exact limits for Jordan and Alex's attendance timing.",
-      "needsConfirming": [
-        "maya 170"
-      ],
-      "questions": [
-        "model: jordan: When you say you can stretch a bit to keep Pine & Still, what maximum amount are you comfortable with?",
-        "model: alex: Are you definitely attending, and will you share a room?"
-      ],
-      "options": [
-        {
-          "listingId": "pine",
-          "source": "openai",
-          "matchesRule": false,
-          "shares": [
-            170,
-            215,
-            215
-          ],
-          "why": [
-            "maya: I can spend up to $220. A quiet room would be lovely.",
-            "jordan: My budget is $220. I’m happy to share a room.",
-            "alex: Up to $220 works for me. I might arrive late Friday.",
-            "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "jordan: I can stretch a bit if that keeps us at Pine & Still."
-          ],
-          "pointsElsewhere": [
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+          "notWhy": [
+            "elsewhere: alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
           ],
           "removed": []
         },
@@ -198,8 +119,8 @@
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
             "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
           ],
-          "pointsElsewhere": [
-            "jordan: I can stretch a bit if that keeps us at Pine & Still."
+          "notWhy": [
+            "elsewhere: jordan: I can stretch a bit if that keeps us at Pine & Still."
           ],
           "removed": []
         },
@@ -213,7 +134,72 @@
             200
           ],
           "why": [],
-          "pointsElsewhere": [],
+          "notWhy": [],
+          "removed": []
+        }
+      ],
+      "discarded": []
+    },
+    {
+      "run": 3,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 4254,
+      "summary": "Maya updated her spending limit to a lower amount, while Alex prefers the cheaper cabin if costs rise. Jordan is willing to pay more to keep the Pine & Still listing. Maya and Jordan's initial room and budget preferences along with Alex's arrival time were noted but don’t affect spending limits. Alex’s willingness to pay more or not is unclear, so we request clarification.",
+      "needsConfirming": [
+        "maya 170"
+      ],
+      "questions": [
+        "model: alex: Are you able to pay more if needed to keep the Pine & Still cabin, or should we respect your preference to switch to the cheaper Creekside?"
+      ],
+      "options": [
+        {
+          "listingId": "pine",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            170,
+            215,
+            215
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "jordan: I can stretch a bit if that keeps us at Pine & Still."
+          ],
+          "notWhy": [
+            "elsewhere: alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "creek",
+          "source": "openai",
+          "matchesRule": false,
+          "shares": [
+            160,
+            160,
+            160
+          ],
+          "why": [
+            "maya: Honestly my rent just went up, I can’t go above $170 now.",
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+          ],
+          "notWhy": [
+            "elsewhere: jordan: I can stretch a bit if that keeps us at Pine & Still."
+          ],
+          "removed": []
+        },
+        {
+          "listingId": "pine",
+          "source": "rule",
+          "matchesRule": false,
+          "shares": [
+            200,
+            200,
+            200
+          ],
+          "why": [],
+          "notWhy": [],
           "removed": []
         }
       ],

@@ -235,14 +235,25 @@ export default function RevisionOptions({
                 ))}
               </ul>
             )}
-            {o.considered?.length > 0 && (
-              <p className="rev-considered">
-                Points to another option:{" "}
-                {o.considered
-                  .map((b) => `“${b.quote}” — ${first(b.name)}`)
-                  .join("; ")}
-              </p>
-            )}
+            {[
+              ["elsewhere", "Points to another option"],
+              ["opposes", "Argues against this option"],
+              ["superseded", "Earlier message, since replaced"],
+            ].map(([relation, label]) => {
+              const quotes = (o.considered ?? []).filter(
+                (b) => (b.relation ?? "elsewhere") === relation,
+              );
+              return (
+                quotes.length > 0 && (
+                  <p key={relation} className="rev-considered">
+                    {label}:{" "}
+                    {quotes
+                      .map((b) => `“${b.quote}” — ${first(b.name)}`)
+                      .join("; ")}
+                  </p>
+                )
+              );
+            })}
             {o.combinedAfter?.length > 0 && (
               <p className="rev-note">
                 After {o.combinedAfter.join(" and ")} confirmed, the standard
@@ -257,8 +268,8 @@ export default function RevisionOptions({
             )}
             {o.explanationReplaced && !o.removedLimits?.length && (
               <p className="rev-note">
-                The suggestion’s own figures didn’t match the math, so this
-                summary was written by code.
+                The suggestion included figures, so code wrote this summary from
+                the computed shares.
               </p>
             )}
             {o.exceedsStated?.map((x) => (

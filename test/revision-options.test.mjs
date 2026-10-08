@@ -886,7 +886,7 @@ test("bare numbers in model prose, summaries and questions are checked too", asy
       option({
         listingId: "creek",
         title: "Creekside sleeps 6 for 2 nights",
-        explanation: "Everyone pays 160, up from 150.",
+        explanation: "A cheaper cabin, so the group spends less.",
         tradeoff: "",
       }),
     ],
@@ -1093,4 +1093,142 @@ test("a confirmed limit that makes the rule match says why the cards combined", 
   );
   assert.equal(pine.length, 1);
   assert.deepEqual(pine[0].combinedAfter, ["Maya"]);
+});
+
+test("any figure in model prose is rewritten, because code can't tell whose amount it is", async () => {
+  const swapped = [
+    "Maya covers $215 while Jordan and Alex each pay $170.",
+    "Maya pays one seventy and the others two fifteen.",
+    "Jordan pays 43% more.",
+    "About $0.6k in total.",
+  ];
+  const { out } = await withModel(afterDropout(), {
+    summary: "Maya pays one seventy.",
+    options: swapped.map((explanation, i) =>
+      option({ title: `Variant ${i}`, explanation, capRequests: [mayaCap] }),
+    ),
+    clarifications: [
+      {
+        participantId: "jordan",
+        line: 2,
+        question: "Can Jordan do two fifteen?",
+      },
+    ],
+  });
+  assert.ok(
+    out.options
+      .filter((o) => o.source === "openai")
+      .every(
+        (o) =>
+          o.explanationReplaced && !/one seventy|43%|0\.6k/.test(o.explanation),
+      ),
+  );
+  assert.equal(out.summary, "");
+  assert.equal(
+    out.clarifications[0].question,
+    "Please confirm the amount directly with this person.",
+  );
+});
+
+test("a replaced limit or a quote arguing against the option is never a Why", async () => {
+  const notes = [
+    "Maya: I can spend up to $220. A quiet room would be lovely.",
+    "Jordan: I really don't want to pay any more than I already am.",
+    "Alex: Please not Pine & Still again, it was freezing.",
+    "Sam: Bad news, I have to drop out, sorry!",
+    "Maya: Honestly my rent just went up, I can’t go above $170 now.",
+  ].join("\n");
+  const reasons = [
+    {
+      participantId: "maya",
+      line: 1,
+      quote: "Maya: I can spend up to $220.",
+      kind: "limit",
+    },
+    {
+      participantId: "maya",
+      line: 5,
+      quote: "I can’t go above $170 now",
+      kind: "limit",
+    },
+    {
+      participantId: "jordan",
+      line: 2,
+      quote: "I really don't want to pay any more than I already am",
+      kind: "no_amount",
+    },
+    {
+      participantId: "alex",
+      line: 3,
+      quote: "Please not Pine & Still again",
+      kind: "prefers_listing",
+    },
+  ];
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [
+        option({ capRequests: [{ ...mayaCap, line: 5 }], basis: reasons }),
+        option({ listingId: "creek", title: "Cheaper cabin", basis: reasons }),
+      ],
+      clarifications: [],
+    },
+    notes,
+  );
+  const pine = out.options.find(
+    (o) => o.listingId === "pine" && o.source === "openai",
+  );
+  assert.deepEqual(
+    pine.basis.map((b) => [b.participantId, b.line]),
+    [["maya", 5]],
+  );
+  const rel = Object.fromEntries(
+    pine.considered.map((b) => [`${b.participantId}${b.line}`, b.relation]),
+  );
+  assert.deepEqual(rel, {
+    maya1: "superseded",
+    jordan2: "opposes",
+    alex3: "opposes",
+  });
+  // The repeated speaker name is not shown twice.
+  assert.equal(
+    pine.considered.find((b) => b.line === 1).quote,
+    "I can spend up to $220.",
+  );
+  // Alex's objection to Pine supports the cheaper cabin.
+  const creek = out.options.find((o) => o.listingId === "creek");
+  assert.ok(creek.basis.some((b) => b.participantId === "alex"));
+});
+
+test("chat exports with timestamps keep their speakers", async () => {
+  for (const line of [
+    "[10/7/26, 9:41:05 PM] Maya: Honestly my rent just went up, I can’t go above $170 now.",
+    "10/7/26, 21:41 - Maya: Honestly my rent just went up, I can’t go above $170 now.",
+    "Maya  9:41 PM: Honestly my rent just went up, I can’t go above $170 now.",
+  ]) {
+    const { out } = await withModel(
+      afterDropout(),
+      {
+        summary: "",
+        options: [
+          option({
+            capRequests: [
+              { ...mayaCap, line: 2, quote: "I can’t go above $170 now" },
+            ],
+          }),
+        ],
+        clarifications: [],
+      },
+      `Sam: out\n${line}`,
+    );
+    assert.ok(
+      out.options.some((o) =>
+        o.confirmations.some(
+          (c) => c.participantId === "maya" && c.amountCents === 17000,
+        ),
+      ),
+      line,
+    );
+  }
 });

@@ -2290,3 +2290,22 @@ dialog .terms,
 .limit-request {
   scroll-margin-top: 16px;
 }
+
+/* Long provenance tags wrap under the title instead of widening the card on phones. */
+.rev-option header {
+  flex-wrap: wrap;
+}
+.rev-option h4 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rev-tag {
+  max-width: 100%;
+  white-space: normal;
+}
+@media (max-width: 640px) {
+  .breadcrumb .text-button {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+}

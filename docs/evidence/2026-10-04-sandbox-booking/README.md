@@ -2,6 +2,8 @@
 
 The integrated group path was run against the real PayPal sandbox (`api-m.sandbox.paypal.com`) on October 4, 2026, 00:18–00:28 EDT. Three distinct sandbox personal buyer accounts approved their own checkouts. Trip setup (creating the trip, switching it to PayPal sandbox, saving budgets) was scripted through the app's local API. Every consent, PayPal checkout, withdrawal, revision and booking step was then done in the app's UI. Each sandbox buyer login and approval was done by the developer. The first audit line in `plan.json` says payments are simulated; that is the default message when a trip is created, before it was switched to sandbox two lines later. Sandbox money is test money. The cabin is a local fixture, so no lodging was purchased.
 
+**Source code:** the app ran from the working tree that was committed right after the run as [`e8c141e`](https://github.com/Jeremiah-Sakuda/harambee/commit/e8c141e) (00:35 EDT); these files were committed in `b3748ad`. Later commits changed the PayPal adapter (`custom_id` on orders, handling of declined captures, failed refunds and dropped orders) and added trip cancel. Those changes are covered by mocked tests, not by this run.
+
 The files here are copies of the app's stored record at the end of the run: [`plan.json`](plan.json) for the trip and [`sandbox-lab.json`](sandbox-lab.json) for the PayPal sessions. They contain PayPal sandbox order, authorization, capture and payer IDs. They contain no credentials, access tokens or buyer emails.
 
 ## What happened

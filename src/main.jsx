@@ -418,25 +418,73 @@ function App() {
     firstOf = (id) =>
       state.participants.find((p) => p.id === id)?.name.split(" ")[0],
     // Plain-language account of a stopped booking, so nobody has to read an operations log.
+    // Plain-language account of a stopped booking or cancellation, from the reason the server
+    // recorded and each payment's actual status, so nobody has to read an operations log.
     stopped = (() => {
       if (state.status !== "recovery_pending") return null;
       const by = (statuses) =>
         state.payments.filter((p) => statuses.includes(p.status));
-      const failed = [
-        ...new Set(by(["failed"]).map((p) => firstOf(p.participantId))),
-      ];
-      const unknown = by(["unknown", "capture_pending"]).length > 0;
-      const taken = by(["captured", "refund_pending"]);
-      const takenText = taken.length
-        ? `${[...new Set(taken.map((p) => firstOf(p.participantId)))].join(" and ")}’s ${usd(taken.reduce((n, p) => n + p.amount, 0))} will be returned`
-        : "Nothing was taken";
-      return `${
-        failed.length
-          ? `${failed.join(" and ")}’s payment didn’t go through.`
-          : unknown
-            ? "PayPal didn’t confirm one payment in time; Harambee checks with PayPal before doing anything else."
-            : "The cabin couldn’t be reserved."
-      } Nothing more will be collected. ${takenText}, and every other hold is released. Nobody is charged twice.`;
+      const names = (ps) =>
+        [...new Set(ps.map((p) => firstOf(p.participantId)))].join(" and ");
+      const total = (ps) => usd(ps.reduce((n, p) => n + p.amount, 0));
+      const stop = state.stop ?? {};
+      const who = stop.participantId ? firstOf(stop.participantId) : "One";
+      const cause =
+        {
+          capture_declined: `${who}’s payment didn’t go through.`,
+          capture_unknown:
+            "PayPal didn’t confirm one payment in time; Harambee checks with PayPal before doing anything else.",
+          reservation_failed: "The cabin couldn’t be reserved.",
+          reservation_unknown:
+            "The cabin’s reply timed out; Harambee checks the reservation before deciding.",
+          lease_expired:
+            "The cabin hold ran out before every payment was confirmed.",
+          cancelled: "The organizer cancelled the trip.",
+          expired: "The collection deadline passed.",
+        }[stop.reason] ?? "Something stopped the booking.";
+      const toReturn = by(["captured"]),
+        returning = by(["refund_pending"]),
+        refundFailed = by(["refund_failed"]),
+        checking = by([
+          "capture_unknown",
+          "void_unknown",
+          "void_pending",
+          "authorize_unknown",
+          "unknown",
+        ]);
+      const parts = [cause, "Nothing more will be collected."];
+      if (toReturn.length)
+        parts.push(`${names(toReturn)}’s ${total(toReturn)} will be returned.`);
+      if (returning.length)
+        parts.push(
+          `${names(returning)}’s ${total(returning)} is being returned; PayPal is still processing it.`,
+        );
+      if (refundFailed.length)
+        parts.push(
+          `PayPal reports ${names(refundFailed)}’s refund of ${total(refundFailed)} failed. That money is still captured; nothing was retried automatically.`,
+        );
+      parts.push(
+        checking.length
+          ? `${names(checking)}’s payment is still being confirmed with PayPal.`
+          : toReturn.length || returning.length || refundFailed.length
+            ? "Every other hold will be released, never charged."
+            : "Every hold will be released; nobody was charged.",
+      );
+      parts.push("Nobody is charged twice.");
+      return {
+        title: ["cancelled", "expired"].includes(stop.reason)
+          ? "Closing the trip."
+          : "Booking stopped.",
+        text: parts.join(" "),
+        refundFailed: refundFailed.length > 0,
+        onlyRefunds:
+          returning.length > 0 &&
+          state.payments.every((p) =>
+            ["refund_pending", "refunded", "voided", "abandoned"].includes(
+              p.status,
+            ),
+          ),
+      };
     })();
   const statusText = {
     collecting: "Getting the group together",
@@ -444,7 +492,7 @@ function App() {
     revision_required: "A new plan starts here.",
     booking: "Booking in progress",
     confirmed: "See you in the Catskills.",
-    recovery_pending: "Booking stopped.",
+    recovery_pending: stopped?.title ?? "Booking stopped.",
     cancelled: "All settled. No booking.",
   }[state.status];
   return (
@@ -716,7 +764,7 @@ function App() {
                   <div className="alert error stopped" role="status">
                     <AlertCircle size={18} />
                     <span>
-                      <strong>Booking stopped.</strong> {stopped}
+                      <strong>{stopped.title}</strong> {stopped.text}
                     </span>
                   </div>
                 )}
@@ -1341,14 +1389,30 @@ function App() {
                 </button>
               ) : state.status === "recovery_pending" ||
                 state.status === "booking" ? (
-                <button
-                  className="primary full"
-                  disabled={busy || !isOrganizer}
-                  onClick={() => act("recover")}
-                >
-                  {busy ? "Checking payments…" : "Return money & release holds"}
-                  <RefreshCw size={16} />
-                </button>
+                <>
+                  <button
+                    className="primary full"
+                    disabled={busy || !isOrganizer}
+                    onClick={() => act("recover")}
+                  >
+                    {busy
+                      ? "Checking payments…"
+                      : stopped?.onlyRefunds
+                        ? "Check refund status"
+                        : "Return money & release holds"}
+                    <RefreshCw size={16} />
+                  </button>
+                  {stopped?.refundFailed && isOrganizer && (
+                    // A failed refund is retried only on purpose, with a new PayPal request.
+                    <button
+                      className="secondary full"
+                      disabled={busy}
+                      onClick={() => act("recover", { retryRefunds: true })}
+                    >
+                      Retry the failed refund
+                    </button>
+                  )}
+                </>
               ) : state.status === "cancelled" ? (
                 <>
                   {isOrganizer && (

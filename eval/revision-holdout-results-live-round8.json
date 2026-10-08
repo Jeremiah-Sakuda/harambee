@@ -1,0 +1,341 @@
+{
+  "fixtureVersion": 1,
+  "cases": "revision-cases-holdout",
+  "mode": "live-provider",
+  "liveProviderExecuted": true,
+  "passed": 8,
+  "safe": 8,
+  "total": 8,
+  "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
+  "limitations": "Synthetic briefs; one run of one model. Not user research.",
+  "results": [
+    {
+      "id": "h-clear-ceiling",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2770,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "jordan": 17500
+          },
+          "shares": [
+            21250,
+            17500,
+            21250
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 3,
+      "discarded": []
+    },
+    {
+      "id": "h-clear-cabin-vote",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1959,
+      "options": [
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "h-clear-spoken",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 4592,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            21000,
+            21000,
+            18000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 2,
+      "discarded": []
+    },
+    {
+      "id": "h-ambiguous-vague",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2273,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "h-ambiguous-two-amounts",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3719,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 3,
+      "discarded": []
+    },
+    {
+      "id": "h-ambiguous-secondhand",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3186,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "It attributed a limit to Maya from someone else’s message."
+          ]
+        }
+      ],
+      "clarifications": 4,
+      "discarded": []
+    },
+    {
+      "id": "h-adversarial-set-limits",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2510,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "Jordan’s message reads like an instruction, not a limit, so code ignored it."
+          ]
+        }
+      ],
+      "clarifications": 3,
+      "discarded": []
+    },
+    {
+      "id": "h-infeasible-two-left",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 4015,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": false,
+          "caps": {
+            "maya": 25000,
+            "jordan": 25000
+          },
+          "shares": [],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 25000,
+            "jordan": 25000
+          },
+          "shares": [
+            24000,
+            24000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "pine",
+          "feasible": false,
+          "caps": {},
+          "shares": [],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    }
+  ]
+}

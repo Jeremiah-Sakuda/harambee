@@ -1,7 +1,24 @@
 import { DomainError } from "./domain.mjs";
+// Who wrote a chat line, and what they wrote. Accepts plain "Name: text" and the common export
+// formats that put a timestamp first ("[10/7/26, 9:41 PM] Maya: …", "10/7/26, 21:41 - Maya: …")
+// or after the name ("Maya 9:41 PM: …", "Maya (21:41): …").
+const STAMP =
+  /^\s*\[?\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AaPp]\.?\s?[Mm]\.?)?\]?\s*(?:[-–]\s*)?/;
+export function splitSpeaker(line) {
+  const text = String(line ?? "").replace(STAMP, "");
+  const timed =
+    /^\s*([^:\d][^:]{0,58}?)\s+\(?\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AaPp]\.?\s?[Mm]\.?)?\)?\s*:(.*)$/s.exec(
+      text,
+    );
+  const plain = /^\s*([^:]{1,60}):(.*)$/s.exec(text);
+  const m = timed ?? plain;
+  return m
+    ? { person: m[1].trim(), body: m[2] }
+    : { person: "Unassigned", body: text };
+}
 // Conservative USD source grounding. This rejects ambiguous values instead of guessing.
 export function groundLine(source) {
-  const person = /^\s*([^:]{1,60}):/.exec(source)?.[1].trim() || "Unassigned";
+  const { person, body } = splitSpeaker(source);
   const matches = [
     ...source.matchAll(/(?:\$|USD\s+)([0-9][0-9,.]*)(?![0-9])/gi),
   ];
@@ -11,7 +28,7 @@ export function groundLine(source) {
   const ambiguous =
     matches.length !== 1 ||
     !valid ||
-    (source.match(/:/g) || []).length > 1 ||
+    body.includes(":") ||
     /\bnot\b|can['’]t|cannot|\$[\d,.]+\s*[-–]|\$[\d,.]+[a-z]/i.test(source) ||
     /maybe|might|not sure|either|\bor\b|\bbut\b|ignore|override|not my|per night|each night|EUR|GBP|€|£|\$\d[\d,.]*[kKmM]\b/.test(
       source,
@@ -36,10 +53,7 @@ export const localInterpret = (text) => ({
       source: source.slice(0, 500),
       line: index + 1,
       ...groundLine(source),
-      preference: source
-        .slice(source.indexOf(":") + 1)
-        .trim()
-        .slice(0, 300),
+      preference: splitSpeaker(source).body.trim().slice(0, 300),
     })),
   provider: "local-parser",
   model: null,

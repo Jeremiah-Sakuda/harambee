@@ -250,3 +250,25 @@ test("every persisted cancelling/void boundary replays to a confirmed terminal s
     );
   }
 });
+
+test("simulated cancel voids holds, expires limit requests and blocks approvals", () => {
+  const e = fixture().engine;
+  for (const p of e.active.slice(0, 2)) e.approve(p.id, 1);
+  e.requestLimit("organizer", { participantId: "alex", kind: "ask" });
+  e.cancel("organizer");
+  assert.equal(e.state.status, "cancelled");
+  assert.deepEqual(e.state.stop, { reason: "cancelled" });
+  assert.ok(e.state.payments.every((p) => p.status === "voided"));
+  assert.equal(e.state.limitRequests[0].status, "expired");
+  assert.throws(() => e.approve("alex", 1), /no longer open/);
+});
+
+test("a stopped simulated booking records who failed and why", () => {
+  const e = fixture().engine;
+  for (const p of e.active) e.approve(p.id, 1);
+  e.book("organizer", { version: 1, fault: "capture_failure" });
+  assert.deepEqual(e.state.stop, {
+    reason: "capture_declined",
+    participantId: e.state.payments[1].participantId,
+  });
+});

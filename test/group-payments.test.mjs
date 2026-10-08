@@ -468,3 +468,159 @@ test("a void timeout is settled by replaying the void", async () => {
   assert.equal(jordan.status, "voided");
   assert.equal(executed(), 1);
 });
+
+test("a capture PayPal declines takes nothing, names who, and recovery voids the open hold", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  const real = f.client.capture;
+  let calls = 0;
+  f.client.capture = async (id, key) => {
+    calls++;
+    if (calls === 2)
+      // PayPal answered definitively: declined, nothing taken, the authorization stays open.
+      return {
+        id: `C${id}`,
+        status: "DECLINED",
+        status_details: { reason: "DECLINED_BY_RISK_FRAUD_FILTERS" },
+        amount: f.auths.get(id).amount,
+      };
+    return real(id, key);
+  };
+  await assert.rejects(f.g.book("organizer", { version: 1 }), /declined/);
+  const jordan = f.e.state.payments[1];
+  assert.equal(jordan.status, "capture_declined");
+  assert.match(jordan.providerIssue, /declined the capture.*nothing was taken/);
+  assert.deepEqual(f.e.state.stop, {
+    reason: "capture_declined",
+    participantId: jordan.participantId,
+  });
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+  assert.deepEqual(
+    f.e.state.payments.map((p) => p.status),
+    ["refunded", "voided", "voided"],
+  );
+  assert.equal(calls, 2, "a declined capture is never retried");
+});
+
+test("a refund PayPal reports as failed stays visible and is retried only on request", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  const real = f.client.refund,
+    keys = [];
+  f.client.refund = async (id, key) => {
+    keys.push(key);
+    if (keys.length === 1)
+      return {
+        id: `RF${id}`,
+        status: "FAILED",
+        amount: { currency_code: "USD", value: "200.00" },
+      };
+    return real(id, key);
+  };
+  await assert.rejects(
+    f.g.book("organizer", { version: 1, fault: "reservation_failure" }),
+  );
+  await f.g.recover("organizer");
+  const maya = f.e.state.payments[0];
+  assert.equal(maya.status, "refund_failed");
+  assert.match(maya.providerIssue, /refund failed.*still captured/);
+  assert.equal(f.e.state.status, "recovery_pending");
+  // A plain recovery pass and a restart don't retry it behind anyone's back.
+  const g2 = new GroupPayments(
+    new Engine(f.store),
+    new SandboxLab(f.labStore, f.client),
+  );
+  await g2.recover("organizer");
+  assert.equal(g2.s.payments[0].status, "refund_failed");
+  assert.equal(keys.length, 3);
+  await g2.recover("organizer", { retryRefunds: true });
+  assert.equal(g2.s.status, "cancelled");
+  assert.equal(g2.s.payments[0].status, "refunded");
+  assert.notEqual(keys[3], keys[0], "a deliberate retry uses a new request ID");
+});
+
+test("an unapproved order PayPal no longer has is abandoned, so withdraw and cancel proceed", async () => {
+  const f = fixture();
+  await f.approve("maya");
+  await f.approve("jordan");
+  await f.g.approve("alex", 1);
+  const alex = f.e.state.payments.at(-1);
+  const orderId = f.lab.state.sessions.find(
+    (s) => s.id === alex.sandboxSessionId,
+  ).orderId;
+  const real = f.client.getOrder;
+  f.client.getOrder = async (id) => {
+    if (id === orderId)
+      throw Object.assign(Error("RESOURCE_NOT_FOUND"), { status: 404 });
+    return real(id);
+  };
+  await f.g.withdraw("organizer", "alex");
+  assert.equal(alex.status, "abandoned");
+  assert.match(alex.providerIssue, /expired before the buyer approved/);
+  await f.g.cancel("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+});
+
+test("cancel voids every sandbox hold, closes open checkouts, and a late PayPal return can't authorize", async () => {
+  const f = fixture();
+  await f.approve("maya");
+  await f.approve("jordan");
+  await f.g.approve("alex", 1);
+  const alex = f.e.state.payments.at(-1);
+  await f.g.cancel("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+  assert.deepEqual(f.e.state.stop, { reason: "cancelled" });
+  assert.deepEqual(
+    f.e.state.payments.map((p) => p.status),
+    ["voided", "voided", "abandoned"],
+  );
+  await assert.rejects(
+    f.g.complete("alex", { paymentId: alex.id, version: 1 }),
+    /no longer open/,
+  );
+  assert.equal([...f.caps.values()].length, 0);
+});
+
+test("a cancel whose void response was lost stays open and settles on the next recovery", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  const executed = idempotent(f, "void");
+  const wrapped = f.client.void;
+  let lost = true;
+  f.client.void = async (id, key) => {
+    if (lost) {
+      lost = false;
+      throw Error("timeout");
+    }
+    return wrapped(id, key);
+  };
+  await f.g.cancel("organizer");
+  assert.equal(f.e.state.status, "recovery_pending");
+  assert.equal(f.e.state.stop.reason, "cancelled");
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+  assert.equal(executed(), 3);
+});
+
+test("a hold settled by reconcile on a reused buyer is voided with the same message", async () => {
+  const f = fixture();
+  await f.approve("maya");
+  const mayaBuyer = f.e.state.payments[0].payerId;
+  await f.g.approve("jordan", 1);
+  const jordan = f.e.state.payments.at(-1);
+  const orderId = f.lab.state.sessions.find(
+    (s) => s.id === jordan.sandboxSessionId,
+  ).orderId;
+  f.orders.get(orderId).payer.payer_id = mayaBuyer;
+  const real = f.client.authorize;
+  f.client.authorize = async (id, key) => {
+    await real(id, key);
+    throw Error("response lost");
+  };
+  await assert.rejects(
+    f.g.complete("jordan", { paymentId: jordan.id, version: 1 }),
+  );
+  await assert.rejects(f.g.reconcile("jordan", jordan.id), /own sandbox buyer/);
+  assert.equal(jordan.status, "voided");
+});
