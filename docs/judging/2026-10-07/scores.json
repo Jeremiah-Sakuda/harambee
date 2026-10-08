@@ -1,0 +1,32 @@
+{
+  "project": "harambee",
+  "date": "2026-10-07",
+  "commit": "4ed2d00ce46a0bc85a2262bd2fe067c8e10fb89b",
+  "panelType": "independent simulated judges, not official",
+  "judgeCount": 3,
+  "criteriaWeights": "equal",
+  "averageScores": {
+    "technology": 7.666666666666667,
+    "design": 7.333333333333333,
+    "impact": 6.166666666666667,
+    "innovation": 7.0,
+    "presentation": 4.5
+  },
+  "averageTotal": 65.33333333333333,
+  "totals": {
+    "technical": 64,
+    "design": 70,
+    "impact": 62
+  },
+  "readiness": "conditional",
+  "providerCallsDuringPanel": false,
+  "confidence": "medium",
+  "moderatorChecks": [
+    "score arithmetic validated",
+    "fresh offline dependency install and production build passed",
+    "public repository/exact commit/default branch verified with GitHub",
+    "technical recovery/privacy repros independently repeated",
+    "prior scores/remediation withheld",
+    "private draft supplement files not published"
+  ]
+}

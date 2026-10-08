@@ -1,0 +1,117 @@
+[
+  {
+    "scenario": "failed-refund",
+    "rows": [
+      {
+        "pass": 1,
+        "status": "recovery_pending",
+        "payments": [
+          {
+            "status": "refund_pending"
+          },
+          {
+            "status": "refund_pending"
+          },
+          {
+            "status": "refund_pending"
+          }
+        ],
+        "refundCalls": 3,
+        "voidCalls": 0
+      },
+      {
+        "pass": 2,
+        "status": "recovery_pending",
+        "payments": [
+          {
+            "status": "refund_pending"
+          },
+          {
+            "status": "refund_pending"
+          },
+          {
+            "status": "refund_pending"
+          }
+        ],
+        "refundCalls": 3,
+        "voidCalls": 0
+      },
+      {
+        "pass": 3,
+        "status": "recovery_pending",
+        "payments": [
+          {
+            "status": "refund_pending"
+          },
+          {
+            "status": "refund_pending"
+          },
+          {
+            "status": "refund_pending"
+          }
+        ],
+        "refundCalls": 3,
+        "voidCalls": 0
+      }
+    ]
+  },
+  {
+    "scenario": "declined-capture",
+    "rows": [
+      {
+        "pass": 1,
+        "status": "recovery_pending",
+        "payments": [
+          {
+            "status": "capture_pending",
+            "recoveryError": "A prior payment is unresolved. Reconcile it before changing the plan."
+          },
+          {
+            "status": "voided"
+          },
+          {
+            "status": "voided"
+          }
+        ],
+        "refundCalls": 0,
+        "voidCalls": 2
+      },
+      {
+        "pass": 2,
+        "status": "recovery_pending",
+        "payments": [
+          {
+            "status": "capture_pending",
+            "recoveryError": "A prior payment is unresolved. Reconcile it before changing the plan."
+          },
+          {
+            "status": "voided"
+          },
+          {
+            "status": "voided"
+          }
+        ],
+        "refundCalls": 0,
+        "voidCalls": 2
+      },
+      {
+        "pass": 3,
+        "status": "recovery_pending",
+        "payments": [
+          {
+            "status": "capture_pending",
+            "recoveryError": "A prior payment is unresolved. Reconcile it before changing the plan."
+          },
+          {
+            "status": "voided"
+          },
+          {
+            "status": "voided"
+          }
+        ],
+        "refundCalls": 0,
+        "voidCalls": 2
+      }
+    ]
+  }
+]
