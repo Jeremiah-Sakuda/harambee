@@ -16,10 +16,10 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 5553,
+      "latencyMs": 2811,
       "questions": [
-        "model: maya: Do you have a maximum amount you'd be comfortable contributing?",
-        "model: alex: Are you still coming, and do you have a budget limit for this trip?"
+        "model: maya: Are you comfortable with the cost if we keep the Pine & Still cabin, or do you have a maximum you prefer?",
+        "model: alex: Are you still planning to join and do you have a preferred budget limit for the cabin?"
       ],
       "options": [
         {
@@ -29,14 +29,6 @@
             "jordan: I can stretch a bit if that keeps us at Pine & Still."
           ],
           "notWhy": []
-        },
-        {
-          "listingId": "creek",
-          "source": "openai",
-          "why": [],
-          "notWhy": [
-            "elsewhere: jordan: I can stretch a bit if that keeps us at Pine & Still."
-          ]
         }
       ]
     },
@@ -49,25 +41,15 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3672,
+      "latencyMs": 1287,
       "questions": [
-        "model: alex: Are you definitely coming or definitely not?"
+        "model: alex: Are you still considering coming despite work chaos, or should we plan without you?"
       ],
       "options": [
         {
           "listingId": "pine",
-          "source": "openai",
-          "why": [
-            "alex: honestly I might not come either, work is chaos right now"
-          ],
-          "notWhy": []
-        },
-        {
-          "listingId": "creek",
-          "source": "openai",
-          "why": [
-            "alex: honestly I might not come either, work is chaos right now"
-          ],
+          "source": "rule",
+          "why": [],
           "notWhy": []
         }
       ]
@@ -82,10 +64,9 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 5080,
+      "latencyMs": 2837,
       "questions": [
-        "model: jordan: Do you prefer Pine & Still or Creekside Hideaway for the cabin?",
-        "model: alex: Do you prefer Pine & Still or Creekside Hideaway for the cabin?"
+        "model: maya: Would you consider the Pine & Still Cabin if the heating issue is resolved or mitigated, or are you firmly against it?"
       ],
       "options": [
         {
@@ -115,15 +96,23 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 4775,
+      "latencyMs": 5668,
       "questions": [
-        "model: maya: Are you still able to join the trip, and what is your spending limit for accommodation?",
-        "model: alex: Are you still joining us and do you have a maximum you are comfortable paying?",
-        "model: jordan: You've mentioned you might pay a bit more if needed; can you specify an approximate spending cap for the cabin?"
+        "model: maya: Do you have a spending limit or cabin preference we should consider?",
+        "model: alex: Do you have a spending limit or cabin preference to share?",
+        "model: jordan: Can you clarify if you have a firm maximum budget or just a willingness to pay more?"
       ],
       "options": [
         {
           "listingId": "pine",
+          "source": "openai",
+          "why": [
+            "jordan: I could maybe go a little higher if we really need to"
+          ],
+          "notWhy": []
+        },
+        {
+          "listingId": "creek",
           "source": "openai",
           "why": [
             "jordan: I could maybe go a little higher if we really need to"
@@ -141,11 +130,11 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3173,
+      "latencyMs": 3765,
       "questions": [
-        "model: maya: Can you please share how much you are willing or able to contribute for the cabin now that Sam is not coming?",
-        "model: jordan: Could you let us know if you can pay more for the cabin after Sam left, and which cabin you prefer?",
-        "model: alex: Since Sam left, can you confirm your maximum contribution amount for the cabin?"
+        "model: maya: What is your spending limit for the cabin?",
+        "model: jordan: Are you still planning to attend, and if so, what is your spending limit?",
+        "model: alex: Could you specify the exact amount you've already paid or your total budget for the cabin?"
       ],
       "options": [
         {
@@ -167,10 +156,10 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3921,
+      "latencyMs": 1894,
       "questions": [
-        "model: jordan: Do you have a spending limit or preference between the two cabins?",
-        "model: alex: Do you have a spending limit or preference between the two cabins?"
+        "model: jordan: Are you still coming to the trip, and do you have any budget preferences for the cabin?",
+        "model: alex: Are you still coming to the trip, and do you have any budget preferences or cabin preferences?"
       ],
       "options": [
         {
@@ -183,10 +172,8 @@
         },
         {
           "listingId": "pine",
-          "source": "openai",
-          "why": [
-            "maya: Whatever's cheapest works for me, honestly."
-          ],
+          "source": "rule",
+          "why": [],
           "notWhy": []
         }
       ]
@@ -200,11 +187,10 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3222,
+      "latencyMs": 3553,
       "questions": [
-        "model: maya: Do you have a spending limit or preference between Pine & Still Cabin and Creekside Hideaway?",
-        "model: maya: Do you prefer the Pine & Still Cabin or the Creekside Hideaway?",
-        "model: jordan: Are you still attending, and do you have a spending limit or cabin preference?"
+        "model: maya: Maya, do you have a spending limit or cabin preference we should consider?",
+        "model: jordan: Jordan, can you confirm if you are still joining and if you have any spending limits or cabin preference?"
       ],
       "options": [
         {
@@ -214,6 +200,14 @@
             "alex: I'd love to keep the Pine place, the hot tub is the whole point."
           ],
           "notWhy": []
+        },
+        {
+          "listingId": "creek",
+          "source": "openai",
+          "why": [],
+          "notWhy": [
+            "elsewhere: alex: I'd love to keep the Pine place, the hot tub is the whole point."
+          ]
         }
       ]
     },
@@ -226,11 +220,9 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 6321,
+      "latencyMs": 2764,
       "questions": [
-        "model: maya: Do you still prefer to avoid Creekside, and do you have a maximum budget for the cabin?",
-        "model: jordan: Do you have a preference for which cabin to book and a budget limit?",
-        "model: alex: Are you still joining the trip? If so, do you have a cabin preference or budget limit?"
+        "model: maya: Can you confirm if you are still comfortable with the Pine & Still Cabin given you don't want Creekside? And do you have a maximum you want to spend for the cabin?"
       ],
       "options": [
         {
@@ -252,22 +244,11 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 4900,
+      "latencyMs": 4700,
       "questions": [
-        "model: jordan: Jordan, do you have a preference between Pine & Still and Creekside Hideaway?",
-        "model: jordan: Jordan, do you have a spending limit or can you pay more if needed?"
+        "model: jordan: Jordan hasn't shared any preference or budget. Could you share which cabin you prefer and what your spending limit might be?"
       ],
       "options": [
-        {
-          "listingId": "pine",
-          "source": "openai",
-          "why": [
-            "alex: Pine & Still or I'm honestly not that excited."
-          ],
-          "notWhy": [
-            "elsewhere: maya: Creekside is totally fine by me."
-          ]
-        },
         {
           "listingId": "creek",
           "source": "openai",
@@ -276,6 +257,16 @@
           ],
           "notWhy": [
             "elsewhere: alex: Pine & Still or I'm honestly not that excited."
+          ]
+        },
+        {
+          "listingId": "pine",
+          "source": "openai",
+          "why": [
+            "alex: Pine & Still or I'm honestly not that excited."
+          ],
+          "notWhy": [
+            "elsewhere: maya: Creekside is totally fine by me."
           ]
         }
       ]
@@ -290,9 +281,10 @@
       },
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3145,
+      "latencyMs": 2901,
       "questions": [
-        "model: maya: Are you okay with Jordan paying more to stay at Pine & Still, or would you prefer switching to Creekside if it is cheaper?"
+        "model: maya: Are you comfortable with staying at the more expensive Pine & Still cabin given the current group?",
+        "model: alex: Do you prefer to stay at Pine & Still or consider the cheaper Creekside Hideaway?"
       ],
       "options": [
         {
@@ -302,14 +294,6 @@
             "jordan: I'll cover a bit of Maya's share so we can stay at Pine & Still."
           ],
           "notWhy": []
-        },
-        {
-          "listingId": "creek",
-          "source": "openai",
-          "why": [],
-          "notWhy": [
-            "elsewhere: jordan: I'll cover a bit of Maya's share so we can stay at Pine & Still."
-          ]
         }
       ]
     }

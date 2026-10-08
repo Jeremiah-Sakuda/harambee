@@ -6,6 +6,8 @@ The integrated group path was run against the real PayPal sandbox (`api-m.sandbo
 
 The files here are copies of the app's stored record at the end of the run: [`plan.json`](plan.json) for the trip and [`sandbox-lab.json`](sandbox-lab.json) for the PayPal sessions. They contain PayPal sandbox order, authorization, capture and payer IDs. They contain no credentials, access tokens or buyer emails.
 
+![The board after this run: Maya and Jordan paid $300 each; Alex's hold voided](board.png)
+
 ## What happened
 
 | Time (UTC) | Step | PayPal result |

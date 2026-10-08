@@ -268,8 +268,8 @@ export default function RevisionOptions({
             )}
             {o.explanationReplaced && !o.removedLimits?.length && (
               <p className="rev-note">
-                The suggestion included figures, so code wrote this summary from
-                the computed shares.
+                Code replaced the parts of this suggestion that included
+                figures, using the computed shares.
               </p>
             )}
             {o.exceedsStated?.map((x) => (

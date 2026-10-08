@@ -16,13 +16,13 @@
       "run": 1,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 5174,
-      "summary": "Maya lowered her personal spending limit from $220 to $170, Alex prefers the cheaper cabin if the price rises, and Jordan is willing to pay more to stay at the Pine & Still cabin. Sam has dropped out. Maya's revised limit and Alex's preference for Creekside shape the options and Jordan's flexibility allows staying at Pine.",
+      "latencyMs": 6341,
+      "summary": "Maya lowered her spending limit to a firm $170, replacing her earlier $220 limit. Alex expressed a preference for the cheaper cabin if costs rise but has no firm limit stated. Jordan can pay more than $220 if needed. Sam dropped out. The options reflect Maya's new lower limit, Alex's preference for the cheaper cabin, and Jordan's willingness to stretch the budget.",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: jordan: You mentioned your budget is $220 but also that you can stretch a bit to keep us at Pine & Still. Could you specify the maximum you could pay?"
+        "model: alex: Alex, can you confirm if $220 is still your firm maximum for the cabin, or would you accept the Creekside place at a lower price?"
       ],
       "options": [
         {
@@ -54,7 +54,8 @@
           ],
           "why": [
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "jordan: My budget is $220. I’m happy to share a room."
           ],
           "notWhy": [],
           "removed": []
@@ -79,13 +80,13 @@
       "run": 2,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 4414,
-      "summary": "Maya lowered her spending limit to a firm maximum, Alex expressed a preference for the cheaper listing but did not state a firm limit, and Jordan is willing to pay more to keep the pricier cabin. Alex's preference for the less expensive cabin is balanced against Jordan's willingness to pay more, with Maya's firm limit shaping the options.",
+      "latencyMs": 5680,
+      "summary": "Maya lowered her spending limit from $220 to $170, and Alex prefers the cheaper cabin if costs rise. Jordan can pay more to keep the pricier Pine & Still cabin. Sam left, so their budget is removed.",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: alex: Would you be willing to pay more than $220 if needed to stay at Pine & Still, or is Creekside your firm preference below that amount?"
+        "model: jordan: Jordan, can you specify a spending limit for yourself if you stretch your budget to keep Pine & Still?"
       ],
       "options": [
         {
@@ -117,11 +118,11 @@
           ],
           "why": [
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
+            "jordan: My budget is $220.",
+            "alex: Up to $220 works for me."
           ],
-          "notWhy": [
-            "elsewhere: jordan: I can stretch a bit if that keeps us at Pine & Still."
-          ],
+          "notWhy": [],
           "removed": []
         },
         {
@@ -144,13 +145,13 @@
       "run": 3,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 4254,
-      "summary": "Maya updated her spending limit to a lower amount, while Alex prefers the cheaper cabin if costs rise. Jordan is willing to pay more to keep the Pine & Still listing. Maya and Jordan's initial room and budget preferences along with Alex's arrival time were noted but don’t affect spending limits. Alex’s willingness to pay more or not is unclear, so we request clarification.",
+      "latencyMs": 4880,
+      "summary": "Maya's newer lower spending limit replaces her earlier one. Alex prefers the cheaper cabin if needed but gave no firm limit. Jordan can pay more than initially stated to keep Pine & Still. Sam dropped out, so no payment from them.",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: alex: Are you able to pay more if needed to keep the Pine & Still cabin, or should we respect your preference to switch to the cheaper Creekside?"
+        "model: alex: Could you please confirm your maximum spending limit or if the cheaper cabin is a firm preference for you?"
       ],
       "options": [
         {
@@ -181,12 +182,11 @@
             160
           ],
           "why": [
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+            "jordan: My budget is $220. I’m happy to share a room."
           ],
-          "notWhy": [
-            "elsewhere: jordan: I can stretch a bit if that keeps us at Pine & Still."
-          ],
+          "notWhy": [],
           "removed": []
         },
         {

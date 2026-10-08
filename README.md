@@ -2,9 +2,9 @@
 
 **A little agreement. A great escape.** *Harambee* means “all pull together” in Swahili.
 
-![Harambee board after the real PayPal sandbox booking: Alex left and his hold was voided; Maya and Jordan each paid $300](docs/preview.png)
+![Left: revision options from a live gpt-4.1-mini run after Sam drops out. Right: the board after the recorded PayPal sandbox booking](docs/preview.png)
 
-*The board above is the [recorded PayPal sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md): Alex left, his authorization was voided, Maya and Jordan each authorized a $100 top-up, and $600 was captured.*
+*Left: options from a live gpt-4.1-mini run after Sam drops out, with each person's words as the reasons and a question for Jordan (this run used simulated payments). Right: the [recorded PayPal sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md), where Alex left, his authorization was voided, Maya and Jordan each authorized a $100 top-up, and $600 was captured. They are two separate runs.*
 
 > **Judging in 3 minutes?** `npm ci && npm run dev`, open http://127.0.0.1:5171, and follow the [demo walkthrough](#demo-walkthrough) (no credentials needed). Without keys, payments are simulated and revision options come from the labelled no-AI local planner: the same $170 / $215 / $215 table, without the model's quoted reasons and questions. What's real vs simulated is in the table below; the PayPal evidence is in [`docs/evidence/`](docs/evidence/2026-10-04-sandbox-booking/README.md); the AI's live results and their caveats are under [Revision options](#revision-options-after-a-dropout).
 
@@ -23,8 +23,8 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | Real | Simulated or pending |
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
-| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (95 tests, including declined captures, failed refunds and orders PayPal dropped) | Default no-credentials mode simulates payments |
-| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; the last three live runs were 25/26, 24/26 and 26/26 synthetic briefs useful, versus 23/26 for the no-AI local planner ([details and caveats](#revision-options-after-a-dropout)) | No user research; synthetic briefs only |
+| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (97 tests, including declined captures, failed refunds and orders PayPal dropped) | Default no-credentials mode simulates payments |
+| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last four live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 8–9/10 versus 0/10 ([details and caveats](#revision-options-after-a-dropout)) | No user research; synthetic briefs only |
 
 ## How this differs
 
@@ -50,6 +50,16 @@ Hypotheses, not results:
 - Operators who take direct bookings would accept several authorizations for one stay, because every share is held before dates are committed.
 - Groups would accept a small disclosed platform fee so that one friend doesn’t front the cost.
 - Who absorbs processing costs on released holds and refunds after a failed booking is an open question for operator conversations.
+
+**First customers (hypothesis):** independent cabin and glamping operators with their own booking site who already accept PayPal. What we would test with them: whether they prefer several held shares to one organizer's card, and at what fee compared with what they pay today. No operator has been asked yet.
+
+**Why earlier attempts stalled (hypotheses, not findings):**
+
+- Airbnb's 2017 split payments committed the reservation when the organizer paid, and gave everyone else 72 hours ([TechCrunch](https://techcrunch.com/2017/11/28/airbnb-launches-payment-splitting-for-group-trips/)). If friends didn't pay, a reservation the host had counted on could fall through. Harambee holds every share *before* dates are committed, so a host never sees a booking cancelled for non-payment.
+- Tilt was acquired by Airbnb and shut down in 2017 ([Wikipedia](https://en.wikipedia.org/wiki/Tilt.com)), so its end says little about demand.
+- Collection apps (pools, TableCash) route money to the organizer, which makes the organizer the group's bank again. Harambee's authorizations go to the merchant.
+
+These are our reading of public sources, to be checked in the operator conversations above.
 
 ## Run locally
 
@@ -108,52 +118,17 @@ Reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/gu
 
 ## Revision options after a dropout
 
-When someone leaves, the organizer chooses **Suggest options**. With `OPENAI_API_KEY` set, a model reads the group chat and proposes up to three options. Each option picks a cabin and can include a spending limit a person stated about themselves, quoted from their own message. The model interprets meaning, so “I can’t go above $170” counts as a $170 limit. It writes the explanation without figures. It never receives anyone’s saved private budget.
+When someone leaves, the organizer chooses **Suggest options**. A model (gpt-4.1-mini) reads the group chat and proposes up to three options, each with its reasons quoted from people's own messages. Code checks every quote, amount and speaker, computes every share, and shows the plain rebalance alongside. A limit read from chat counts only after its owner confirms it in their own view, and the model never sees anyone's saved budget. Without a key, a labelled **local planner (not AI)** keeps the flow working.
 
-Code then decides what is shown:
+| | Model | No-AI local planner |
+| --- | --- | --- |
+| Sample chat, 3 live runs | Only Maya confirms, $170 / $215 / $215; that card's **Why** is Maya's limit and Jordan's “I can stretch a bit…”; Alex's Creekside wish is shown as pointing to another option; one on-topic question each run | Same table and confirmation, no reasons, no questions |
+| 26 synthetic briefs with amounts | 24–26/26 useful across the last four rounds, 26/26 budget-safe | 23/26 useful, 26/26 safe |
+| 10 briefs with no amount, pre-registered | 8–9/10 over three runs | 0/10 |
 
-- Every quote must appear in that person’s own message.
-- Every amount must be literally written there, as digits or as spoken words such as “two hundred dollars”.
-- The cabin must fit the group.
-- Shares and top-ups are computed by the same allocator that publishes versions.
-- The model is told to write no figures. Any figure in an option's prose (digits, “$”, “43%”, “one seventy”) makes code write the explanation from the computed shares instead, because code can't tell whose amount a figure is. A summary or question may only repeat amounts written in the chat.
-- A reason is shown as **Why** only if it still supports that option. Other verified quotes stay visible, labelled: “points to another option” (it names a different cabin, or a limit below this option's share), “argues against this option” (“please not Pine & Still again”, or “I don't want to pay any more” on an option that raises that person's share), or “earlier message, since replaced” (an amount the same person later changed). Reasons must be real phrases, not a name or a two-word fragment.
-- The model may only ask about money, attendance or cabin choice; questions about rooms, beds or arrival times are dropped.
-- Chat exports with timestamps (“[10/7/26, 9:41 PM] Maya: …”) keep their speakers.
-- Failing suggestions are listed as discarded, and ambiguity becomes a clarification question.
-- The plain rebalance is always included for comparison.
+In no live run could a publishable option exceed a saved budget: every chat-read limit needs its owner's confirmation, and publishing recomputes from saved budgets. These are small synthetic sets written by the developer, with no user data.
 
-If a person’s stated limit sets their share in an option, that option can’t be published until they explicitly confirm the limit in their own view (**Send Maya a confirmation request**). Confirming makes it their saved budget. Options are stored on the server and published by ID, so neither the shares nor the “suggested by” record come from the browser. Publishing recomputes the split from saved budgets and refuses if anything changed, before any real authorization is released. Each person then approves their own new share and top-up.
-
-Privacy: the model never receives saved budgets, and nothing compares a proposed limit with anyone’s private budget. While an option still waits on someone’s confirmation, its preview is computed only from limits stated in the chat and the cabin total. Saved budgets don’t enter it, so chat the organizer writes can’t steer a preview into revealing one. Once nothing is waiting, the preview is exactly the split that publishing produces from saved budgets. That split is fixed for each cabin, so chat input can’t probe it, and it reveals only what a published split would. Option requests are also limited to five per plan version, and each is recorded in Activity with the amounts read from the chat. Confirmed limits and open requests are visible only to their owner and the organizer, and the shared activity log records that someone confirmed, not the amount. When someone types a firm limit in answer to a question, the organizer sees only that they answered; if that limit caps their share, the share will equal it, as with any budget.
-
-Requests go to the person, not the organizer’s screen: **Send Maya a confirmation request** puts a card at the top of Maya’s own view, quoting her message, and an uncertain message gets **Ask Maya for a firm limit**, which asks her to type one. A one-click confirmation can lower a saved budget but never raise it, because the organizer wrote the pasted chat; raising it is a separate budget edit. Requests belong to one plan version and expire when a new one is published. **Not now** is recorded for the organizer, and an answer shows on the organizer’s card as “answered”. Each AI option lists its reasons as quotes from people’s own messages (“Why: … — Alex, line 7”), and the panel shows what the model read. An option with the same split as the plain rebalance is tagged as such: “Standard rule” when the model gave no verified reasons for it, or “AI suggestion · same split as the standard rule” when it did. When a confirmation makes two cards identical, they become one card that says why. Code also flags a firm limit no option uses, and marks any option that asks someone for more than they wrote.
-
-Without a key, or if the model fails, a **local planner (not AI)** takes the latest dollar amount each person wrote, without interpreting wording. Anyone whose share depends on it must confirm.
-
-`npm run eval:revisions` runs 12 frozen briefs from the PRD acceptance spec (clear, ambiguous, infeasible, adversarial) through the real verifier using hand-written reference answers, two of them deliberately unsafe. [`eval/revision-results.json`](eval/revision-results.json) records 12/12 with no unsafe option shown. That measures the verifier, **not** model quality. `npm run eval:revisions:live -- --write` measures the configured model (gpt-4.1-mini: about 2–6 s per brief, 4–6 s on the demo chat). In no live run could a publishable option exceed a saved budget, because every limit stated in chat needs its owner's confirmation and publishing recomputes from saved budgets. By the eval's stricter definition, which also forbids *showing* certain limits, one run was not fully safe: before the backstop, the fresh set recorded [5/6 safe](eval/revision-holdout2-results-live-baseline.json) because a hedged “$160ish” was offered as Maya's pending limit.
-
-**Ambiguity backstop.** Some messages are too uncertain to use as a limit whatever the model says. If every sentence stating the amount is hedged (“probably $160ish?”, “I guess $170”, “~$170”), states something other than a ceiling (“I can’t do $170”, “at least $170”), gives two amounts (“$175 or $185”), contradicts the person’s later message, reports someone else’s limit (“Jordan said $170 is fine”), or reads like an instruction to the system, code removes it from every option. Amounts that aren’t a ceiling (“I already sent you $50 for gas”, “$100 a night”, “I’m no longer capped at $170”, “$170 is fine for me”) and abbreviations like “$1.2k” are never offered as one-click limits. Code then asks that person a question, labelled “flagged by code”. It also checks each person’s latest amount itself, so an uncertain one is questioned even if the model ignored it. Firm limits, an updated figure (“make that $190”) and an unrelated “might” in another sentence pass through.
-
-| Live run | Frozen 12 | Held-out 8 | Fresh 6 |
-| --- | --- | --- | --- |
-| [First run](eval/revision-results-live-baseline.json) | 8/12 | [7/8](eval/revision-holdout-results-live-baseline.json) | — |
-| [Prompt change + keep option, drop bad limit](eval/revision-results-live-tuned.json) | 12/12 | [6/8](eval/revision-holdout-results-live-tuned.json) | [5/6](eval/revision-holdout2-results-live-baseline.json), with one hedged limit shown |
-| [Backstop](eval/revision-results-live-backstop.json) | 12/12 | [8/8](eval/revision-holdout-results-live-backstop.json), matched in 2 uncommitted repeats | [6/6](eval/revision-holdout2-results-live-backstop.json), matched in 2 uncommitted repeats |
-| [Round six: reasons, new prompt example, wider backstop](eval/revision-results-live-round6.json) | 11/12 | [8/8](eval/revision-holdout-results-live-round6.json) | [6/6](eval/revision-holdout2-results-live-round6.json) |
-| [Round seven: reasons must support the option, bare-number and not-a-limit checks](eval/revision-results-live-round7.json) | 10/12 | [8/8](eval/revision-holdout-results-live-round7.json) | [6/6](eval/revision-holdout2-results-live-round7.json) |
-| [Round eight: replaced and opposing reasons, any-figure rewrite, on-topic questions](eval/revision-results-live-round8.json) | 12/12 | [8/8](eval/revision-holdout-results-live-round8.json) | [6/6](eval/revision-holdout2-results-live-round8.json) |
-
-In the round-six miss, the model offered the cheaper cabin without applying the stated limits; the card now flags that it asks Jordan for more than the $150 he wrote. Round seven missed that brief again, and also one it passed in round six: on a message with no amount, the model asked nothing that time. Neither miss involves the new checks; it is run-to-run variation. In a first round-seven attempt two model calls failed and fell back to the local planner; those two sets were re-run and the fallback results discarded, since they weren't model results. [Three live runs of the demo’s own sample chat](eval/demo-chat-live-runs.json), on the round-eight code, agree each time: only Maya needs to confirm, at $170 / $215 / $215. That card’s **Why** is exactly Maya’s new limit and Jordan’s “I can stretch a bit if that keeps us at Pine & Still”, and Alex’s Creekside preference is shown on it as pointing to another option. Every run asked one on-topic question the local planner can't: how much more Jordan, or Alex, could pay to keep Pine & Still. Its wording and addressee vary.
-
-Read these numbers with care.
-
-- The frozen set and the first held-out set shaped the changes, so their later results are optimistic.
-- The [fresh six](eval/revision-cases-holdout2.json) were committed and run before the backstop existed. But the same developer wrote both the briefs and the rules, after seeing the earlier failure types, so they are not independent.
-- These are small synthetic sets and single committed runs per round (the two backstop repeats were not saved), with no user data. Rounds on similar code gave 25/26, 24/26 and 26/26, so treat a one- or two-brief difference as noise.
-- For an ambiguous brief, “useful” counts any clarification question; it doesn't check that the question goes to the right person or that the reasons are good. Budget safety holds by construction, because a publishable option is always recomputed from saved budgets.
-- The [no-AI local planner, run through the same checks](eval/local-planner-baseline.txt), is useful on 23/26 and safe on 26/26 ([`scripts/local-planner-baseline.mjs`](scripts/local-planner-baseline.mjs)), against the model’s 24–26/26. It also produces the sample chat’s $170 / $215 / $215 table. On these briefs the model’s measurable edge is the three messages with no dollar amount (“I can stretch a bit”, “I might not come either”, “I could maybe go a little higher”), where it asks instead of staying silent, plus the reasons it shows for each option. The code does most of the work, by design.
-- The backstop is a keyword list, not a language model. It is a floor for common phrasings. Per-person confirmation is the real guarantee.
+**[How options are checked, privacy, the ambiguity backstop, every live run and its caveats →](docs/REVISION_OPTIONS.md)**
 
 ## Integrated PayPal sandbox group
 

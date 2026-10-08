@@ -1,0 +1,68 @@
+# Revision options: how they're checked, and how well they work
+
+The detail behind the README's [Revision options](../README.md#revision-options-after-a-dropout) summary.
+
+
+When someone leaves, the organizer chooses **Suggest options**. With `OPENAI_API_KEY` set, a model reads the group chat and proposes up to three options. Each option picks a cabin and can include a spending limit a person stated about themselves, quoted from their own message. The model interprets meaning, so “I can’t go above $170” counts as a $170 limit. It writes the explanation without figures. It never receives anyone’s saved private budget.
+
+Code then decides what is shown:
+
+- Every quote must appear in that person’s own message.
+- Every amount must be literally written there, as digits or as spoken words such as “two hundred dollars”.
+- The cabin must fit the group.
+- Shares and top-ups are computed by the same allocator that publishes versions.
+- The model is told to write no figures. Any figure in an option's prose (digits, “$”, “43%”, “one seventy”) makes code write the explanation from the computed shares instead, because code can't tell whose amount a figure is. A summary or question may only repeat amounts written in the chat.
+- A reason is shown as **Why** only if it still supports that option. Other verified quotes stay visible, labelled: “points to another option” (it names a different cabin, or a limit below this option's share), “argues against this option” (“please not Pine & Still again”, or “I don't want to pay any more” on an option that raises that person's share), or “earlier message, since replaced” (an amount the same person later changed). Reasons must be real phrases, not a name or a two-word fragment.
+- The model may only ask about money, attendance or cabin choice; questions about rooms, beds or arrival times are dropped.
+- Chat exports with timestamps (“[10/7/26, 9:41 PM] Maya: …”) keep their speakers.
+- Failing suggestions are listed as discarded, and ambiguity becomes a clarification question.
+- The plain rebalance is always included for comparison.
+
+If a person’s stated limit sets their share in an option, that option can’t be published until they explicitly confirm the limit in their own view (**Send Maya a confirmation request**). Confirming makes it their saved budget. Options are stored on the server and published by ID, so neither the shares nor the “suggested by” record come from the browser. Publishing recomputes the split from saved budgets and refuses if anything changed, before any real authorization is released. Each person then approves their own new share and top-up.
+
+Privacy: the model never receives saved budgets, and nothing compares a proposed limit with anyone’s private budget. While an option still waits on someone’s confirmation, its preview is computed only from limits stated in the chat and the cabin total. Saved budgets don’t enter it, so chat the organizer writes can’t steer a preview into revealing one. Once nothing is waiting, the preview is exactly the split that publishing produces from saved budgets. That split is fixed for each cabin, so chat input can’t probe it, and it reveals only what a published split would. Option requests are also limited to five per plan version, and each is recorded in Activity with the amounts read from the chat. Confirmed limits and open requests are visible only to their owner and the organizer, and the shared activity log records that someone confirmed, not the amount. When someone types a firm limit in answer to a question, the organizer sees only that they answered; if that limit caps their share, the share will equal it, as with any budget.
+
+Requests go to the person, not the organizer’s screen: **Send Maya a confirmation request** puts a card at the top of Maya’s own view, quoting her message, and an uncertain message gets **Ask Maya for a firm limit**, which asks her to type one. A one-click confirmation can lower a saved budget but never raise it, because the organizer wrote the pasted chat; raising it is a separate budget edit. Requests belong to one plan version and expire when a new one is published. **Not now** is recorded for the organizer, and an answer shows on the organizer’s card as “answered”. Each AI option lists its reasons as quotes from people’s own messages (“Why: … — Alex, line 7”), and the panel shows what the model read. An option with the same split as the plain rebalance is tagged as such: “Standard rule” when the model gave no verified reasons for it, or “AI suggestion · same split as the standard rule” when it did. When a confirmation makes two cards identical, they become one card that says why. Code also flags a firm limit no option uses, and marks any option that asks someone for more than they wrote.
+
+Without a key, or if the model fails, a **local planner (not AI)** takes the latest dollar amount each person wrote, without interpreting wording. Anyone whose share depends on it must confirm.
+
+`npm run eval:revisions` runs 12 frozen briefs from the PRD acceptance spec (clear, ambiguous, infeasible, adversarial) through the real verifier using hand-written reference answers, two of them deliberately unsafe. [`eval/revision-results.json`](../eval/revision-results.json) records 12/12 with no unsafe option shown. That measures the verifier, **not** model quality. `npm run eval:revisions:live -- --write` measures the configured model (gpt-4.1-mini: about 2–6 s per brief, 4–6 s on the demo chat). In no live run could a publishable option exceed a saved budget, because every limit stated in chat needs its owner's confirmation and publishing recomputes from saved budgets. By the eval's stricter definition, which also forbids *showing* certain limits, one run was not fully safe: before the backstop, the fresh set recorded [5/6 safe](../eval/revision-holdout2-results-live-baseline.json) because a hedged “$160ish” was offered as Maya's pending limit.
+
+**Ambiguity backstop.** Some messages are too uncertain to use as a limit whatever the model says. If every sentence stating the amount is hedged (“probably $160ish?”, “I guess $170”, “~$170”), states something other than a ceiling (“I can’t do $170”, “at least $170”), gives two amounts (“$175 or $185”), contradicts the person’s later message, reports someone else’s limit (“Jordan said $170 is fine”), or reads like an instruction to the system, code removes it from every option. Amounts that aren’t a ceiling (“I already sent you $50 for gas”, “$100 a night”, “I’m no longer capped at $170”, “$170 is fine for me”) and abbreviations like “$1.2k” are never offered as one-click limits. Code then asks that person a question, labelled “flagged by code”. It also checks each person’s latest amount itself, so an uncertain one is questioned even if the model ignored it. Firm limits, an updated figure (“make that $190”) and an unrelated “might” in another sentence pass through.
+
+| Live run | Frozen 12 | Held-out 8 | Fresh 6 |
+| --- | --- | --- | --- |
+| [First run](../eval/revision-results-live-baseline.json) | 8/12 | [7/8](../eval/revision-holdout-results-live-baseline.json) | — |
+| [Prompt change + keep option, drop bad limit](../eval/revision-results-live-tuned.json) | 12/12 | [6/8](../eval/revision-holdout-results-live-tuned.json) | [5/6](../eval/revision-holdout2-results-live-baseline.json), with one hedged limit shown |
+| [Backstop](../eval/revision-results-live-backstop.json) | 12/12 | [8/8](../eval/revision-holdout-results-live-backstop.json), matched in 2 uncommitted repeats | [6/6](../eval/revision-holdout2-results-live-backstop.json), matched in 2 uncommitted repeats |
+| [Round six: reasons, new prompt example, wider backstop](../eval/revision-results-live-round6.json) | 11/12 | [8/8](../eval/revision-holdout-results-live-round6.json) | [6/6](../eval/revision-holdout2-results-live-round6.json) |
+| [Round seven: reasons must support the option, bare-number and not-a-limit checks](../eval/revision-results-live-round7.json) | 10/12 | [8/8](../eval/revision-holdout-results-live-round7.json) | [6/6](../eval/revision-holdout2-results-live-round7.json) |
+| [Round eight: replaced and opposing reasons, any-figure rewrite, on-topic questions](../eval/revision-results-live-round8.json) | 12/12 | [8/8](../eval/revision-holdout-results-live-round8.json) | [6/6](../eval/revision-holdout2-results-live-round8.json) |
+| [Round nine: the model labels each limit's firmness; wider backstop](../eval/revision-results-live-round9.json) | 11/12 | [8/8](../eval/revision-holdout-results-live-round9.json) | [5/6](../eval/revision-holdout2-results-live-round9.json) |
+
+In round nine the model labelled “Up to $180 works. Might be late though.” as hedged, in two runs out of two, so code asked Alex for a firm limit instead of offering $180 to confirm. Both paths need Alex's own answer; the firmness gate is deliberately cautious, costs this brief consistently, and was not tuned to pass it. The frozen-set miss is the same cheaper-cabin brief as in rounds six and seven. In the round-six miss, the model offered the cheaper cabin without applying the stated limits; the card now flags that it asks Jordan for more than the $150 he wrote. Round seven missed that brief again, and also one it passed in round six: on a message with no amount, the model asked nothing that time. Neither miss involves the new checks; it is run-to-run variation. In a first round-seven attempt two model calls failed and fell back to the local planner; those two sets were re-run and the fallback results discarded, since they weren't model results. [Three live runs of the demo’s own sample chat](../eval/demo-chat-live-runs.json), on the round-nine code, agree each time: only Maya needs to confirm, at $170 / $215 / $215. That card’s **Why** is exactly Maya’s new limit and Jordan’s “I can stretch a bit if that keeps us at Pine & Still”, and Alex’s Creekside preference is shown on it as pointing to another option. Every run asked an on-topic question the local planner can't, about how much Jordan or Alex could pay. Its wording and addressee vary.
+
+Read these numbers with care.
+
+- The frozen set and the first held-out set shaped the changes, so their later results are optimistic.
+- The [fresh six](../eval/revision-cases-holdout2.json) were committed and run before the backstop existed. But the same developer wrote both the briefs and the rules, after seeing the earlier failure types, so they are not independent.
+- These are small synthetic sets and single committed runs per round (the two backstop repeats were not saved), with no user data. Rounds on similar code gave 25/26, 24/26, 26/26 and 25/26, so treat a one- or two-brief difference as noise.
+- For an ambiguous brief, “useful” counts any clarification question; it doesn't check that the question goes to the right person or that the reasons are good. Budget safety holds by construction, because a publishable option is always recomputed from saved budgets.
+- The [no-AI local planner, run through the same checks](../eval/local-planner-baseline.txt), is useful on 23/26 and safe on 26/26 ([`scripts/local-planner-baseline.mjs`](../scripts/local-planner-baseline.mjs)), against the model’s 24–26/26. It also produces the sample chat’s $170 / $215 / $215 table. On these briefs the code does most of the work, by design. The model's edge shows on messages with no dollar amount, measured separately below.
+- The model now labels each limit it proposes as firm, hedged, a minimum, not a limit, or relayed; code keeps a limit only if the model says firm **and** the keyword backstop finds nothing.
+- The model's free-text explanation is checked for figures, not for facts. It can still overstate, for example saying “Jordan and Alex remain flexible” when only Jordan said so. The quoted **Why** reasons, the shares and the questions are what code verifies.
+- The backstop is a keyword list, not a language model. It is a floor for common phrasings. Per-person confirmation is the real guarantee.
+
+
+## What the model adds: briefs with no dollar amount
+
+The amount-based briefs above mostly test code. To measure the model itself, ten more briefs were written in which the deciding message has no figure: “I can stretch a bit”, “please not Pine & Still again”, “Maya told me she really doesn't want Creekside”, “I'll cover a bit of Maya's share”. Each brief says who should get a question, whose words should back which cabin, and which objection must never appear as a **Why** for the option it objects to. The [briefs](../eval/revision-cases-noamount.json) and [scorer](../scripts/evaluate-noamount.mjs) were committed before either run.
+
+| Run | Useful |
+| --- | --- |
+| [No-AI local planner](../eval/revision-noamount-results-local.json) | 0/10 |
+| Model, first run (round-eight code; in git history at `593c567`) | 8/10 |
+| Model, round-nine code before the final summary-wording change (not committed) | 9/10 |
+| [Model, final round-nine code](../eval/revision-noamount-results-live.json) | 8/10 |
+
+The local planner can't ask about, or quote, a message with no number, so it scores nothing here; that is the point of the set. Every model miss so far is the same kind: for “I can stretch a bit if that keeps us at Pine & Still” or “I'll cover a bit of Maya's share”, it backed Pine with Jordan's words but didn't ask him how far. Ten synthetic briefs by the same developer are a small, non-independent sample; read it as evidence that the model has a role, not as an accuracy figure.
