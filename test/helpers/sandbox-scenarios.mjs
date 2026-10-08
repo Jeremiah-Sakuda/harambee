@@ -156,10 +156,9 @@ export const scenarios = [
   },
   {
     id: "capture-currency-mismatch",
-    title:
-      "KNOWN GAP: mismatched capture currency must stay unverified during reconciliation",
+    title: "Mismatched capture currency stays unverified during reconciliation",
     knownGap:
-      "Reconciliation copies CAPTURED authorization status before rejecting the capture currency, exposing a captured payment with an unknown operation.",
+      "Legacy October 8 finding: reconciliation copied CAPTURED authorization status before rejecting the capture. Passes when the capture is verified first.",
     failureMarker: "Unverified capture must remain unknown",
     async run({ currency = "EUR", value } = {}) {
       const f = setup();
@@ -502,8 +501,7 @@ const mismatch = scenarios.find((s) => s.id === "capture-currency-mismatch");
 scenarios.push({
   ...mismatch,
   id: "capture-amount-mismatch",
-  title:
-    "KNOWN GAP: wrong USD capture amount must stay unverified during reconciliation",
+  title: "Wrong USD capture amount stays unverified during reconciliation",
   run: () => mismatch.run({ currency: "USD", value: "199.99" }),
 });
 const failedRefund = scenarios.find((s) => s.id === "terminal-failed-refund");

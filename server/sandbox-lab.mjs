@@ -165,7 +165,18 @@ export class SandboxLab {
         const capture = session.captureId
           ? await this.client.getCapture(session.captureId)
           : null;
-        if (capture) verifyAmount(capture.amount, session.amount);
+        if (capture)
+          try {
+            verifyAmount(capture.amount, session.amount);
+          } catch (error) {
+            // A capture whose amount or currency doesn't match can't be trusted, whatever the
+            // authorization says: it stays unknown, and is never refunded or captured again
+            // automatically.
+            session.status = "capture_unknown";
+            session.investigation = error.message;
+            this.save();
+            throw error;
+          }
         // Nothing was taken; the authorization's own status (above) says whether a hold remains.
         if (capture && CAPTURE_NOT_TAKEN.includes(capture.status))
           captureNotTaken(session, capture);
