@@ -1290,3 +1290,85 @@ test("only the fields with figures are replaced, and summaries with field names 
   assert.doesNotMatch(pine.explanation, /others cover/);
   assert.equal(out.summary, "");
 });
+
+test("a refusal with no amount argues against a higher share even when the model calls it a limit", async () => {
+  const notes =
+    "Sam: I have to bail, sorry.\nAlex: I really can't pay any more than I already have.";
+  const quote = {
+    participantId: "alex",
+    line: 2,
+    quote: "I really can't pay any more than I already have.",
+    kind: "limit",
+  };
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [option({ title: "Same cabin", basis: [quote] })],
+      clarifications: [],
+    },
+    notes,
+  );
+  const pine = out.options.find((o) => o.listingId === "pine");
+  assert.ok(pine.basis.every((b) => b.participantId !== "alex"));
+  assert.ok(
+    pine.considered.some(
+      (b) => b.participantId === "alex" && b.relation === "opposes",
+    ),
+  );
+});
+
+test("not wanting to leave a cabin supports it", async () => {
+  const notes =
+    "Sam: Out, sorry.\nJordan: I don't want to leave Pine & Still, I'll cover more.";
+  const quote = {
+    participantId: "jordan",
+    line: 2,
+    quote: "I don't want to leave Pine & Still, I'll cover more.",
+    kind: "willing_more",
+  };
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [option({ title: "Keep Pine", basis: [quote] })],
+      clarifications: [],
+    },
+    notes,
+  );
+  const pine = out.options.find(
+    (o) => o.listingId === "pine" && o.source === "openai",
+  );
+  assert.ok(pine.basis.some((b) => b.participantId === "jordan"));
+});
+
+test("questions that don't touch money, the cabin or attendance are dropped", async () => {
+  const { out } = await withModel(afterDropout(), {
+    summary: "",
+    options: [option({ title: "Same cabin" })],
+    clarifications: [
+      {
+        participantId: "jordan",
+        line: null,
+        question: "Should we move the trip to a different weekend?",
+        topic: "attendance",
+      },
+      {
+        participantId: "alex",
+        line: null,
+        question: "Would you bring snacks for everyone?",
+        topic: "cabin",
+      },
+      {
+        participantId: "alex",
+        line: null,
+        question: "Alex, are you still coming?",
+        topic: "attendance",
+      },
+    ],
+  });
+  const model = out.clarifications
+    .filter((c) => c.source !== "code")
+    .map((c) => c.question);
+  assert.deepEqual(model, ["Alex, are you still coming?"]);
+});

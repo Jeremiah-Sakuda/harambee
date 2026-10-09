@@ -137,7 +137,7 @@ export function seed() {
       {
         id: randomUUID(),
         at: timestamp(),
-        text: "Demo plan created. Local merchant inventory and all payments are simulated.",
+        text: "Demo plan created. The cabin is a local sample listing; payments start in the simulator and can be switched to PayPal sandbox before the first payment.",
         type: "plan",
       },
     ],

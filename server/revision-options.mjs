@@ -227,9 +227,14 @@ function ambiguousLimit(lines, index, person, amount, active = []) {
 // with how it relates: it argues for another option, argues against this one, or was replaced by
 // the same person's later message. Nothing verified is silently dropped.
 const cabinWord = (l) => l.name.split(/\s/)[0].toLowerCase();
+// "Please not Pine & Still" objects to Pine; "I don't want to leave Pine & Still" supports it.
 const negates = (text, word) =>
   new RegExp(
     String.raw`\b(?:not|no|never|avoid|skip|rather not|don['’]?t want)\b[^.!?]{0,20}\b${word}`,
+    "i",
+  ).test(text) &&
+  !new RegExp(
+    String.raw`\b(?:leav\w*|giv\w* up|los[et]\w*|miss\w*|without|quit\w*|switch\w* from)\b[^.!?]{0,15}\b${word}`,
     "i",
   ).test(text);
 // "I don't want to pay any more" argues against an option that raises that person's share.
@@ -257,9 +262,9 @@ function relation(b, listing, shares, previous, lines, latestLine) {
   if (share !== undefined && amounts.length && share > Math.max(...amounts))
     return "elsewhere";
   const before = previous.find((s) => s.id === b.participantId)?.share;
+  // Whatever kind the model gave it, a refusal with no amount argues against a higher share.
   if (
     !amounts.length &&
-    b.kind !== "limit" &&
     PUSHBACK.test(text) &&
     !FINE.test(text) &&
     share !== undefined &&
@@ -1122,7 +1127,13 @@ async function suggest(engine, ctx, notes, lines) {
             ["limit", "attendance", "cabin"].includes(c.topic)) &&
           !/\b(?:rooms?|beds?|bunks?|sleeping arrangements?|arriv\w*|parking)\b/i.test(
             c.question,
-          ),
+          ) &&
+          // It must be about money (a figure counts), the cabin, or whether someone is coming.
+          (amountsIn(c.question).length > 0 ||
+            spokenFigure(c.question) ||
+            /\b(?:pay\w*|spend\w*|budget|limit|afford|cost\w*|cover\w*|bucks|dollars|price|more|less|higher|lower|extra|stretch\w*|cheaper|share|max\w*|cabin|place|pine|creek\w*|coming|come|join\w*|attend\w*|still in|drop\w*|out)\b|\$/i.test(
+              c.question,
+            )),
       )
       .map((c) => ({
         participantId: ctx.active.some((p) => p.id === c.participantId)

@@ -415,6 +415,9 @@ function App() {
     myRequests = (state.limitRequests ?? []).filter(
       (r) => r.participantId === actor && r.status === "pending",
     ),
+    // Money copy names the provider actually in use.
+    provider =
+      state.provider === "paypal-sandbox" ? "PayPal" : "the payment simulator",
     firstOf = (id) =>
       state.participants.find((p) => p.id === id)?.name.split(" ")[0],
     // Plain-language account of a stopped booking, so nobody has to read an operations log.
@@ -432,8 +435,7 @@ function App() {
       const cause =
         {
           capture_declined: `${who}’s payment didn’t go through.`,
-          capture_unknown:
-            "PayPal didn’t confirm one payment in time; Harambee checks with PayPal before doing anything else.",
+          capture_unknown: `${provider.replace(/^./, (c) => c.toUpperCase())} didn’t confirm one payment in time; Harambee checks with it before doing anything else.`,
           reservation_failed: "The cabin couldn’t be reserved.",
           reservation_unknown:
             "The cabin’s reply timed out; Harambee checks the reservation before deciding.",
@@ -457,7 +459,7 @@ function App() {
         parts.push(`${names(toReturn)}’s ${total(toReturn)} will be returned.`);
       if (returning.length)
         parts.push(
-          `${names(returning)}’s ${total(returning)} is being returned; PayPal is still processing it.`,
+          `${names(returning)}’s ${total(returning)} is being returned; ${provider} is still processing it.`,
         );
       if (refundFailed.length)
         parts.push(
@@ -465,7 +467,7 @@ function App() {
         );
       parts.push(
         checking.length
-          ? `${names(checking)}’s payment is still being confirmed with PayPal.`
+          ? `${names(checking)}’s payment is still being confirmed with ${provider}.`
           : toReturn.length || returning.length || refundFailed.length
             ? "Every other hold will be released, never charged."
             : "Every hold will be released; nobody was charged.",
@@ -864,7 +866,7 @@ function App() {
                           ) : state.status === "recovery_pending" ? (
                             <span className="status neutral">
                               {payment.some((x) => x.status === "unknown")
-                                ? "Checking with PayPal"
+                                ? `Checking with ${provider}`
                                 : charge
                                   ? `${usd(charge)} to return`
                                   : payment.some((x) => x.status === "failed")
