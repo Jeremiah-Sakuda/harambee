@@ -34,11 +34,11 @@ On October 8, on commit `6cb7f0a`, the matrix returned **16 passed, 0 known fail
 
 Known failures are reported separately from passes. `--strict` exits with status 1 when any known or unexpected failure remains. The Node suite marks only the exact recognized assertions as TODO; an unrelated assertion or a scenario setup failure fails the test normally. A fixed scenario automatically counts as passed.
 
-## Remaining finding
+## Resolved mismatch finding
 
-When a capture response contains the wrong amount or currency, booking stops correctly. During reconciliation, the lab copies a `CAPTURED` authorization state into the session before checking the capture amount. That check then throws, leaving the participant's payment labeled `captured` while the capture operation remains `unknown`.
+The October 7 matrix found that reconciliation could label a payment `captured` before validating its amount or currency. The October 8 fix preserves `capture_unknown` until verification succeeds and retains investigation guidance.
 
-These tests verify that recovery still blocks completion, makes no replacement capture, and does not refund the unverified amount. The outstanding fix is to keep the payment state unknown until the capture's amount and currency are verified, and preserve clear investigation guidance. Both mismatch scenarios fail on that same state-label assertion.
+Both mismatch scenarios now pass: recovery blocks completion, makes no replacement capture, does not refund an unverified amount, and preserves the unknown payment state. See the [October 8 offline report](evidence/2026-10-08-offline-sandbox-matrix/results.json).
 
 ## Actual PayPal sandbox
 
@@ -58,6 +58,6 @@ For each recovery case, the runner discards one successful provider response loc
 
 The return URL is the optional local test screen at `http://127.0.0.1:3702/?paypal=lab`. Buyer approval still takes effect if that screen is unavailable; the runner checks PayPal directly. Enter buyer credentials only on PayPal's sandbox site, not in chat or repository files.
 
-The directory contains a private session store and a sanitized evidence journal: resource IDs, request IDs, statuses and source hashes, without tokens, passwords, buyer emails or full provider payloads. Preserve these records while any operation is unresolved. The [October 7 actual run](evidence/2026-10-07-paypal-recovery/README.md) distinguishes completed checks from checks awaiting buyer approval.
+The directory contains a private session store and a sanitized evidence journal: resource IDs, request IDs, statuses and source hashes, without tokens, passwords, buyer emails or full provider payloads. Preserve these records while any operation is unresolved. The [October 8 actual run](evidence/2026-10-08-paypal-recovery/README.md) completed both recovery workflows with 12 passing checkpoints. The [October 7 preparation run](evidence/2026-10-07-paypal-recovery/README.md) was closed after its unapproved orders expired.
 
 These diagnostic runs supplement the existing [three-buyer group booking](evidence/2026-10-04-sandbox-booking/README.md). They do not establish a new multi-buyer trip run, merchant inventory integration, or live-money readiness.

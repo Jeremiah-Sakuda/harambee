@@ -1,0 +1,21 @@
+{
+  "sessions": [
+    {
+      "id": "sandbox-refund-cd607cb1-ce6f-4633-8d4f-a3fda1247de2",
+      "amount": 100,
+      "testFlow": "refund",
+      "status": "refunded",
+      "orderId": "2LM50377VM7340632",
+      "authorizationId": "8A847183AR789025X",
+      "captureId": "70D430477W0057044"
+    },
+    {
+      "id": "sandbox-void-d2c64a59-9768-49b7-b224-85a0d00023bf",
+      "amount": 100,
+      "testFlow": "void",
+      "status": "voided",
+      "orderId": "6TT44937TB774291Y",
+      "authorizationId": "1R955188EP210305A"
+    }
+  ]
+}

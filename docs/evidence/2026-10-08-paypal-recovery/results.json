@@ -1,0 +1,385 @@
+{
+  "mode": "actual-paypal-sandbox-with-local-response-loss",
+  "startedAt": "2026-10-09T00:22:08.706Z",
+  "source": {
+    "commit": "5a4a62167d44490f830766856f24d2712193d34d",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "c76b80e9f9d77284074e6356262d01dff3981217843131535e7b5ca58dcb834a",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "provider": "https://api-m.sandbox.paypal.com",
+  "testAmountPerOrderCents": 100,
+  "completion": "completed",
+  "results": [
+    {
+      "id": "refund-create-and-read",
+      "at": "2026-10-09T00:22:09.695Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "2LM50377VM7340632",
+        "status": "PAYER_ACTION_REQUIRED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "1.00"
+        }
+      }
+    },
+    {
+      "id": "refund-create-idempotency",
+      "at": "2026-10-09T00:22:10.140Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "2LM50377VM7340632",
+        "requestId": "1df50da4-fc77-409e-8f95-1f898bf5caeb"
+      }
+    },
+    {
+      "id": "void-create-and-read",
+      "at": "2026-10-09T00:22:10.933Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "6TT44937TB774291Y",
+        "status": "PAYER_ACTION_REQUIRED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "1.00"
+        }
+      }
+    },
+    {
+      "id": "void-create-idempotency",
+      "at": "2026-10-09T00:22:11.382Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "6TT44937TB774291Y",
+        "requestId": "0ce8e4de-e14c-4a10-9ac6-c6245c56b2d1"
+      }
+    },
+    {
+      "id": "unapproved-order-cannot-authorize",
+      "at": "2026-10-09T00:22:11.720Z",
+      "status": "passed",
+      "observation": {
+        "orderId": "6TT44937TB774291Y",
+        "status": "approval_required",
+        "operationStatus": "failed"
+      }
+    },
+    {
+      "id": "refund-authorize-and-read",
+      "at": "2026-10-09T00:25:43.969Z",
+      "status": "passed",
+      "observation": {
+        "authorizationId": "8A847183AR789025X",
+        "status": "CREATED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "1.00"
+        }
+      }
+    },
+    {
+      "id": "capture-and-read",
+      "at": "2026-10-09T00:25:45.611Z",
+      "status": "passed",
+      "observation": {
+        "captureId": "70D430477W0057044",
+        "status": "COMPLETED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "1.00"
+        }
+      }
+    },
+    {
+      "id": "refund-response-intentionally-discarded",
+      "at": "2026-10-09T00:25:47.003Z",
+      "status": "passed",
+      "observation": {
+        "resourceId": "5YL91102YL032973J",
+        "providerStatus": "COMPLETED"
+      }
+    },
+    {
+      "id": "refund-recovery-after-restart",
+      "at": "2026-10-09T00:25:48.337Z",
+      "status": "passed",
+      "observation": {
+        "status": "refunded",
+        "providerWriteAttempts": 1,
+        "distinctRequestIds": 1,
+        "captureId": "70D430477W0057044",
+        "authorizationId": "8A847183AR789025X"
+      }
+    },
+    {
+      "id": "void-authorize-and-read",
+      "at": "2026-10-09T00:25:49.816Z",
+      "status": "passed",
+      "observation": {
+        "authorizationId": "1R955188EP210305A",
+        "status": "CREATED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "1.00"
+        }
+      }
+    },
+    {
+      "id": "void-response-intentionally-discarded",
+      "at": "2026-10-09T00:25:50.416Z",
+      "status": "passed",
+      "observation": {
+        "resourceId": "1R955188EP210305A",
+        "providerStatus": "VOIDED"
+      }
+    },
+    {
+      "id": "void-recovery-after-restart",
+      "at": "2026-10-09T00:25:51.216Z",
+      "status": "passed",
+      "observation": {
+        "status": "voided",
+        "providerWriteAttempts": 1,
+        "distinctRequestIds": 1,
+        "authorizationId": "1R955188EP210305A"
+      }
+    }
+  ],
+  "calls": [
+    {
+      "at": "2026-10-09T00:22:08.707Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "1df50da4-fc77-409e-8f95-1f898bf5caeb",
+      "resourceId": "2LM50377VM7340632",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:22:09.468Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/2LM50377VM7340632",
+      "requestId": null,
+      "resourceId": "2LM50377VM7340632",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:22:09.696Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "1df50da4-fc77-409e-8f95-1f898bf5caeb",
+      "resourceId": "2LM50377VM7340632",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:22:10.141Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "0ce8e4de-e14c-4a10-9ac6-c6245c56b2d1",
+      "resourceId": "6TT44937TB774291Y",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:22:10.728Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/6TT44937TB774291Y",
+      "requestId": null,
+      "resourceId": "6TT44937TB774291Y",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:22:10.933Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders",
+      "requestId": "0ce8e4de-e14c-4a10-9ac6-c6245c56b2d1",
+      "resourceId": "6TT44937TB774291Y",
+      "resourceStatus": "PAYER_ACTION_REQUIRED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:22:11.382Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders/6TT44937TB774291Y/authorize",
+      "requestId": "d78d0141-2103-4608-be21-1ed94a54b356",
+      "successful": false,
+      "httpStatus": 422,
+      "issue": "ORDER_NOT_APPROVED"
+    },
+    {
+      "at": "2026-10-09T00:25:41.714Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/2LM50377VM7340632",
+      "requestId": null,
+      "resourceId": "2LM50377VM7340632",
+      "resourceStatus": "APPROVED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:42.199Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/6TT44937TB774291Y",
+      "requestId": null,
+      "resourceId": "6TT44937TB774291Y",
+      "resourceStatus": "APPROVED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:42.426Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders/2LM50377VM7340632/authorize",
+      "requestId": "b4cb9e82-0a24-477b-a0c5-110fda566fc2",
+      "resourceId": "2LM50377VM7340632",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:43.549Z",
+      "method": "GET",
+      "path": "/v2/payments/authorizations/8A847183AR789025X",
+      "requestId": null,
+      "resourceId": "8A847183AR789025X",
+      "resourceStatus": "CREATED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:43.970Z",
+      "method": "POST",
+      "path": "/v2/payments/authorizations/8A847183AR789025X/capture",
+      "requestId": "042068cf-e361-4107-8cc0-52053173ad04",
+      "resourceId": "70D430477W0057044",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:45.371Z",
+      "method": "GET",
+      "path": "/v2/payments/captures/70D430477W0057044",
+      "requestId": null,
+      "resourceId": "70D430477W0057044",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:45.612Z",
+      "method": "POST",
+      "path": "/v2/payments/captures/70D430477W0057044/refund",
+      "requestId": "ff56a469-91bc-4149-b8ee-ab67de58558e",
+      "resourceId": "5YL91102YL032973J",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:47.004Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/2LM50377VM7340632",
+      "requestId": null,
+      "resourceId": "2LM50377VM7340632",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:47.465Z",
+      "method": "GET",
+      "path": "/v2/payments/authorizations/8A847183AR789025X",
+      "requestId": null,
+      "resourceId": "8A847183AR789025X",
+      "resourceStatus": "CAPTURED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:47.810Z",
+      "method": "GET",
+      "path": "/v2/payments/captures/70D430477W0057044",
+      "requestId": null,
+      "resourceId": "70D430477W0057044",
+      "resourceStatus": "REFUNDED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:48.081Z",
+      "method": "GET",
+      "path": "/v2/payments/refunds/5YL91102YL032973J",
+      "requestId": null,
+      "resourceId": "5YL91102YL032973J",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:48.338Z",
+      "method": "POST",
+      "path": "/v2/checkout/orders/6TT44937TB774291Y/authorize",
+      "requestId": "3da859af-1362-4a6b-9ab3-7c70d10576cf",
+      "resourceId": "6TT44937TB774291Y",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:49.565Z",
+      "method": "GET",
+      "path": "/v2/payments/authorizations/1R955188EP210305A",
+      "requestId": null,
+      "resourceId": "1R955188EP210305A",
+      "resourceStatus": "CREATED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:49.818Z",
+      "method": "POST",
+      "path": "/v2/payments/authorizations/1R955188EP210305A/void",
+      "requestId": "ddca3a7e-b542-49e0-98b6-031bd1c4c642",
+      "resourceId": "1R955188EP210305A",
+      "resourceStatus": "VOIDED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:50.416Z",
+      "method": "GET",
+      "path": "/v2/checkout/orders/6TT44937TB774291Y",
+      "requestId": null,
+      "resourceId": "6TT44937TB774291Y",
+      "resourceStatus": "COMPLETED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:50.740Z",
+      "method": "GET",
+      "path": "/v2/payments/authorizations/1R955188EP210305A",
+      "requestId": null,
+      "resourceId": "1R955188EP210305A",
+      "resourceStatus": "VOIDED",
+      "successful": true
+    },
+    {
+      "at": "2026-10-09T00:25:50.983Z",
+      "method": "GET",
+      "path": "/v2/payments/authorizations/1R955188EP210305A",
+      "requestId": null,
+      "resourceId": "1R955188EP210305A",
+      "resourceStatus": "VOIDED",
+      "successful": true
+    }
+  ],
+  "finishedSource": {
+    "commit": "5a4a62167d44490f830766856f24d2712193d34d",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "c76b80e9f9d77284074e6356262d01dff3981217843131535e7b5ca58dcb834a",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "sourceStable": true,
+  "updatedAt": "2026-10-09T00:25:51.235Z"
+}

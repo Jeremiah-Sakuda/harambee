@@ -116,7 +116,7 @@ if (action === "prepare") {
       "Already prepared: use status or run to preserve the original test records.",
     );
   for (const flow of ["refund", "void"]) {
-    const id = `oct7-${flow}-${randomUUID()}`;
+    const id = `sandbox-${flow}-${randomUUID()}`;
     await lab.run("create", {
       id,
       amount: 100,
