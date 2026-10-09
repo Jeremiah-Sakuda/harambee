@@ -25,8 +25,8 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
 | Real sandbox group compensation: [three $200 captures refunded after fixture commit failure](docs/evidence/2026-10-08-sandbox-group-refund/README.md), independently checked with PayPal; $600 returned, no booking | The narrated demo video (link added here once published) |
-| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (120 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
-| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last four live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 7/10 under the strict scorer ([benchmark details](#revision-options-after-a-dropout)) | Benchmark corpus: synthetic group-trip briefs |
+| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (127 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
+| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last five live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 8/10 under the strict scorer ([benchmark details](#revision-options-after-a-dropout)) | Benchmark corpus: synthetic group-trip briefs |
 
 ## How this differs
 
@@ -130,9 +130,9 @@ When someone leaves, the organizer chooses **Suggest options**. A model (gpt-4.1
 
 | | Model | No-AI local planner |
 | --- | --- | --- |
-| Sample chat, 3 live runs | Only Maya confirms, $170 / $215 / $215; that card's **Why** is Maya's limit and Jordan's “I can stretch a bit…”; Alex's Creekside wish is shown as pointing to another option; one on-topic question each run | Same table and confirmation, no reasons, no questions |
-| 26 synthetic briefs with amounts | 24–26/26 useful across the last four rounds, 26/26 budget-safe | 23/26 useful, 26/26 safe |
-| 10 briefs with no amount, pre-registered | 7/10 under the strict scorer; only 3–4 of its 12–15 questions went to the person the brief names | 0/10 (it can't ask or quote reasons by design) |
+| Sample chat, 3 live runs | Only Maya confirms, $170 / $215 / $215; that card's **Why** is Maya's limit and Jordan's “I can stretch a bit…”; Alex's Creekside wish is shown as pointing to another option; every run asks Jordan how much more he could pay | Same table and confirmation, no reasons, no questions |
+| 26 synthetic briefs with amounts | 24–26/26 useful across the last five rounds, 26/26 budget-safe | 23/26 useful, 26/26 safe |
+| 10 briefs with no amount, pre-registered | 8/10 under the strict scorer; all 3 of its questions went to the person the brief names (earlier runs: 7/10, with 3–4 of 12–15) | 0/10 (it can't ask or quote reasons by design). A keyword rule written after reading these briefs scored 10/10, so this set shows the model can do the work, not that only a model can |
 
 Publishing always recomputes from participant-confirmed budgets. The benchmark uses fixed synthetic briefs, with each provider run recorded separately.
 
