@@ -1,0 +1,66 @@
+import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
+const root = '/private/tmp/paypal-judging-20261008-harambee-0ce5ebe';
+const { scenarios } = await import(root + '/test/helpers/sandbox-scenarios.mjs');
+const { fixture } = await import(root + '/test/helpers/paypal-fixture.mjs');
+const { Engine } = await import(root + '/server/domain.mjs');
+const { proposeRevisions, resolveOption, resolveLimitRequest } = await import(root + '/server/revision-options.mjs');
+const { interpret } = await import(root + '/server/ai.mjs');
+delete process.env.OPENAI_API_KEY;
+globalThis.fetch = async () => { throw Error('Network prohibited for judging'); };
+const matrix=[];
+for(const s of scenarios){ const result=await s.run(); s.verify(result); matrix.push({id:s.id,passed:true,result}); }
+const memory=()=>{let saved;return {load:()=>structuredClone(saved),save:s=>{saved=structuredClone(s)}}};
+const e=new Engine(memory());
+for(const p of e.active)e.approve(p.id,1);
+e.withdraw('organizer','sam');
+assert.throws(()=>e.book('organizer',{version:1}));
+const notes="Maya: My maximum is $170.\nJordan: I can stretch a bit if that keeps us at Pine & Still.\nAlex: I prefer Creekside for this trip.";
+const out=await proposeRevisions(e,{notes});
+const capped=out.options.find(o=>o.confirmations.some(c=>c.participantId==='maya'));
+assert.ok(capped);
+assert.throws(()=>resolveOption(e,capped.id));
+const request=e.requestLimit('organizer',resolveLimitRequest(e,{batchId:out.batchId,participantId:'maya',kind:'confirm',amountCents:17000}));
+assert.equal(e.view('alex').limitRequests.length,0);
+assert.ok(!e.view('organizer').participants.some(p=>Object.hasOwn(p,'budget')));
+assert.throws(()=>e.confirmLimit('jordan',17000,request.id));
+e.confirmLimit('maya',17000,request.id);
+e.revise('organizer',resolveOption(e,capped.id));
+assert.deepEqual(e.current.shares.map(s=>s.share),[17000,21500,21500]);
+assert.throws(()=>e.approve('maya',1));
+for(const p of e.active)e.approve(p.id,2);
+assert.deepEqual(e.state.payments.filter(p=>p.version===2).map(p=>p.amount),[2000,6500,6500]);
+e.book('organizer',{version:2});
+const captures=e.state.operations.filter(o=>o.type==='capture').length;
+e.book('organizer',{version:2});
+assert.equal(e.state.operations.filter(o=>o.type==='capture').length,captures);
+// Intercept the model request and return a fabricated cap. No network or real model runs.
+const aiEngine=new Engine(memory());
+for(const p of aiEngine.active)aiEngine.approve(p.id,1);
+aiEngine.withdraw('organizer','sam');
+let sent;
+process.env.OPENAI_API_KEY='judging-offline-fixture';
+globalThis.fetch=async (_url,opts)=>{sent=JSON.parse(opts.body);return {ok:true,json:async()=>({status:'completed',model:'judging-fixture',output:[{content:[{type:'output_text',text:JSON.stringify({summary:'Draft',options:[{listingId:'pine',title:'Fake cap',explanation:'Review',tradeoff:'',basis:[],capRequests:[{participantId:'maya',amountCents:9900,line:1,quote:'My maximum is $170.',firmness:'firm'}]}],clarifications:[]})}]}]})}};
+const ai=await proposeRevisions(aiEngine,{notes});
+assert.equal(sent.store,false);
+assert.ok(!JSON.parse(sent.input).remaining.some(p=>Object.hasOwn(p,'budget')));
+assert.ok(ai.options.every(o=>o.confirmations.every(c=>c.amountCents!==9900)));
+assert.ok(!sent.tools);
+delete process.env.OPENAI_API_KEY;
+// Probe a confirmed authorization that later returns an inconsistent amount.
+const f=fixture();
+for(const p of f.e.active)await f.approve(p.id);
+const payment=f.e.state.payments[0];
+const auth=f.auths.get(payment.providerId);
+auth.amount={currency_code:'USD',value:'199.99'};
+let reconcileError;
+try{await f.g.reconcile('organizer',payment.id)}catch(err){reconcileError=err.message;}
+assert.ok(reconcileError);
+const authorizationMismatch={reconcileError,status:payment.status,trip:f.e.state.status,ready:f.e.ready(),approvedAmount:payment.amount,providerAmount:auth.amount,captureWrites:0,captureCalls:[]};
+const capture=f.client.capture;
+f.client.capture=async(...args)=>{authorizationMismatch.captureWrites++;authorizationMismatch.captureCalls.push({authorizationId:args[0],requestId:args[1],providerAmount:structuredClone(f.auths.get(args[0]).amount)});return capture(...args)};
+try{await f.g.book('organizer',{version:1})}catch(err){authorizationMismatch.bookError=err.message;}
+authorizationMismatch.afterBooking={status:payment.status,trip:f.e.state.status,captured:f.caps.size,providerCapture:[...f.caps.values()]};
+const result={matrixPassed:matrix.length,matrix,consentAndPrivacy:{passed:true,shares:[17000,21500,21500],topups:[2000,6500,6500],rawBudgetsExcluded:true,wrongActorBlocked:true,staleVersionBlocked:true,fabricatedCapRemoved:true,modelHasNoPaymentTools:true,providerCalls:0},authorizationMismatch};
+writeFileSync(new URL('./repro-results.json',import.meta.url),JSON.stringify(result,null,2)+'\n');
+console.log(JSON.stringify({matrixPassed:matrix.length,consentAndPrivacy:result.consentAndPrivacy,authorizationMismatch},null,2));

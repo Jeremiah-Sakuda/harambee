@@ -1,0 +1,104 @@
+{
+  "project": "harambee",
+  "commit": "0ce5ebecd2b93dfb7dad317c2332a3433f86f973",
+  "reviewDate": "2026-10-08",
+  "sourcePath": "/Users/jerem/2026 Hackathon Ideation/Paypal Hackathon/harambee",
+  "snapshotPath": "/private/tmp/paypal-judging-20261008-harambee-0ce5ebe",
+  "archiveSha256": "bb1f46951d7dbd4f685b0b1557f3e56b78bad66223acf227be1e0b3d2301b8fb",
+  "excluded": [
+    "docs/judging/",
+    "docs/REMEDIATION.md"
+  ],
+  "untrackedExcluded": [
+    ".claude/"
+  ],
+  "method": "Pinned git archive; prior judging withheld; judges receive same source and independent assignments",
+  "liveProviderCallsThisReview": false,
+  "uiUrl": "http://127.0.0.1:3801",
+  "localDraftSupplements": [
+    {
+      "name": "DEVPOST.md",
+      "sha256": "a306154894abed9c76dc1fda5fd6f28dd8f8267e34f654e5480e961b8d69dd83",
+      "status": "Private gitignored draft supplement; not recorded video or published submission"
+    },
+    {
+      "name": "DEMO_SCRIPT.md",
+      "sha256": "e2c2ce5a6d7632421d9d315cbc9d9b9078f15dd54d58de7cc259a083079da8a2",
+      "status": "Private gitignored draft supplement; not recorded video or published submission"
+    },
+    {
+      "name": "CHECKLIST.md",
+      "sha256": "0b2406d50db9e0e4e769cc2f599c1ef76883529194e537a1e4ffbf7664e81321",
+      "status": "Private gitignored draft supplement; not recorded video or published submission"
+    },
+    {
+      "name": "FILMING_DAY.md",
+      "sha256": "0b203b8315021ad1c4bdae6713fa40cf6419b6936d1b3936c31d53c837813e58",
+      "status": "Private gitignored draft supplement; not recorded video or published submission"
+    }
+  ],
+  "publicationBoundary": "Private draft text must not be copied into public reports",
+  "rules": {
+    "url": "https://paypalaihackathon.devpost.com/rules",
+    "checked": "2026-10-08",
+    "criteria": "five equally weighted"
+  },
+  "reviewEnvironment": {
+    "payments": "simulated",
+    "AI": "local planner",
+    "providerCredentialsCopied": false,
+    "runtimeState": "fresh isolated snapshot data"
+  },
+  "dependencyInstall": {
+    "command": "npm ci --offline --no-audit --no-fund",
+    "success": true,
+    "packagesAdded": 19,
+    "fresh": true,
+    "symlink": false,
+    "cacheNote": "Fresh dependencies from local npm cache; no fresh network-download claim"
+  },
+  "build": {
+    "command": "npm run build",
+    "success": true,
+    "vite": "6.4.3"
+  },
+  "publicAccess": {
+    "repository": "https://github.com/Jeremiah-Sakuda/harambee",
+    "visibility": "PUBLIC",
+    "defaultBranch": "main",
+    "remoteMainVerifiedCommit": "0ce5ebecd2b93dfb7dad317c2332a3433f86f973",
+    "exactCommitVerified": true,
+    "ci": {
+      "conclusion": "success",
+      "headSha": "0ce5ebecd2b93dfb7dad317c2332a3433f86f973",
+      "url": "https://github.com/Jeremiah-Sakuda/harambee/actions/runs/37876762015"
+    }
+  },
+  "coordinatorEvidenceChecks": {
+    "groupRefundRecordsInternallyConsistent": true,
+    "distinctBuyers": 3,
+    "usdRefunded": 600,
+    "allRefundStatuses": "COMPLETED",
+    "paymentFileHashesMatchReviewedSource": true,
+    "freshAuthenticatedProviderCallsDuringReview": false
+  },
+  "panelVerification": {
+    "nativeTests": {
+      "passed": 113,
+      "failed": 0,
+      "executedBy": "technical and impact judges"
+    },
+    "offlineEvaluations": {
+      "notes": "22/22",
+      "revisionEvaluators": "all exit0",
+      "matrix": "16/16"
+    },
+    "sourceIntegrity": {
+      "checkedFiles": 111,
+      "changedFiles": []
+    },
+    "coordinatorReplays": "See moderator-checks.json",
+    "designMutationAuthorization": "Pending/no response; no rejected actions bypassed",
+    "liveCalls": false
+  }
+}

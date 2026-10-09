@@ -1,0 +1,15 @@
+{
+  "project": "harambee",
+  "commit": "0ce5ebecd2b93dfb7dad317c2332a3433f86f973",
+  "judge": "impact",
+  "scores": {
+    "technology": 8,
+    "design": 7.5,
+    "impact": 6.5,
+    "innovation": 6.5,
+    "presentation": 4
+  },
+  "total": 65,
+  "readiness": "conditional",
+  "confidence": "medium"
+}
