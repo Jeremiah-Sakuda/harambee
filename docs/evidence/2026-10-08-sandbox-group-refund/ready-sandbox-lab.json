@@ -1,0 +1,100 @@
+{
+  "sessions": [
+    {
+      "id": "f88da742-0f25-45d2-adc9-87da7269ebed",
+      "amount": 20000,
+      "groupPlanId": "9764eade-04bd-4f32-93d5-00d257264bb5",
+      "returnUrl": "http://127.0.0.1:3703/?participant=person-1&paypal=return&payment=d15d78dd-bf41-4904-b9a0-73434abc15fe",
+      "cancelUrl": "http://127.0.0.1:3703/?participant=person-1&paypal=cancel&payment=d15d78dd-bf41-4904-b9a0-73434abc15fe",
+      "description": "Group refund proof — sandbox only · Maya Chen · version 1",
+      "status": "authorized",
+      "operations": [
+        {
+          "id": "de0af5cd-fab7-4eb9-8af2-82d94663bab4",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-09T00:36:34.281Z",
+          "amount": 20000,
+          "providerId": "4BH27460R42547112"
+        },
+        {
+          "id": "b5637221-bbf8-46a8-9a20-7bea7bf4a32c",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-09T00:36:59.946Z",
+          "amount": 20000,
+          "providerId": "4BH27460R42547112"
+        }
+      ],
+      "at": "2026-10-09T00:36:34.280Z",
+      "orderId": "4BH27460R42547112",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=4BH27460R42547112",
+      "payerId": "ZGYMC9T7R84DS",
+      "authorizationId": "6BL77799TL105220K"
+    },
+    {
+      "id": "f6118a8e-cb21-4e67-96e6-62241de213e1",
+      "amount": 20000,
+      "groupPlanId": "9764eade-04bd-4f32-93d5-00d257264bb5",
+      "returnUrl": "http://127.0.0.1:3703/?participant=person-2&paypal=return&payment=140e1b6f-4c2a-4575-b7f7-08c4b4ddeac6",
+      "cancelUrl": "http://127.0.0.1:3703/?participant=person-2&paypal=cancel&payment=140e1b6f-4c2a-4575-b7f7-08c4b4ddeac6",
+      "description": "Group refund proof — sandbox only · Jordan Ellis · version 1",
+      "status": "authorized",
+      "operations": [
+        {
+          "id": "45ec394b-e25e-43db-94af-27946e8d6046",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-09T00:37:28.265Z",
+          "amount": 20000,
+          "providerId": "7S418457W8756761K"
+        },
+        {
+          "id": "0b5c9361-4b1d-4a08-9034-c3ddb6f86965",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-09T00:38:56.048Z",
+          "amount": 20000,
+          "providerId": "7S418457W8756761K"
+        }
+      ],
+      "at": "2026-10-09T00:37:28.265Z",
+      "orderId": "7S418457W8756761K",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=7S418457W8756761K",
+      "payerId": "C7LL6VVD4SA2W",
+      "authorizationId": "44586985FR063445H"
+    },
+    {
+      "id": "8f769d92-cca7-4943-a17a-e8ed69389688",
+      "amount": 20000,
+      "groupPlanId": "9764eade-04bd-4f32-93d5-00d257264bb5",
+      "returnUrl": "http://127.0.0.1:3703/?participant=person-3&paypal=return&payment=1815bce7-fee0-4acd-a00a-54983b19c038",
+      "cancelUrl": "http://127.0.0.1:3703/?participant=person-3&paypal=cancel&payment=1815bce7-fee0-4acd-a00a-54983b19c038",
+      "description": "Group refund proof — sandbox only · Alex Rivera · version 1",
+      "status": "authorized",
+      "operations": [
+        {
+          "id": "fa4f0964-b927-481a-9c26-9173cdae4fa7",
+          "type": "create",
+          "status": "confirmed",
+          "at": "2026-10-09T00:39:12.612Z",
+          "amount": 20000,
+          "providerId": "4RH04940BK318423G"
+        },
+        {
+          "id": "ab3ab74c-ed8d-4181-ae06-86ea6bba687d",
+          "type": "authorize",
+          "status": "confirmed",
+          "at": "2026-10-09T00:41:08.057Z",
+          "amount": 20000,
+          "providerId": "4RH04940BK318423G"
+        }
+      ],
+      "at": "2026-10-09T00:39:12.612Z",
+      "orderId": "4RH04940BK318423G",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=4RH04940BK318423G",
+      "payerId": "CHD2P2V875EJU",
+      "authorizationId": "0A892044YJ874151T"
+    }
+  ]
+}

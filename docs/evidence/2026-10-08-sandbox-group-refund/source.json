@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-09T00:36:40.318Z",
+  "source": {
+    "commit": "63f104481ad02fabd9daeccd5443a6fe1575c609",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "c76b80e9f9d77284074e6356262d01dff3981217843131535e7b5ca58dcb834a",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "setup": "Three-person Pine & Still trip created through local API, provider set to PayPal sandbox, each synthetic budget saved at $300. Buyer approvals, booking fault and recovery are through the UI."
+}

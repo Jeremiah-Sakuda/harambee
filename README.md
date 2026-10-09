@@ -23,6 +23,7 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | Real | Simulated or pending |
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
+| Real sandbox group compensation: [three $200 captures refunded after fixture commit failure](docs/evidence/2026-10-08-sandbox-group-refund/README.md), independently checked with PayPal; $600 returned, no booking | Fourth sandbox buyer and narrated submission video pending |
 | Versioned consent, the exact-difference top-ups, and recovery that never charges twice (113 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
 | AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last four live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 8–9/10 versus 0/10 ([details and caveats](#revision-options-after-a-dropout)) | No user research; synthetic briefs only |
 
@@ -89,6 +90,8 @@ The native Node test suite covers exact allocations, private budget projection, 
 
 For the additional 16-scenario payment matrix, strict checks of known failures, and isolated $1 PayPal sandbox recovery tests, see [Sandbox testing](docs/SANDBOX_TESTING.md). The [October 8 run](docs/evidence/2026-10-08-offline-sandbox-matrix/README.md) passes all sixteen scenarios; the two amount/currency failures recorded on October 7 are fixed.
 
+For filming-day preparation, see [the three-run rehearsal command](docs/FILMING_PREFLIGHT.md). The narrated submission video will be recorded later.
+
 ## Demo walkthrough
 
 1. Start with four friends and the $600 Pine & Still cabin. Click **Review** beside each person, review their saved private $220 ceiling (use **Save budget only** for edits), and select **Agree & authorize simulated hold**. The demo role switch intentionally lets one judge act as each participant.
@@ -139,7 +142,7 @@ In no live run could a publishable option exceed a saved budget: every chat-read
 5. Book once every exact current share is authorized. Provider captures run sequentially against persisted authorization IDs, followed by a **local fixture** reservation commit. Export the provider-labeled receipt evidence.
 6. In a separate prepared trip select **Merchant commit fails** before booking to exercise compensating refunds. Reconcile until every refund/void is confirmed. An unknown operation remains blocked with investigation guidance; never create a replacement charge. If PayPal declines a capture, nothing was taken and the open hold is voided. If PayPal reports a refund as failed or cancelled, the board says so with PayPal's reason, and the refund is retried only when the organizer chooses **Retry the failed refund**, with a new request ID. An order nobody approved that PayPal no longer has is closed as abandoned. **Cancel trip** voids every hold the same way. Inspect sandbox activity if the provider cannot supply a recoverable ID.
 
-`test/group-payments.test.mjs` verifies this integrated journey with mocked buyers/providers, restart between provider and coordinator saves, partial capture, unresolved capture, stale checkout, distinct buyers, and fixture-commit failure. The booking journey has also run against the real PayPal sandbox; see the [recorded evidence](docs/evidence/2026-10-04-sandbox-booking/README.md). This is a single-process local prototype with polling reconciliation and no webhooks. The diagnostic lab cannot operate on group-linked sessions. Reset refuses unresolved sandbox money. After a confirmed booking it first archives the trip's provider evidence to `data/archive/`.
+`test/group-payments.test.mjs` verifies this integrated journey with mocked buyers/providers, restart between provider and coordinator saves, partial capture, unresolved capture, stale checkout, distinct buyers, and fixture-commit failure. The booking journey has also run against the real PayPal sandbox; see the [recorded evidence](docs/evidence/2026-10-04-sandbox-booking/README.md). The separate [October 8 group refund run](docs/evidence/2026-10-08-sandbox-group-refund/README.md) also verified three distinct buyers, $600 captured then fully refunded after a fixture reservation failure. This is a single-process local prototype with polling reconciliation and no webhooks. The diagnostic lab cannot operate on group-linked sessions. Reset refuses unresolved sandbox money. After a confirmed booking it first archives the trip's provider evidence to `data/archive/`.
 
 ## Optional PayPal sandbox lab
 

@@ -1,0 +1,123 @@
+{
+  "verifiedAt": "2026-10-09T02:51:28.709Z",
+  "sourceBefore": {
+    "commit": "63f104481ad02fabd9daeccd5443a6fe1575c609",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "c76b80e9f9d77284074e6356262d01dff3981217843131535e7b5ca58dcb834a",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "sourceAfter": {
+    "commit": "63f104481ad02fabd9daeccd5443a6fe1575c609",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/domain.mjs": "76c8dc845f6e1c763dc95fba413b14dc6917cead55332a6eee24130096d64bd8",
+      "server/paypal.mjs": "e0c02a0a6752b67b718c85799b762d11c4314edad9697e812e3a223b979b0358",
+      "server/sandbox-lab.mjs": "c76b80e9f9d77284074e6356262d01dff3981217843131535e7b5ca58dcb834a",
+      "server/group-payments.mjs": "cb883b132832849aaf8403224e5435aeafb8ed9a72dfad6e654a49d64a735138",
+      "server/store.mjs": "8e159bfb625f7295eb483a13ba91bf6e79335e6b5c84ec7709881ba3503faf87"
+    }
+  },
+  "paymentSourceStable": true,
+  "method": "Read-only authenticated PayPal sandbox GETs of each order, authorization, capture and refund; response fields restricted to IDs, statuses and USD amounts.",
+  "resourceReads": 12,
+  "distinctBuyers": 3,
+  "amountCapturedCents": 60000,
+  "amountRefundedCents": 60000,
+  "planStatus": "cancelled",
+  "reservationStatus": "cancelled",
+  "oneConfirmedCaptureAndRefundPerPayment": true,
+  "results": [
+    {
+      "participantId": "person-1",
+      "orderId": "4BH27460R42547112",
+      "payerId": "ZGYMC9T7R84DS",
+      "authorization": {
+        "id": "6BL77799TL105220K",
+        "status": "CAPTURED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      },
+      "capture": {
+        "id": "6N178487HX789935H",
+        "status": "REFUNDED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      },
+      "refund": {
+        "id": "30G33902KY456533B",
+        "status": "COMPLETED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      }
+    },
+    {
+      "participantId": "person-2",
+      "orderId": "7S418457W8756761K",
+      "payerId": "C7LL6VVD4SA2W",
+      "authorization": {
+        "id": "44586985FR063445H",
+        "status": "CAPTURED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      },
+      "capture": {
+        "id": "91X706988V6654213",
+        "status": "REFUNDED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      },
+      "refund": {
+        "id": "8EK517910W765933B",
+        "status": "COMPLETED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      }
+    },
+    {
+      "participantId": "person-3",
+      "orderId": "4RH04940BK318423G",
+      "payerId": "CHD2P2V875EJU",
+      "authorization": {
+        "id": "0A892044YJ874151T",
+        "status": "CAPTURED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      },
+      "capture": {
+        "id": "5RN12206MA036171H",
+        "status": "REFUNDED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      },
+      "refund": {
+        "id": "9AN441677P156360H",
+        "status": "COMPLETED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "200.00"
+        }
+      }
+    }
+  ]
+}

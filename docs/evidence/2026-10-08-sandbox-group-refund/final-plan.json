@@ -1,0 +1,364 @@
+{
+  "id": "9764eade-04bd-4f32-93d5-00d257264bb5",
+  "title": "Group refund proof \u2014 sandbox only",
+  "dates": "November 6\u20138, 2026",
+  "createdAt": "2026-10-09T00:35:59.150Z",
+  "deadline": "2026-10-11T00:35:59.150Z",
+  "status": "cancelled",
+  "version": 1,
+  "listingId": "pine",
+  "participants": [
+    {
+      "id": "person-1",
+      "name": "Maya Chen",
+      "initials": "MC",
+      "budget": 30000,
+      "active": true
+    },
+    {
+      "id": "person-2",
+      "name": "Jordan Ellis",
+      "initials": "JE",
+      "budget": 30000,
+      "active": true
+    },
+    {
+      "id": "person-3",
+      "name": "Alex Rivera",
+      "initials": "AR",
+      "budget": 30000,
+      "active": true
+    }
+  ],
+  "versions": [
+    {
+      "number": 1,
+      "createdAt": "2026-10-09T00:35:59.150Z",
+      "listingId": "pine",
+      "total": 60000,
+      "shares": [
+        {
+          "id": "person-1",
+          "share": 20000
+        },
+        {
+          "id": "person-2",
+          "share": 20000
+        },
+        {
+          "id": "person-3",
+          "share": 20000
+        }
+      ],
+      "reason": "Original plan",
+      "rule": "Equal shares, capped by confirmed budgets; leftover cents assigned in roster order."
+    }
+  ],
+  "consents": [
+    {
+      "id": "1478658c-2ca7-4da6-b6ac-998a0086b13b",
+      "participantId": "person-1",
+      "version": 1,
+      "share": 20000,
+      "listingId": "pine",
+      "at": "2026-10-09T00:36:34.274Z"
+    },
+    {
+      "id": "85182464-e9e3-43ee-aad3-a93a8ee14a12",
+      "participantId": "person-2",
+      "version": 1,
+      "share": 20000,
+      "listingId": "pine",
+      "at": "2026-10-09T00:37:28.264Z"
+    },
+    {
+      "id": "a9eff230-06b8-45c7-b3d7-d18067401b21",
+      "participantId": "person-3",
+      "version": 1,
+      "share": 20000,
+      "listingId": "pine",
+      "at": "2026-10-09T00:39:12.611Z"
+    }
+  ],
+  "limitConfirmations": [],
+  "limitRequests": [],
+  "payments": [
+    {
+      "id": "d15d78dd-bf41-4904-b9a0-73434abc15fe",
+      "participantId": "person-1",
+      "version": 1,
+      "amount": 20000,
+      "status": "refunded",
+      "sandboxSessionId": "f88da742-0f25-45d2-adc9-87da7269ebed",
+      "providerIssue": null,
+      "providerId": "6BL77799TL105220K",
+      "captureId": "6N178487HX789935H",
+      "refundId": "30G33902KY456533B",
+      "payerId": "ZGYMC9T7R84DS",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=4BH27460R42547112",
+      "investigation": null
+    },
+    {
+      "id": "140e1b6f-4c2a-4575-b7f7-08c4b4ddeac6",
+      "participantId": "person-2",
+      "version": 1,
+      "amount": 20000,
+      "status": "refunded",
+      "sandboxSessionId": "f6118a8e-cb21-4e67-96e6-62241de213e1",
+      "providerIssue": null,
+      "providerId": "44586985FR063445H",
+      "captureId": "91X706988V6654213",
+      "refundId": "8EK517910W765933B",
+      "payerId": "C7LL6VVD4SA2W",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=7S418457W8756761K",
+      "investigation": null
+    },
+    {
+      "id": "1815bce7-fee0-4acd-a00a-54983b19c038",
+      "participantId": "person-3",
+      "version": 1,
+      "amount": 20000,
+      "status": "refunded",
+      "sandboxSessionId": "8f769d92-cca7-4943-a17a-e8ed69389688",
+      "providerIssue": null,
+      "providerId": "0A892044YJ874151T",
+      "captureId": "5RN12206MA036171H",
+      "refundId": "9AN441677P156360H",
+      "payerId": "CHD2P2V875EJU",
+      "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=4RH04940BK318423G",
+      "investigation": null
+    }
+  ],
+  "operations": [
+    {
+      "id": "de0af5cd-fab7-4eb9-8af2-82d94663bab4",
+      "type": "create",
+      "status": "confirmed",
+      "at": "2026-10-09T00:36:34.281Z",
+      "amount": 20000,
+      "providerId": "4BH27460R42547112",
+      "paymentId": "d15d78dd-bf41-4904-b9a0-73434abc15fe",
+      "participantId": "person-1",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "de0af5cd-fab7-4eb9-8af2-82d94663bab4"
+    },
+    {
+      "id": "b5637221-bbf8-46a8-9a20-7bea7bf4a32c",
+      "type": "authorize",
+      "status": "confirmed",
+      "at": "2026-10-09T00:36:59.946Z",
+      "amount": 20000,
+      "providerId": "4BH27460R42547112",
+      "paymentId": "d15d78dd-bf41-4904-b9a0-73434abc15fe",
+      "participantId": "person-1",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "b5637221-bbf8-46a8-9a20-7bea7bf4a32c"
+    },
+    {
+      "id": "45ec394b-e25e-43db-94af-27946e8d6046",
+      "type": "create",
+      "status": "confirmed",
+      "at": "2026-10-09T00:37:28.265Z",
+      "amount": 20000,
+      "providerId": "7S418457W8756761K",
+      "paymentId": "140e1b6f-4c2a-4575-b7f7-08c4b4ddeac6",
+      "participantId": "person-2",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "45ec394b-e25e-43db-94af-27946e8d6046"
+    },
+    {
+      "id": "0b5c9361-4b1d-4a08-9034-c3ddb6f86965",
+      "type": "authorize",
+      "status": "confirmed",
+      "at": "2026-10-09T00:38:56.048Z",
+      "amount": 20000,
+      "providerId": "7S418457W8756761K",
+      "paymentId": "140e1b6f-4c2a-4575-b7f7-08c4b4ddeac6",
+      "participantId": "person-2",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "0b5c9361-4b1d-4a08-9034-c3ddb6f86965"
+    },
+    {
+      "id": "fa4f0964-b927-481a-9c26-9173cdae4fa7",
+      "type": "create",
+      "status": "confirmed",
+      "at": "2026-10-09T00:39:12.612Z",
+      "amount": 20000,
+      "providerId": "4RH04940BK318423G",
+      "paymentId": "1815bce7-fee0-4acd-a00a-54983b19c038",
+      "participantId": "person-3",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "fa4f0964-b927-481a-9c26-9173cdae4fa7"
+    },
+    {
+      "id": "ab3ab74c-ed8d-4181-ae06-86ea6bba687d",
+      "type": "authorize",
+      "status": "confirmed",
+      "at": "2026-10-09T00:41:08.057Z",
+      "amount": 20000,
+      "providerId": "4RH04940BK318423G",
+      "paymentId": "1815bce7-fee0-4acd-a00a-54983b19c038",
+      "participantId": "person-3",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "ab3ab74c-ed8d-4181-ae06-86ea6bba687d"
+    },
+    {
+      "id": "bfcaf8e2-c35d-45bc-b49c-cf17bd8fe0a7",
+      "type": "capture",
+      "status": "confirmed",
+      "at": "2026-10-09T02:45:58.044Z",
+      "amount": 20000,
+      "providerId": "6N178487HX789935H",
+      "paymentId": "d15d78dd-bf41-4904-b9a0-73434abc15fe",
+      "participantId": "person-1",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "bfcaf8e2-c35d-45bc-b49c-cf17bd8fe0a7"
+    },
+    {
+      "id": "d821475e-9cb6-411b-a93d-bd307f54587a",
+      "type": "capture",
+      "status": "confirmed",
+      "at": "2026-10-09T02:45:59.914Z",
+      "amount": 20000,
+      "providerId": "91X706988V6654213",
+      "paymentId": "140e1b6f-4c2a-4575-b7f7-08c4b4ddeac6",
+      "participantId": "person-2",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "d821475e-9cb6-411b-a93d-bd307f54587a"
+    },
+    {
+      "id": "e513f598-a75a-41b9-aa2f-eb70de001dae",
+      "type": "capture",
+      "status": "confirmed",
+      "at": "2026-10-09T02:46:01.645Z",
+      "amount": 20000,
+      "providerId": "5RN12206MA036171H",
+      "paymentId": "1815bce7-fee0-4acd-a00a-54983b19c038",
+      "participantId": "person-3",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "e513f598-a75a-41b9-aa2f-eb70de001dae"
+    },
+    {
+      "id": "477734d7-87ea-487a-90ae-ca9464c3f8b9",
+      "type": "refund",
+      "status": "confirmed",
+      "at": "2026-10-09T02:50:05.029Z",
+      "amount": 20000,
+      "providerId": "30G33902KY456533B",
+      "paymentId": "d15d78dd-bf41-4904-b9a0-73434abc15fe",
+      "participantId": "person-1",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "477734d7-87ea-487a-90ae-ca9464c3f8b9"
+    },
+    {
+      "id": "12c2ac82-0828-4809-9319-46bbed8ab08d",
+      "type": "refund",
+      "status": "confirmed",
+      "at": "2026-10-09T02:50:08.075Z",
+      "amount": 20000,
+      "providerId": "8EK517910W765933B",
+      "paymentId": "140e1b6f-4c2a-4575-b7f7-08c4b4ddeac6",
+      "participantId": "person-2",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "12c2ac82-0828-4809-9319-46bbed8ab08d"
+    },
+    {
+      "id": "17dda992-dd9f-424e-8585-c96fbbfa60d9",
+      "type": "refund",
+      "status": "confirmed",
+      "at": "2026-10-09T02:50:10.941Z",
+      "amount": 20000,
+      "providerId": "9AN441677P156360H",
+      "paymentId": "1815bce7-fee0-4acd-a00a-54983b19c038",
+      "participantId": "person-3",
+      "version": 1,
+      "provider": "paypal-sandbox",
+      "paypalRequestId": "17dda992-dd9f-424e-8585-c96fbbfa60d9"
+    }
+  ],
+  "audit": [
+    {
+      "id": "8e984849-a781-427a-b288-23c783ba13a7",
+      "at": "2026-10-09T00:35:59.150Z",
+      "text": "Demo plan created. Local merchant inventory and all payments are simulated.",
+      "type": "plan"
+    },
+    {
+      "id": "426a9ad5-934f-40c5-a511-9f07154e7c53",
+      "at": "2026-10-09T00:35:59.167Z",
+      "text": "Payment execution changed to paypal-sandbox. Cabin inventory remains local.",
+      "type": "plan"
+    },
+    {
+      "id": "5d335650-1c0e-4fbf-90ba-1fd591d8348d",
+      "at": "2026-10-09T00:35:59.173Z",
+      "text": "Maya Chen updated their private budget. Existing consent is unchanged; publish a revision if shares need to change.",
+      "type": "plan"
+    },
+    {
+      "id": "ebf00de4-bed9-4843-b93d-0e609017a953",
+      "at": "2026-10-09T00:35:59.178Z",
+      "text": "Jordan Ellis updated their private budget. Existing consent is unchanged; publish a revision if shares need to change.",
+      "type": "plan"
+    },
+    {
+      "id": "3bb1de48-6362-4034-9f11-0ff874232307",
+      "at": "2026-10-09T00:35:59.182Z",
+      "text": "Alex Rivera updated their private budget. Existing consent is unchanged; publish a revision if shares need to change.",
+      "type": "plan"
+    },
+    {
+      "id": "178c2720-2d74-4882-8e12-075056316ffa",
+      "at": "2026-10-09T00:36:35.120Z",
+      "text": "Maya Chen consented to version 1, exact share $200.00. Any additional hold requires this buyer\u2019s sandbox checkout.",
+      "type": "payment"
+    },
+    {
+      "id": "ac117799-02fa-4935-8f34-677eea321ba2",
+      "at": "2026-10-09T00:37:28.823Z",
+      "text": "Jordan Ellis consented to version 1, exact share $200.00. Any additional hold requires this buyer\u2019s sandbox checkout.",
+      "type": "payment"
+    },
+    {
+      "id": "2df414c8-f2a5-42f5-86df-721909c1ecff",
+      "at": "2026-10-09T00:39:13.202Z",
+      "text": "Alex Rivera consented to version 1, exact share $200.00. Any additional hold requires this buyer\u2019s sandbox checkout.",
+      "type": "payment"
+    },
+    {
+      "id": "fc67bb64-1f74-427a-b77d-d2b14186498f",
+      "at": "2026-10-09T02:46:03.443Z",
+      "text": "Booking stopped: Fixture reservation intentionally failed; refund all captures.",
+      "type": "recovery"
+    },
+    {
+      "id": "206b912b-4fe2-4145-a623-41f667bd8600",
+      "at": "2026-10-09T02:50:12.420Z",
+      "text": "Recovery complete: provider-confirmed refunds and voids; unapproved checkouts closed.",
+      "type": "recovery"
+    }
+  ],
+  "reservation": {
+    "id": "FIXTURE-580f328f-acde-4fa1-a179-22bb550e424b",
+    "status": "cancelled",
+    "listingId": "pine",
+    "expiresAt": "2026-10-09T02:46:58.039Z"
+  },
+  "fault": "none",
+  "provider": "paypal-sandbox",
+  "ai": null,
+  "stop": {
+    "reason": "reservation_failed"
+  }
+}
