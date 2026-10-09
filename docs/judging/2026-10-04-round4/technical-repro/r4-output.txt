@@ -1,7 +1,0 @@
-  recover err There is no recovery to run.
-  recover err There is no recovery to run.
-(a) order shows captures        | plan: cancelled | payments: refunded,voided,voided | captures executed: 1 refunds: 1 | recoveryError: -
-  recover err There is no recovery to run.
-  recover err There is no recovery to run.
-(b) no captures on order, key ok | plan: cancelled | payments: refunded,voided,voided | captures executed: 1 refunds: 1 | recoveryError: -
-(c) no captures, key expired     | plan: recovery_pending | payments: capture_unknown,voided,voided | captures executed: 1 refunds: 0 | recoveryError: PayPal returned HTTP 422 (AUTHORIZATION_ALREADY_CAPTURED)

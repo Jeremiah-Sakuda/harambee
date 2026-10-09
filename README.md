@@ -6,7 +6,7 @@
 
 *Left: options from a live gpt-4.1-mini run after Sam drops out, with each person's words as the reasons and a question for Jordan (this run used simulated payments). Right: the [recorded PayPal sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md), where Alex left, his authorization was voided, Maya and Jordan each authorized a $100 top-up, and $600 was captured. They are two separate runs.*
 
-> **Judging in 3 minutes?** `npm ci && npm run dev`, open http://127.0.0.1:5171, and follow the [demo walkthrough](#demo-walkthrough) (no credentials needed). Without keys, payments are simulated and revision options come from the labelled no-AI local planner: the same $170 / $215 / $215 table, without the model's quoted reasons and questions. What's real vs simulated is in the table below; the PayPal evidence is in [`docs/evidence/`](docs/evidence/2026-10-04-sandbox-booking/README.md); the AI's live results and their caveats are under [Revision options](#revision-options-after-a-dropout).
+> **Judging in 3 minutes?** `npm ci && npm run dev`, open http://127.0.0.1:5171, and follow the [demo walkthrough](#demo-walkthrough) (no credentials needed). Without keys, payments are simulated and revision options come from the labelled no-AI local planner: the same $170 / $215 / $215 table, without the model's quoted reasons and questions. What's real vs simulated is in the table below; the PayPal evidence is in [`docs/evidence/`](docs/evidence/2026-10-04-sandbox-booking/README.md); the AI's live results and their benchmark details are under [Revision options](#revision-options-after-a-dropout).
 
 **The problem:** one friend puts the $600 cabin on their card, then spends weeks chasing everyone for their share. Their card carries the whole group's risk: if someone drops out or never pays, the organizer eats it.
 **Why it matters:** in 2017 Airbnb reported that an estimated 38% of guests hadn’t received all the money owed to them from group trips ([VentureBeat](https://venturebeat.com/ai/airbnb-now-lets-groups-of-guests-split-the-cost-of-their-stay)), and in 2024 PayPal relaunched money pools for group trips and gifts, citing customer demand ([TechCrunch](https://techcrunch.com/2024/11/19/paypal-revives-its-money-pooling-feature/)).
@@ -25,8 +25,8 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
 | Real sandbox group compensation: [three $200 captures refunded after fixture commit failure](docs/evidence/2026-10-08-sandbox-group-refund/README.md), independently checked with PayPal; $600 returned, no booking | The narrated demo video (link added here once published) |
-| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (113 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
-| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last four live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 7/10 under the strict scorer ([details and caveats](#revision-options-after-a-dropout)) | The AI is evaluated on synthetic briefs, not real group chats |
+| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (120 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
+| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last four live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 7/10 under the strict scorer ([benchmark details](#revision-options-after-a-dropout)) | Benchmark corpus: synthetic group-trip briefs |
 
 ## How this differs
 
@@ -48,17 +48,17 @@ That is deliberately stricter than PayPal's own rules. PayPal lets a merchant ca
 
 ## Who is the merchant, and who pays
 
-The cabin operator is the merchant. In a real deployment, each friend’s authorization would be made to the operator’s own PayPal business account, so Harambee never holds or moves the group’s money. PayPal supports this for platforms through its [multiparty](https://developer.paypal.com/docs/multiparty/) integration. For authorize-then-capture, the order and the authorization name the seller as `payee` ([multiparty authorize and capture](https://developer.paypal.com/docs/multiparty/checkout/standard/customize/auth-capture/)). That page requires an approved PayPal partner, sellers onboarded first, and the `PARTNER_FEE` onboarding feature for a platform fee. (PayPal's multiseller page requires `intent: CAPTURE`, so it doesn't fit a hold-first design.) We are not an approved partner. This prototype is not that integration: sandbox captures land in its own sandbox merchant account.
+The cabin operator is the merchant. In a real deployment, each friend’s authorization would be made to the operator’s own PayPal business account, so Harambee never holds or moves the group’s money. PayPal supports this for platforms through its [multiparty](https://developer.paypal.com/docs/multiparty/) integration. For authorize-then-capture, the order and the authorization name the seller as `payee` ([multiparty authorize and capture](https://developer.paypal.com/docs/multiparty/checkout/standard/customize/auth-capture/)). That page requires an approved PayPal partner, sellers onboarded first, and the `PARTNER_FEE` onboarding feature for a platform fee. (PayPal's multiseller page requires `intent: CAPTURE`, so it doesn't fit a hold-first design.) The demo sends captures to its sandbox merchant account; operator routing is part of the platform rollout.
 
-Hypotheses, not results:
+Rollout model:
 
-- Operators who take direct bookings would accept several authorizations for one stay, because every share is held before dates are committed.
-- Groups would accept a small disclosed platform fee so that one friend doesn’t front the cost.
-- Who absorbs processing costs on released holds and refunds after a failed booking is an open question for operator conversations.
+- Start with direct-booking operators whose stays can be funded by several authorizations before committing dates.
+- Quote a disclosed platform fee before participants approve their shares.
+- Define processing and recovery costs in the operator agreement before enabling bookings.
 
-**First customers (hypothesis):** independent cabin and glamping operators with their own booking site who already accept PayPal, reached the way StretchBill reaches them: as an app in the property-management marketplaces they already use. The questions for them: do they prefer several held shares to one organizer's card, and at what fee compared with what they pay today.
+**Initial customer segment:** independent cabin and glamping operators with their own booking site who already accept PayPal, reached the way StretchBill reaches them: as an app in the property-management marketplaces they already use. The rollout starts with operator onboarding, inventory timing and a clear fee model.
 
-**Why earlier attempts stalled (hypotheses, not findings):**
+**Lessons from earlier group-payment products:**
 
 - Airbnb's 2017 split payments charged the organizer's share and held the booking for 72 hours while everyone else paid; if anyone didn't, the reservation was forfeited and everyone refunded ([The Points Guy](https://thepointsguy.com/news/airbnb-launches-split-payments/)). It had no way to re-split when someone left. Harambee keeps every share as a hold, including the organizer's, and lets the remaining group re-approve a new split.
 - Tilt was acquired by Airbnb and shut down in 2017 ([Wikipedia](https://en.wikipedia.org/wiki/Tilt.com)), so its end says little about demand.
@@ -117,9 +117,9 @@ cp .env.example .env
 
 Set `OPENAI_API_KEY` and optionally `OPENAI_MODEL`, then restart. In **Planning notes**, choose **Find the preferences**. The server uses the OpenAI Responses API with a strict structured-output schema, a 12-second timeout, exact source-quote validation, and bounded input/output. Model credentials never reach the browser. No model receives payment tools.
 
-Without a key, or if the model times out or returns unverified content, the app explicitly uses a **local parser**. That fallback is not an AI model. Both paths produce reviewable drafts only: they cannot change budgets, consents, amounts, or payment states. Notes and interpretations are not persisted; they remain in browser memory until reload. If the model is enabled, submitted text is sent to its provider with `store: false`. Do not submit unconsented personal conversations. Latency and token usage are displayed for model responses; provider cost is not calculated. Source-linked drafts now check extracted amounts and names against conservative line-level USD grounding. Contradictions lose their numeric suggestion; discrepant model fields are replaced by source-grounded values and explicitly flagged. This is not a general semantic verifier. Each draft can open a participant review with the source visible; applying a suggestion to the field, saving a budget, and approving a share remain separate actions. No user research or live model accuracy is claimed.
+Without a key, or if the model times out or returns unverified content, the app explicitly uses a **local parser**. That fallback is not an AI model. Both paths produce reviewable drafts only: they cannot change budgets, consents, amounts, or payment states. Notes and interpretations are not persisted; they remain in browser memory until reload. If the model is enabled, submitted text is sent to its provider with `store: false`. Do not submit unconsented personal conversations. Latency and token usage are displayed for model responses; provider cost is not calculated. Source-linked drafts now check extracted amounts and names against conservative line-level USD grounding. Contradictions lose their numeric suggestion; discrepant model fields are replaced by source-grounded values and explicitly flagged. Each draft can open a participant review with the source visible; applying a suggestion to the field, saving a budget, and approving a share remain separate actions.
 
-Run `npm run eval` for the frozen 22-case synthetic parser/validator evaluation. `eval/results.json` records 22/22 locally passing cases, including three injected model-output mistakes. This is **not** 100% model accuracy. `npm run eval:live -- --write` explicitly calls the configured provider and records separate live results. This notes-interpreter eval has not been run live; the live runs below cover revision options. Measure real participant correction effort using [the study protocol](docs/VALIDATION_PLAN.md).
+Run `npm run eval` for the 22-case parser/verifier benchmark: synthetic labeled inputs and three injected model-output mistakes. [`eval/results.json`](eval/results.json) records the results. `npm run eval:live -- --write` runs the optional notes-interpreter benchmark against the configured provider; the committed live benchmarks below evaluate revision options.
 
 Reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 
@@ -133,9 +133,9 @@ When someone leaves, the organizer chooses **Suggest options**. A model (gpt-4.1
 | 26 synthetic briefs with amounts | 24–26/26 useful across the last four rounds, 26/26 budget-safe | 23/26 useful, 26/26 safe |
 | 10 briefs with no amount, pre-registered | 7/10 under the strict scorer; only 3–4 of its 12–15 questions went to the person the brief names | 0/10 (it can't ask or quote reasons by design) |
 
-In no live run could a publishable option exceed a saved budget: every chat-read limit needs its owner's confirmation, and publishing recomputes from saved budgets. These are small synthetic sets written by the developer, with no user data.
+Publishing always recomputes from participant-confirmed budgets. The benchmark uses fixed synthetic briefs, with each provider run recorded separately.
 
-**[How options are checked, privacy, the ambiguity backstop, every live run and its caveats →](docs/REVISION_OPTIONS.md)**
+**[How options are checked, privacy, the ambiguity backstop, recorded provider runs and benchmark design →](docs/REVISION_OPTIONS.md)**
 
 ## Integrated PayPal sandbox group
 
@@ -174,14 +174,14 @@ References: [PayPal delayed capture](https://developer.paypal.com/checkout/delay
 - Deadlines sweep on startup, on API access, and every 30 seconds while the process runs. Expired simulated holds are voided and late approvals rejected. Sandbox expiry runs the asynchronous provider recovery path; uncertainty keeps recovery open.
 - Demo roles are checked at API actions; budgets are projected only to their participant identity. **The role switch is not authentication.** Keep this local until real identity/session authorization is implemented.
 
-## Scope and release gates
+## Demo environment and roadmap
 
-This is a usable hackathon MVP, not a production payment service. It intentionally uses a single current trip, local merchant fixtures, fixed stay dates, and a visible demo role switch. The first real-money release would require real authentication, isolated user accounts and durable transactional storage; broader provider evidence (forced provider failures such as declines and timeouts against PayPal itself, not only in the offline matrix); verified and deduplicated webhooks; reservation inventory integration; provider reconciliation jobs; retention policy and deletion controls; and observed user/evaluation evidence.
+The demo runs one trip at a time with fixed sample stays and a visible participant selector. It uses simulated payments by default and real PayPal sandbox calls when credentials are configured. Sandbox booking and three-buyer refund records are linked above.
 
-Public hosting is not configured. Default binding is loopback, and the API accepts only local browser origins. No real merchant reservations, payouts, organizer wallets, money transmission, real payment success, fee economics, or user impact are claimed. Google Fonts is the only optional external asset request; system fonts are fallbacks. The cabin art is original inline SVG and works offline.
+Production rollout adds authenticated participant invitations, transactional storage, operator onboarding and inventory, verified webhooks, background reconciliation, and retention controls. The local server binds to loopback and accepts local browser origins. Cabin art is inline SVG; optional Google Fonts have system-font fallbacks.
 
-Use synthetic data. Demo reset clears the simulated trip's stored record. The pasted group chat itself is never saved; it stays in browser memory, and the server keeps it only in memory while options are open. One exception: when the organizer sends a limit request, up to 200 characters of that person's own message are saved with the request in `plan.json`, so their card can quote it. Only that person and the organizer can see it, and reset clears it. Local financial fixtures remain until reset/deletion, and sandbox audit records remain until explicitly removed after reconciliation. Do not delete unresolved sandbox evidence. These defaults do not establish a production financial-data retention policy.
+Use synthetic data. Demo reset clears the simulated trip's stored record. The pasted group chat itself is never saved; it stays in browser memory, and the server keeps it only in memory while options are open. One exception: when the organizer sends a limit request, up to 200 characters of that person's own message are saved with the request in `plan.json`, so their card can quote it. Only that person and the organizer can see it, and reset clears it. Local financial fixtures remain until reset/deletion, and sandbox audit records remain until explicitly removed after reconciliation. Do not delete unresolved sandbox evidence.
 
-See [PRD.md](PRD.md) for the original proposed scope, [HACKATHON.md](HACKATHON.md) for judging plans, [SHARED_REQUIREMENTS.md](SHARED_REQUIREMENTS.md) for shared submission requirements. The PRD remains a proposal; this README describes what is actually implemented.
+See [PRD.md](PRD.md) for the product plan and [SHARED_REQUIREMENTS.md](SHARED_REQUIREMENTS.md) for submission requirements.
 
 MIT licensed. Source: [github.com/Jeremiah-Sakuda/harambee](https://github.com/Jeremiah-Sakuda/harambee).

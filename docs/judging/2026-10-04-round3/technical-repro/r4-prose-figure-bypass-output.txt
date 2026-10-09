@@ -1,9 +1,0 @@
-{
-  title: 'Keep Pine, USD 260 for Jordan',
-  explanation: 'Jordan pays two hundred sixty dollars and Maya pays 90 bucks.',
-  tradeoff: 'Alex covers USD 250.',
-  explanationReplaced: false,
-  actualShares: [ 'Maya 20000', 'Jordan 20000', 'Alex 20000' ]
-}
-summary: "Jordan will cover two hundred sixty dollars."
-clarification: "Jordan, can you do 260 dollars?"

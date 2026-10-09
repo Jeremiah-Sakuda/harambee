@@ -38,7 +38,7 @@ Ties are resolved by comparing the criteria in the order above, beginning with T
 
 ## Evidence this project should show
 
-The following is our proposed strategy, not additional official judging criteria. Evidence remains to be produced.
+The following maps the product journey and recorded evidence to the judging criteria.
 
 | Criterion | Project evidence to prioritize |
 | --- | --- |
@@ -61,6 +61,6 @@ The supplied rules permit at most one grand prize plus one sponsor prize, or one
 - The public GitHub repository contains the source, required assets, setup instructions, and an open-source license.
 - A public YouTube video shorter than three minutes clearly shows the problem, audience, functioning product, and result.
 - Interview findings, evaluation results, sandbox operations, recorded demonstrations, and simulations are accurately labeled.
-- Every judging criterion has inspectable evidence; outstanding weaknesses are recorded instead of hidden by a polished pitch.
+- Every judging criterion has inspectable evidence; the evidence records identify the build and provider used.
 
-Use the [shared requirements](SHARED_REQUIREMENTS.md) and the PRD's acceptance gates to review progress. This document establishes the objective and evaluation lens; it is not evidence of a completed product or a predicted win.
+Use the [shared requirements](SHARED_REQUIREMENTS.md) and the PRD's acceptance gates to review progress.

@@ -1,5 +1,0 @@
-after recover 1: recovery_pending authorized,voided,voided | errors: PayPal returned HTTP 422 (CANNOT_BE_VOIDED)
-after recover 2: cancelled refunded,voided,voided | errors: -
-recover 3 err: There is no recovery to run.
-after recover 3: cancelled refunded,voided,voided | errors: -
-captures executed: 1 refunds: 1 voids: 2

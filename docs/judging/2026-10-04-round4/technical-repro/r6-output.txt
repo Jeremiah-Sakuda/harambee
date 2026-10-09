@@ -1,4 +1,0 @@
-organizer sees maya.budget: undefined
-organizer sees limitConfirmations: [{"participantId":"maya","amountCents":17000}]
-maya's saved budget is now: 17000
-audit: Maya Chen confirmed a $170.00 limit for the revised plan.
