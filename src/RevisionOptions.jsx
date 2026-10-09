@@ -120,14 +120,6 @@ export default function RevisionOptions({
       <div className="rev-head">
         <div>
           <h3>Options for the new group</h3>
-          {data.summary && (
-            <p className="rev-summary">
-              {data.provider === "openai" && (
-                <strong>What the AI read: </strong>
-              )}
-              {data.summary}
-            </p>
-          )}
           <Provenance data={data} />
         </div>
         <button className="secondary" disabled={busy} onClick={onSuggest}>

@@ -624,3 +624,51 @@ test("a hold settled by reconcile on a reused buyer is voided with the same mess
   await assert.rejects(f.g.reconcile("jordan", jordan.id), /own sandbox buyer/);
   assert.equal(jordan.status, "voided");
 });
+
+for (const [name, reported] of [
+  ["amount", { currency_code: "USD", value: "199.99" }],
+  ["currency", { currency_code: "EUR", value: "200.00" }],
+  ["missing amount", null],
+]) {
+  test(`authorization ${name} mismatch blocks capture across restart until verified`, async () => {
+    const f = fixture();
+    for (const person of f.e.active) await f.approve(person.id);
+    const payment = f.e.state.payments[0];
+    f.auths.get(payment.providerId).amount = reported;
+    let captures = 0;
+    const capture = f.client.capture;
+    f.client.capture = (...args) => {
+      captures++;
+      return capture(...args);
+    };
+    await assert.rejects(
+      f.g.reconcile("organizer", payment.id),
+      /amount or currency/,
+    );
+    assert.equal(payment.status, "authorization_unknown");
+    assert.equal(f.e.state.status, "collecting");
+    assert.equal(f.e.ready(), false);
+    assert.match(payment.investigation, /amount or currency/);
+    const restarted = new Engine(f.store);
+    const lab = new SandboxLab(f.labStore, f.client);
+    const group = new GroupPayments(restarted, lab);
+    assert.equal(restarted.state.payments[0].status, "authorization_unknown");
+    await assert.rejects(
+      group.book("organizer", { version: 1 }),
+      /exact current share/,
+    );
+    assert.equal(captures, 0);
+    assert.equal(f.caps.size, 0);
+    f.auths.get(payment.providerId).amount = {
+      currency_code: "USD",
+      value: "200.00",
+    };
+    await group.reconcile("organizer", payment.id);
+    assert.equal(restarted.state.status, "ready");
+    assert.equal(restarted.ready(), true);
+    assert.equal(restarted.state.payments[0].investigation, null);
+    await group.book("organizer", { version: 1 });
+    assert.equal(restarted.state.status, "confirmed");
+    assert.equal(captures, 3);
+  });
+}

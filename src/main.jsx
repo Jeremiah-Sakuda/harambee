@@ -144,6 +144,7 @@ function App() {
     [listingId, setListingId] = useState("pine"),
     [budget, setBudget] = useState("220");
   const dialog = useRef(null);
+  const dialogTrigger = useRef(null);
   // PayPal sends buyers back with ?paypal=return|cancel|lab&payment=<id>.
   const paypalReturn = useRef(new URLSearchParams(location.search));
   async function load(who = actor) {
@@ -210,9 +211,10 @@ function App() {
     if (actor === "organizer" && !modal) suggestOptions(true);
   }, [actor, modal, state?.status, state?.audit.length]);
   useEffect(() => {
-    if (modal) {
+    if (modal && !dialog.current.open) {
+      dialogTrigger.current ||= document.activeElement;
       dialog.current?.showModal();
-    } else dialog.current?.close();
+    } else if (!modal) dialog.current?.close();
   }, [modal]);
   async function act(endpoint, input = {}, who = actor) {
     setBusy(true);
@@ -318,6 +320,8 @@ function App() {
     }
   }
   async function review(p, suggestion = null, kind = "approve") {
+    // Loading disables Review; capture its focus before the browser moves it away.
+    dialogTrigger.current = document.activeElement;
     setBusy(true);
     setError("");
     setNotice("");
@@ -1568,7 +1572,21 @@ function App() {
       <dialog
         ref={dialog}
         onCancel={() => setModal(null)}
-        onClose={() => setModal(null)}
+        onClose={() => {
+          setModal(null);
+          const trigger = dialogTrigger.current;
+          dialogTrigger.current = null;
+          requestAnimationFrame(() => {
+            const target =
+              trigger?.isConnected &&
+              !trigger.disabled &&
+              trigger !== document.body
+                ? trigger
+                : document.querySelector("aside .primary:not(:disabled)") ||
+                  document.querySelector('[aria-label="Switch demo identity"]');
+            target?.focus();
+          });
+        }}
         aria-label={
           modal?.kind === "approve"
             ? "Review and authorize your share"

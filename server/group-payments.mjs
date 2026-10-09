@@ -50,6 +50,8 @@ export class GroupPayments {
       if (index < 0) this.s.operations.push(entry);
       else this.s.operations[index] = entry;
     }
+    if (["collecting", "ready"].includes(this.s.status))
+      this.s.status = this.engine.ready() ? "ready" : "collecting";
     this.engine.persist();
   }
   async run(p, action, checkout = {}) {

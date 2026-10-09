@@ -788,7 +788,6 @@ function localOptions(ctx, lines) {
 const schemaFor = (ctx) => ({
   type: "object",
   properties: {
-    summary: { type: "string" },
     options: {
       type: "array",
       items: {
@@ -881,7 +880,7 @@ const schemaFor = (ctx) => ({
       },
     },
   },
-  required: ["summary", "options", "clarifications"],
+  required: ["options", "clarifications"],
   additionalProperties: false,
 });
 
@@ -891,7 +890,6 @@ Propose one to three genuinely different options for the organizer, using the ch
 - Do not write dollar figures in title, explanation or tradeoff; the app computes and shows every number. Explain the idea in plain, friendly language for the group.
 - Prefer options that respect what people said, including preferences for a cheaper cabin or willingness to pay more.
 - For each option, list in basis the chat messages that justify it: who wrote it, the 1-based line, an exact quote, and its kind (a limit, a listing preference, willingness to pay more, attendance, or a statement with no amount).
-- In summary, in one or two short sentences for the group, without dollar figures or field names, say what you interpreted: whose newer message replaces an earlier limit, which statements had no amount and became questions, and which preferences shaped the options.
 - Only add a capRequest when the person states a firm limit for themselves with one amount. Never add one for someone who wrote no amount. Label each capRequest's firmness honestly: "firm" only for a clear ceiling; "hedged" if uncertain, "minimum" for a floor, "not_a_limit" for money already sent or a nightly rate, "relayed" if someone else reported it.
 - Ask a short clarification question instead of adding a capRequest when a message is hedged ("maybe", "idk", "not sure", a question mark), gives a range or two different amounts, contradicts that person's earlier message, reports what someone else said, or when attendance is unclear. Prefer asking over guessing.
 - Only ask questions that change who pays what: a person's spending limit, whether they can pay more, which cabin they prefer, or whether they are still coming. Never ask about rooms, beds, arrival times or other logistics.
@@ -1158,18 +1156,8 @@ async function suggest(engine, ctx, notes, lines) {
         model: raw.model,
         latencyMs: Date.now() - start,
         usage: raw.usage ?? null,
-        summary:
-          typeof result.summary === "string" &&
-          amountsIn(result.summary).every((a) =>
-            lines.some((l) => literalAmounts(l).includes(a)),
-          ) &&
-          !spokenFigure(result.summary) &&
-          // A summary that leaks internal field names isn't written for the group.
-          !/\b(?:capRequests?|basis|listingId|participantId|clarifications?)\b/i.test(
-            result.summary,
-          )
-            ? result.summary.slice(0, 600)
-            : "",
+        // Only checked source quotes explain a person's financial willingness.
+        summary: "",
         clarifications,
       },
     };

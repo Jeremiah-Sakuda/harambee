@@ -151,7 +151,18 @@ export class SandboxLab {
         if (auth) {
           session.authorizationId = auth.id;
           const detail = await this.client.getAuthorization(auth.id);
-          verifyAmount(detail.amount, session.amount);
+          try {
+            verifyAmount(detail.amount, session.amount);
+          } catch (error) {
+            // A rejected provider check invalidates the prior hold before another write.
+            session.status = session.captureId
+              ? "capture_unknown"
+              : "authorization_unknown";
+            delete session.authorizationStatus;
+            session.investigation = error.message;
+            this.save();
+            throw error;
+          }
           session.authorizationStatus = detail.status;
           // An expired or denied authorization holds no funds, like a voided one.
           if (["VOIDED", "EXPIRED", "DENIED"].includes(detail.status))

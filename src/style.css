@@ -780,7 +780,7 @@ span svg {
   justify-content: center;
   gap: 5px;
   font-size: var(--fs-xs);
-  color: #8a9280;
+  color: var(--muted);
   margin-top: 11px;
   line-height: 1.6;
   text-align: center;
@@ -1159,7 +1159,7 @@ dialog .terms {
   margin-top: 15px;
   display: flex;
   gap: 8px;
-  color: #7c886b;
+  color: var(--muted);
 }
 .consent-amount {
   padding: 20px;

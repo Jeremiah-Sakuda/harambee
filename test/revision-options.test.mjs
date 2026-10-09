@@ -1372,3 +1372,23 @@ test("questions that don't touch money, the cabin or attendance are dropped", as
     .map((c) => c.question);
   assert.deepEqual(model, ["Alex, are you still coming?"]);
 });
+
+test("unchecked summaries cannot turn vague willingness into a financial commitment", async () => {
+  const { out, request } = await withModel(afterDropout(), {
+    summary: "Jordan can pay more than $220 if needed. Alex has no firm limit.",
+    options: [option({ capRequests: [mayaCap] })],
+    clarifications: [],
+  });
+  assert.equal(out.provider, "openai");
+  assert.equal(out.summary, "");
+  assert.equal(request.text.format.schema.properties.summary, undefined);
+  assert.ok(
+    out.options.some((o) =>
+      o.confirmations.some((c) => c.participantId === "maya"),
+    ),
+  );
+  assert.deepEqual(
+    out.options[0].rows.map((r) => r.share),
+    [17000, 21500, 21500],
+  );
+});
