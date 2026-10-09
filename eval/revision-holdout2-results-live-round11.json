@@ -1,9 +1,9 @@
 {
   "source": {
-    "commit": "ba90ffbe3ca726b7b6c213d28971209c47482c08",
+    "commit": "5570b0c52f27cc0de16a8b7cff5c9d1ffd289a95",
     "testedFilesModified": false,
     "sha256": {
-      "server/revision-options.mjs": "d21beaf12c10ed67666824a9fdc7f33429783ecf74a46c51955d53a5ae49ec84",
+      "server/revision-options.mjs": "1685bbc859bc10e3ec904a4cd841526551012752a95cc8f9a431a77b27b7e110",
       "server/ai.mjs": "7562a87326c9b478024d346e4a9c9725d9453678fb380f7db610361dbd6716c9",
       "server/domain.mjs": "a7da78bde4f0107df278db8142668106c740c40dd4e85e756d2a2a6ea985b8dc"
     }
@@ -26,7 +26,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 5167,
+      "latencyMs": 2808,
       "options": [
         {
           "listingId": "pine",
@@ -55,7 +55,7 @@
           "removedLimits": []
         }
       ],
-      "clarifications": 2,
+      "clarifications": 0,
       "discarded": []
     },
     {
@@ -66,7 +66,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 2116,
+      "latencyMs": 2916,
       "options": [
         {
           "listingId": "pine",
@@ -81,7 +81,6 @@
           ],
           "source": "openai",
           "removedLimits": [
-            "Code dropped a reason it couldn’t find in that person’s own message.",
             "Code dropped a reason it couldn’t find in that person’s own message.",
             "Code dropped a reason it couldn’t find in that person’s own message."
           ]
@@ -110,7 +109,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3100,
+      "latencyMs": 3746,
       "options": [
         {
           "listingId": "pine",
@@ -124,10 +123,7 @@
             18000
           ],
           "source": "openai",
-          "removedLimits": [
-            "Code dropped a reason it couldn’t find in that person’s own message.",
-            "Code dropped a reason it couldn’t find in that person’s own message."
-          ]
+          "removedLimits": []
         },
         {
           "listingId": "pine",
@@ -153,7 +149,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 2597,
+      "latencyMs": 3825,
       "options": [
         {
           "listingId": "pine",
@@ -182,7 +178,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3421,
+      "latencyMs": 2840,
       "options": [
         {
           "listingId": "pine",
@@ -210,7 +206,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3058,
+      "latencyMs": 2666,
       "options": [
         {
           "listingId": "pine",
@@ -223,21 +219,8 @@
           ],
           "source": "rule",
           "removedLimits": [
-            "It attributed a limit to Alex from someone else’s message."
-          ]
-        },
-        {
-          "listingId": "creek",
-          "feasible": true,
-          "caps": {},
-          "shares": [
-            16000,
-            16000,
-            16000
-          ],
-          "source": "openai",
-          "removedLimits": [
-            "It attributed a limit to Alex from someone else’s message."
+            "It attributed a limit to Alex from someone else’s message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
           ]
         }
       ],

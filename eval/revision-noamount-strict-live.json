@@ -1,9 +1,9 @@
 {
   "source": {
-    "commit": "ba90ffbe3ca726b7b6c213d28971209c47482c08",
+    "commit": "5570b0c52f27cc0de16a8b7cff5c9d1ffd289a95",
     "testedFilesModified": false,
     "sha256": {
-      "server/revision-options.mjs": "d21beaf12c10ed67666824a9fdc7f33429783ecf74a46c51955d53a5ae49ec84",
+      "server/revision-options.mjs": "1685bbc859bc10e3ec904a4cd841526551012752a95cc8f9a431a77b27b7e110",
       "server/ai.mjs": "7562a87326c9b478024d346e4a9c9725d9453678fb380f7db610361dbd6716c9",
       "server/domain.mjs": "a7da78bde4f0107df278db8142668106c740c40dd4e85e756d2a2a6ea985b8dc"
     }
@@ -15,8 +15,8 @@
   "passed": 8,
   "total": 10,
   "questionPrecision": {
-    "toRightPerson": 2,
-    "total": 4,
+    "toRightPerson": 3,
+    "total": 3,
     "note": "Model questions in briefs that name who to ask; code-raised questions excluded."
   },
   "results": [
@@ -29,8 +29,8 @@
         "wordsBackTheirChoice": true
       },
       "questionPrecision": {
-        "toRightPerson": 0,
-        "total": 2
+        "toRightPerson": 1,
+        "total": 1
       }
     },
     {

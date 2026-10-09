@@ -1,9 +1,9 @@
 {
   "source": {
-    "commit": "ba90ffbe3ca726b7b6c213d28971209c47482c08",
+    "commit": "5570b0c52f27cc0de16a8b7cff5c9d1ffd289a95",
     "testedFilesModified": false,
     "sha256": {
-      "server/revision-options.mjs": "d21beaf12c10ed67666824a9fdc7f33429783ecf74a46c51955d53a5ae49ec84",
+      "server/revision-options.mjs": "1685bbc859bc10e3ec904a4cd841526551012752a95cc8f9a431a77b27b7e110",
       "server/ai.mjs": "7562a87326c9b478024d346e4a9c9725d9453678fb380f7db610361dbd6716c9",
       "server/domain.mjs": "a7da78bde4f0107df278db8142668106c740c40dd4e85e756d2a2a6ea985b8dc"
     }
@@ -26,7 +26,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3702,
+      "latencyMs": 2486,
       "options": [
         {
           "listingId": "pine",
@@ -58,7 +58,7 @@
           "removedLimits": []
         }
       ],
-      "clarifications": 2,
+      "clarifications": 0,
       "discarded": []
     },
     {
@@ -69,8 +69,22 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 1866,
+      "latencyMs": 3102,
       "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
         {
           "listingId": "creek",
           "feasible": true,
@@ -84,6 +98,34 @@
           "removedLimits": [
             "Code dropped a reason it couldn’t find in that person’s own message."
           ]
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h-clear-spoken",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 5036,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            21000,
+            21000,
+            18000
+          ],
+          "source": "openai",
+          "removedLimits": []
         },
         {
           "listingId": "pine",
@@ -102,49 +144,6 @@
       "discarded": []
     },
     {
-      "id": "h-clear-spoken",
-      "kind": "clear",
-      "pass": true,
-      "safe": true,
-      "useful": true,
-      "provider": "openai",
-      "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 2457,
-      "options": [
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {
-            "alex": 18000
-          },
-          "shares": [
-            21000,
-            21000,
-            18000
-          ],
-          "source": "openai",
-          "removedLimits": [
-            "Code dropped a reason it couldn’t find in that person’s own message.",
-            "Code dropped a reason it couldn’t find in that person’s own message."
-          ]
-        },
-        {
-          "listingId": "pine",
-          "feasible": true,
-          "caps": {},
-          "shares": [
-            20000,
-            20000,
-            20000
-          ],
-          "source": "rule",
-          "removedLimits": []
-        }
-      ],
-      "clarifications": 1,
-      "discarded": []
-    },
-    {
       "id": "h-ambiguous-vague",
       "kind": "ambiguous",
       "pass": true,
@@ -152,7 +151,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 2000,
+      "latencyMs": 3196,
       "options": [
         {
           "listingId": "pine",
@@ -162,6 +161,18 @@
             20000,
             20000,
             20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
           ],
           "source": "openai",
           "removedLimits": []
@@ -178,7 +189,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 2593,
+      "latencyMs": 2586,
       "options": [
         {
           "listingId": "pine",
@@ -193,7 +204,7 @@
           "removedLimits": []
         }
       ],
-      "clarifications": 3,
+      "clarifications": 1,
       "discarded": []
     },
     {
@@ -204,7 +215,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 2887,
+      "latencyMs": 2974,
       "options": [
         {
           "listingId": "pine",
@@ -217,8 +228,7 @@
           ],
           "source": "rule",
           "removedLimits": [
-            "It attributed a limit to Maya from someone else’s message.",
-            "Code dropped a reason it couldn’t find in that person’s own message."
+            "It attributed a limit to Maya from someone else’s message."
           ]
         }
       ],
@@ -233,7 +243,7 @@
       "useful": true,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 3103,
+      "latencyMs": 2179,
       "options": [
         {
           "listingId": "pine",
@@ -246,7 +256,7 @@
           ],
           "source": "rule",
           "removedLimits": [
-            "Jordan’s message reads like an instruction, not a limit, so code ignored it."
+            "Code dropped a reason it couldn’t find in that person’s own message."
           ]
         }
       ],
@@ -261,7 +271,7 @@
       "useful": false,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 2771,
+      "latencyMs": 3245,
       "options": [
         {
           "listingId": "pine",
