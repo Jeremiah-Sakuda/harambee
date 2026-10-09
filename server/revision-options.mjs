@@ -693,10 +693,15 @@ function finish(engine, ctx, lines, proposed, meta) {
     }
     firm.set(person.id, { amount, name: firstName(person) });
     // A firm limit that would lower this person's share, but no option uses: say so.
-    const used = options.some((o) =>
-      o.confirmations.some(
-        (c) => c.participantId === person.id && c.amountCents === amount,
-      ),
+    // "Used" means some option lets this limit set their share; citing it on a cheaper cabin
+    // where it changes nothing doesn't give the organizer a way to apply it.
+    const used = options.some(
+      (o) =>
+        o.confirmations.some(
+          (c) => c.participantId === person.id && c.amountCents === amount,
+        ) &&
+        (!o.feasible ||
+          o.rows.find((r) => r.participantId === person.id)?.share === amount),
     );
     const wouldBind = options.some((o) =>
       o.rows.some((r) => r.participantId === person.id && r.share > amount),

@@ -1496,3 +1496,22 @@ test("a question can only quote amounts its addressee wrote", async () => {
     "Please confirm the amount directly with this person.",
   );
 });
+
+test("a firm limit cited only where it changes nothing still gets a confirm question", async () => {
+  const { out } = await withModel(afterDropout(), {
+    summary: "",
+    options: [
+      option({
+        listingId: "creek",
+        title: "Cheaper cabin",
+        capRequests: [mayaCap],
+      }),
+    ],
+    clarifications: [],
+  });
+  const q = out.clarifications.find(
+    (c) => c.participantId === "maya" && c.source === "code",
+  );
+  assert.equal(q.amountCents, 17000);
+  assert.match(q.question, /no option uses \$170 yet/);
+});
