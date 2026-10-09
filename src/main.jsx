@@ -40,6 +40,11 @@ const usd = (n) =>
     maximumFractionDigits: n % 100 === 0 ? 0 : 2,
   }).format((n || 0) / 100);
 const label = (s) => s.replaceAll("_", " ");
+// "Maya, Jordan, and Alex" instead of "Maya and Jordan and Alex".
+const list = (xs) =>
+  new Intl.ListFormat("en", { type: "conjunction" }).format(xs);
+// A friend's own link (?participant=…) is their view only; organizer controls stay in the organizer's window.
+const viaLink = new URLSearchParams(location.search).has("participant");
 function Cabin() {
   return (
     <svg
@@ -108,6 +113,84 @@ function Cabin() {
         <path d="m60 319 5-12m3 13 9-8m436 7 4-14m4 16 10-12m-299 22 4-9" />
       </g>
     </svg>
+  );
+}
+// What a friend opening their own link needs first: their next action and what's happening
+// to their money. Nothing here approves or moves money by itself.
+function NextStep({
+  state,
+  person,
+  share,
+  held,
+  approved,
+  waitingOn,
+  departed,
+  busy,
+  onReview,
+}) {
+  const first = person.name.split(" ")[0];
+  const mine = state.payments.filter((p) => p.participantId === person.id);
+  const sum = (statuses) =>
+    mine
+      .filter((p) => statuses.includes(p.status))
+      .reduce((n, p) => n + p.amount, 0);
+  const before = state.versions
+    .find((v) => v.number === state.version - 1)
+    ?.shares.find((s) => s.id === person.id)?.share;
+  let heading, text, action;
+  if (["collecting", "ready"].includes(state.status) && !approved) {
+    const extra = Math.max(0, share - held);
+    heading =
+      held > 0
+        ? `Approve your new share, ${first}`
+        : `You're invited, ${first}`;
+    text =
+      held > 0 && before !== undefined && before !== share
+        ? `${state.current.reason}. Your share changes from ${usd(before)} to ${usd(share)}. You'll approve only the extra ${usd(extra)}.`
+        : `Your share is ${usd(share)}. Approving holds it in your own account; nobody is charged until everyone's in.`;
+    action =
+      held > 0 ? `Review +${usd(extra)}` : `Review my ${usd(share)} share`;
+  } else if (["collecting", "ready"].includes(state.status)) {
+    heading = `You're in, ${first}`;
+    text = `${usd(held)} is held, not charged.${
+      waitingOn ? ` Waiting for ${waitingOn}.` : " Your organizer books next."
+    }`;
+  } else if (state.status === "revision_required") {
+    heading = "The plan is changing";
+    text = `${departed ? `${departed} left. ` : ""}Your organizer is choosing a new plan. You'll review your new share before anything changes, and your current hold isn't charged.`;
+  } else if (
+    state.status === "recovery_pending" ||
+    state.status === "booking"
+  ) {
+    const back = sum(["captured", "refund_pending"]);
+    heading = "Booking stopped";
+    text = back
+      ? `Your ${usd(back)} will be returned. Nothing for you to do; nobody is charged twice.`
+      : "Your hold will be released and you won't be charged. Nothing for you to do.";
+  } else if (state.status === "confirmed") {
+    heading = "You're booked";
+    text = `You paid ${usd(sum(["captured"]))}. Your receipt is under Activity & receipts.`;
+  } else if (state.status === "cancelled") {
+    const refunded = sum(["refunded"]);
+    heading = "Trip closed";
+    text = refunded
+      ? `Your ${usd(refunded)} was refunded.`
+      : "Your hold was released and nothing was charged.";
+  } else return null;
+  return (
+    <section
+      className="limit-request next-step-card"
+      aria-label="Your next step"
+    >
+      <span className="eyebrow">YOUR NEXT STEP</span>
+      <h2>{heading}</h2>
+      <p>{text}</p>
+      {action && (
+        <button className="primary full" disabled={busy} onClick={onReview}>
+          {action}
+        </button>
+      )}
+    </section>
   );
 }
 function App() {
@@ -316,6 +399,9 @@ function App() {
       )
     ) {
       setModal(null);
+      setNotice(
+        "No problem. Your organizer will see you’re not ready yet; nothing changed and nothing was charged.",
+      );
       await load();
     }
   }
@@ -372,8 +458,24 @@ function App() {
       <main className="loading">
         <Leaf size={32} />
         <h1>Getting everyone together.</h1>
-        <p>{error || "Opening your trip…"}</p>
-        {error && <button onClick={() => load()}>Try again</button>}
+        <p>
+          {/unknown demo role/i.test(error)
+            ? "This link doesn’t match anyone on the current trip. It may be from an earlier round."
+            : error || "Opening your trip…"}
+        </p>
+        {/unknown demo role/i.test(error) ? (
+          <button
+            onClick={() => {
+              history.replaceState(null, "", "/");
+              setError("");
+              setActor("organizer");
+            }}
+          >
+            Open the current trip
+          </button>
+        ) : (
+          error && <button onClick={() => load()}>Try again</button>
+        )}
       </main>
     );
   const listing = state.catalog.find((c) => c.id === state.listingId),
@@ -408,14 +510,19 @@ function App() {
     // Mirrors the server: a new trip can't replace one with money still held or in motion.
     locked =
       !["collecting", "cancelled", "confirmed"].includes(state.status) ||
-      state.payments.some((p) => !["voided", "refunded"].includes(p.status)),
+      !state.payments.every(
+        (p) =>
+          ["voided", "refunded", "abandoned"].includes(p.status) ||
+          (state.status === "confirmed" && p.status === "captured"),
+      ),
     currentPerson = active.find((p) => p.id === actor),
     isOrganizer = actor === "organizer",
     modalPerson = state.participants.find((p) => p.id === modal?.id),
-    departedNames = state.participants
-      .filter((p) => !p.active)
-      .map((p) => p.name.split(" ")[0])
-      .join(" and "),
+    departedNames = list(
+      state.participants
+        .filter((p) => !p.active)
+        .map((p) => p.name.split(" ")[0]),
+    ),
     myRequests = (state.limitRequests ?? []).filter(
       (r) => r.participantId === actor && r.status === "pending",
     ),
@@ -424,7 +531,6 @@ function App() {
       state.provider === "paypal-sandbox" ? "PayPal" : "the payment simulator",
     firstOf = (id) =>
       state.participants.find((p) => p.id === id)?.name.split(" ")[0],
-    // Plain-language account of a stopped booking, so nobody has to read an operations log.
     // Plain-language account of a stopped booking or cancellation, from the reason the server
     // recorded and each payment's actual status, so nobody has to read an operations log.
     stopped = (() => {
@@ -432,7 +538,7 @@ function App() {
       const by = (statuses) =>
         state.payments.filter((p) => statuses.includes(p.status));
       const names = (ps) =>
-        [...new Set(ps.map((p) => firstOf(p.participantId)))].join(" and ");
+        list([...new Set(ps.map((p) => firstOf(p.participantId)))]);
       const total = (ps) => usd(ps.reduce((n, p) => n + p.amount, 0));
       const stop = state.stop ?? {};
       const who = stop.participantId ? firstOf(stop.participantId) : "One";
@@ -469,13 +575,20 @@ function App() {
         parts.push(
           `PayPal reports ${names(refundFailed)}’s refund of ${total(refundFailed)} failed. That money is still captured; nothing was retried automatically.`,
         );
-      parts.push(
-        checking.length
-          ? `${names(checking)}’s payment is still being confirmed with ${provider}.`
-          : toReturn.length || returning.length || refundFailed.length
+      // Only mention holds that still exist.
+      const holds = by(["authorized", "failed", "capture_declined"]);
+      const taken = toReturn.length || returning.length || refundFailed.length;
+      if (checking.length)
+        parts.push(
+          `${names(checking)}’s payment is still being confirmed with ${provider}.`,
+        );
+      else if (holds.length)
+        parts.push(
+          taken
             ? "Every other hold will be released, never charged."
             : "Every hold will be released; nobody was charged.",
-      );
+        );
+      else if (!taken) parts.push("Nobody was charged.");
       parts.push("Nobody is charged twice.");
       return {
         title: ["cancelled", "expired"].includes(stop.reason)
@@ -534,6 +647,7 @@ function App() {
           <span>Demo view</span>
           <select
             aria-label="Switch demo identity"
+            disabled={viaLink}
             value={actor}
             onChange={(e) => setActor(e.target.value)}
           >
@@ -553,15 +667,17 @@ function App() {
           <span>Your trips</span>
           <span>/</span>
           <span>Catskills weekend</span>
-          <button
-            className="text-button"
-            onClick={() => {
-              setActor("organizer");
-              setModal({ kind: "create" });
-            }}
-          >
-            <Plus size={15} /> New trip
-          </button>
+          {!viaLink && (
+            <button
+              className="text-button"
+              onClick={() => {
+                setActor("organizer");
+                setModal({ kind: "create" });
+              }}
+            >
+              <Plus size={15} /> New trip
+            </button>
+          )}
         </div>
         <div className="page-title">
           <div>
@@ -687,7 +803,26 @@ function App() {
                   onUpdateBudget={() => review(currentPerson, null, "budget")}
                 />
               ))}
-            <section className="trip-hero">
+            {!isOrganizer && currentPerson && !myRequests.length && (
+              <NextStep
+                state={state}
+                person={currentPerson}
+                share={shareFor(currentPerson.id)}
+                held={heldFor(currentPerson.id)}
+                approved={approved(currentPerson.id)}
+                waitingOn={list(
+                  active
+                    .filter((p) => !approved(p.id))
+                    .map((p) => p.name.split(" ")[0]),
+                )}
+                departed={departedNames}
+                busy={busy}
+                onReview={() => review(currentPerson)}
+              />
+            )}
+            <section
+              className={`trip-hero${isOrganizer ? "" : " participant-hero"}`}
+            >
               <div className="hero-art">
                 <Cabin />
               </div>
@@ -776,6 +911,7 @@ function App() {
                 )}
                 {state.status === "revision_required" && isOrganizer && (
                   <RevisionOptions
+                    ai={state.aiAvailable}
                     data={revOptions}
                     busy={busy || revBusy}
                     noteLines={notes.split("\n").filter((l) => l.trim()).length}
@@ -866,7 +1002,19 @@ function App() {
                               Paid {usd(charge)}
                             </span>
                           ) : state.status === "cancelled" ? (
-                            <span className="status neutral">Settled</span>
+                            <span
+                              className={`status ${payment.some((x) => x.status === "refunded") ? "green" : "neutral"}`}
+                            >
+                              {payment.some((x) => x.status === "refunded")
+                                ? `Refunded ${usd(
+                                    payment
+                                      .filter((x) => x.status === "refunded")
+                                      .reduce((n, x) => n + x.amount, 0),
+                                  )}`
+                                : payment.some((x) => x.status === "voided")
+                                  ? "Hold released · not charged"
+                                  : "Nothing held"}
+                            </span>
                           ) : state.status === "recovery_pending" ? (
                             <span className="status neutral">
                               {payment.some((x) => x.status === "unknown")
@@ -1247,7 +1395,10 @@ function App() {
                         </span>
                         <small title={op.key}>
                           {op.providerId || `SIM-OP-${op.id.slice(0, 8)}`} · v
-                          {op.version} · attempt {op.attempts}
+                          {op.version}
+                          {Number.isInteger(op.attempts)
+                            ? ` · attempt ${op.attempts}`
+                            : ""}
                         </small>
                       </div>
                     ))}
@@ -1397,6 +1548,13 @@ function App() {
                 >
                   View booking & receipts <ArrowRight size={17} />
                 </button>
+              ) : (state.status === "recovery_pending" ||
+                  state.status === "booking") &&
+                !isOrganizer ? (
+                <p className="participant-status">
+                  Your organizer is returning money and releasing holds. Nothing
+                  for you to do.
+                </p>
               ) : state.status === "recovery_pending" ||
                 state.status === "booking" ? (
                 <>
@@ -1430,6 +1588,16 @@ function App() {
                       className="primary full"
                       disabled={busy}
                       onClick={async () => {
+                        // A new round needs 3–8 people; with fewer left, start from the full group.
+                        if (active.length < 3) {
+                          setTitle(state.title);
+                          setNames(
+                            state.participants.map((p) => p.name).join(", "),
+                          );
+                          setListingId(state.listingId);
+                          setModal({ kind: "create" });
+                          return;
+                        }
                         if (
                           await act(
                             "create",
@@ -1450,15 +1618,17 @@ function App() {
                       <ArrowRight size={16} />
                     </button>
                   )}
-                  <button
-                    className="secondary full"
-                    onClick={() => {
-                      setActor("organizer");
-                      setModal({ kind: "reset" });
-                    }}
-                  >
-                    Restart the demo
-                  </button>
+                  {!viaLink && (
+                    <button
+                      className="secondary full"
+                      onClick={() => {
+                        setActor("organizer");
+                        setModal({ kind: "reset" });
+                      }}
+                    >
+                      Restart the demo
+                    </button>
+                  )}
                 </>
               ) : state.status === "revision_required" &&
                 !isOrganizer &&
@@ -1485,7 +1655,10 @@ function App() {
                   }
                 >
                   {isOrganizer
-                    ? "Choose a new plan"
+                    ? revOptions?.options.length &&
+                      !revOptions.options.some((o) => o.feasible)
+                      ? "See why no plan fits"
+                      : "Choose a new plan"
                     : "Waiting for the organizer’s new plan"}{" "}
                   <ArrowRight size={16} />
                 </button>
@@ -1498,10 +1671,16 @@ function App() {
                   Review my {usd(shareFor(actor))} share{" "}
                   <ArrowRight size={16} />
                 </button>
+              ) : !isOrganizer ? (
+                <p className="participant-status">
+                  {state.status === "ready"
+                    ? "Everyone’s in. Your organizer books next."
+                    : "You’re in. Waiting for the rest of the group."}
+                </p>
               ) : (
                 <button
                   className="primary full"
-                  disabled={busy || state.status !== "ready" || !isOrganizer}
+                  disabled={busy || state.status !== "ready"}
                   onClick={() => setModal({ kind: "book" })}
                 >
                   Book our weekend <ArrowRight size={17} />
@@ -1518,7 +1697,7 @@ function App() {
                     Update my budget
                   </button>
                 )}
-              {!isOrganizer && (
+              {!isOrganizer && !viaLink && (
                 <button
                   className="text-button switch-back"
                   onClick={() => setActor("organizer")}
@@ -1855,16 +2034,23 @@ function App() {
                 ? "PayPal sandbox"
                 : "the simulator"}
               , nothing is charged, and the plan closes. You can start a new
-              round with the same group afterwards.
+              round afterwards, with the same friends or new ones.
             </p>
             <button
-              className="primary full"
+              className="danger full"
               disabled={busy}
               onClick={async () => {
                 if (await act("cancel")) setModal(null);
               }}
             >
               Cancel trip & release every hold
+            </button>
+            <button
+              className="secondary full"
+              disabled={busy}
+              onClick={() => setModal(null)}
+            >
+              Keep the trip open
             </button>
           </>
         )}
@@ -1913,10 +2099,13 @@ function App() {
               className="primary full"
               disabled={busy}
               onClick={async () => {
-                if (await act("book", { version: state.version, fault })) {
-                  setModal(null);
-                  setTab("ledger");
-                }
+                const next = await act("book", {
+                  version: state.version,
+                  fault,
+                });
+                // A booking that stops opens the board's plain-language explanation, not the log.
+                setModal(null);
+                setTab(next?.status === "confirmed" ? "ledger" : "board");
               }}
             >
               {state.provider === "paypal-sandbox"

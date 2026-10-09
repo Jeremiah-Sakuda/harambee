@@ -2,6 +2,7 @@
 // Offline mode feeds hand-written reference answers through the real verifier; it measures the
 // verifier, not a model. --live calls the configured model and records its actual results.
 import { readFileSync, writeFileSync } from "node:fs";
+import { sourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { Engine, allocate, seed } from "../server/domain.mjs";
 import { proposeRevisions } from "../server/revision-options.mjs";
 
@@ -142,6 +143,12 @@ try {
   else delete process.env.OPENAI_API_KEY;
 }
 const report = {
+  // Which code produced these results: commit, uncommitted changes, file hashes.
+  source: sourceFingerprint([
+    "server/revision-options.mjs",
+    "server/ai.mjs",
+    "server/domain.mjs",
+  ]),
   fixtureVersion: 1,
   cases: set,
   mode: live ? "live-provider" : "offline-reference-answers-through-verifier",

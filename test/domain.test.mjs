@@ -272,3 +272,22 @@ test("a stopped simulated booking records who failed and why", () => {
     participantId: e.state.payments[1].participantId,
   });
 });
+
+test("a typed private limit can't be probed through option confirmations", () => {
+  const { engine: e } = fixture();
+  for (const p of e.active) e.approve(p.id, 1);
+  e.withdraw("organizer", "sam");
+  const ask = e.requestLimit("organizer", {
+    participantId: "maya",
+    kind: "ask",
+  });
+  e.confirmLimit("maya", 20000, ask.id);
+  assert.equal(e.limitConfirmed("maya", 20000), false);
+  const confirm = e.requestLimit("organizer", {
+    participantId: "maya",
+    kind: "confirm",
+    amountCents: 17000,
+  });
+  e.confirmLimit("maya", 17000, confirm.id);
+  assert.equal(e.limitConfirmed("maya", 17000), true);
+});

@@ -1392,3 +1392,85 @@ test("unchecked summaries cannot turn vague willingness into a financial commitm
     [17000, 21500, 21500],
   );
 });
+
+test("questions go to the person whose message they cite, once each; generic ones are dropped", async () => {
+  const notes =
+    "Sam: out, sorry.\nJordan: Maya told me she really doesn't want Creekside.\nAlex: I might not come either.";
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [option({ title: "Same cabin" })],
+      clarifications: [
+        {
+          participantId: "jordan",
+          line: 2,
+          question: "Does Maya prefer Pine & Still?",
+          topic: "cabin",
+        },
+        {
+          participantId: "alex",
+          line: 3,
+          question: "Alex, are you still coming?",
+          topic: "attendance",
+        },
+        {
+          participantId: "alex",
+          line: 3,
+          question: "Alex, what's your max?",
+          topic: "limit",
+        },
+        {
+          participantId: "maya",
+          line: null,
+          question: "What is your spending limit for the cabin?",
+          topic: "limit",
+        },
+        {
+          participantId: "jordan",
+          line: null,
+          question: "Can you bring more snacks for the drive?",
+          topic: "cabin",
+        },
+      ],
+    },
+    notes,
+  );
+  const model = out.clarifications.filter((c) => c.source !== "code");
+  assert.deepEqual(
+    model.map((c) => [c.participantId, c.question]),
+    [
+      ["maya", "Does Maya prefer Pine & Still?"],
+      ["alex", "Alex, are you still coming?"],
+    ],
+  );
+});
+
+test("someone offering to pay more without a number is asked how far", async () => {
+  const notes =
+    "Sam: out, sorry.\nJordan: I can stretch a bit if that keeps us at Pine & Still.";
+  const { out } = await withModel(
+    afterDropout(),
+    {
+      summary: "",
+      options: [
+        option({
+          title: "Keep Pine",
+          basis: [
+            {
+              participantId: "jordan",
+              line: 2,
+              quote: "I can stretch a bit if that keeps us at Pine & Still.",
+              kind: "willing_more",
+            },
+          ],
+        }),
+      ],
+      clarifications: [],
+    },
+    notes,
+  );
+  const q = out.clarifications.find((c) => c.participantId === "jordan");
+  assert.equal(q.source, "code");
+  assert.match(q.question, /How far could Jordan go\?/);
+});

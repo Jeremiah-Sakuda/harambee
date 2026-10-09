@@ -5,6 +5,7 @@
 // Usage: node scripts/evaluate-noamount.mjs [--live] [--write]
 //   default: the local planner (no model); --live: the configured model (needs OPENAI_API_KEY).
 import { readFileSync, writeFileSync } from "node:fs";
+import { sourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { Engine } from "../server/domain.mjs";
 import { proposeRevisions } from "../server/revision-options.mjs";
 
@@ -90,6 +91,12 @@ for (const c of cases) {
   });
 }
 const report = {
+  // Which code produced these results: commit, uncommitted changes, file hashes.
+  source: sourceFingerprint([
+    "server/revision-options.mjs",
+    "server/ai.mjs",
+    "server/domain.mjs",
+  ]),
   cases: "revision-cases-noamount",
   mode: live ? "live-model" : "local-planner",
   passed: results.filter((r) => r.pass).length,

@@ -247,22 +247,55 @@ const server = http.createServer(async (req, res) => {
           if (!listing) throw new DomainError("Select a cabin.", 400);
           if (names.length > listing.guests)
             throw new DomainError("This cabin cannot fit the full group.", 400);
+          // Nothing may still be held or in motion; a booked trip's captures are final.
+          const settledPayment = (p) =>
+            ["voided", "refunded", "abandoned"].includes(p.status) ||
+            (engine.state.status === "confirmed" && p.status === "captured");
           if (
             !["collecting", "cancelled", "confirmed"].includes(
               engine.state.status,
             ) ||
-            engine.state.payments.some(
-              (p) => !["voided", "refunded"].includes(p.status),
-            )
+            !engine.state.payments.every(settledPayment)
           )
             throw new DomainError(
               "Reset the demo or finish recovery before replacing this plan.",
             );
+          // Keep a finished sandbox trip's provider evidence before replacing it, as reset does.
+          if (
+            engine.state.provider === "paypal-sandbox" &&
+            engine.state.payments.length
+          )
+            new Store(
+              path.join(
+                path.dirname(store.path),
+                "archive",
+                `plan-${engine.state.id}.json`,
+              ),
+            ).save(engine.state);
+          // Friends keep their ids (and so their links) across rounds; new names get readable ones.
+          const taken = new Set();
+          const idFor = (name) => {
+            const known = engine.state.participants.find(
+              (p) => p.name.toLowerCase() === name.toLowerCase(),
+            )?.id;
+            const base =
+              known ??
+              (name
+                .split(/\s/)[0]
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "") ||
+                "friend");
+            let id = base,
+              n = 2;
+            while (taken.has(id) || id === "organizer") id = `${base}-${n++}`;
+            taken.add(id);
+            return id;
+          };
           const s = seed();
           s.title = input.title.trim();
           s.listingId = listing.id;
-          s.participants = names.map((name, i) => ({
-            id: `person-${i + 1}`,
+          s.participants = names.map((name) => ({
+            id: idFor(name),
             name,
             initials: name
               .split(/\s/)
@@ -288,7 +321,11 @@ const server = http.createServer(async (req, res) => {
               text:
                 engine.state.status === "confirmed"
                   ? `Previous round “${engine.state.title}” was booked and paid.`
-                  : `Previous round “${engine.state.title}” ended without a booking: $${(returned / 100).toFixed(2)} returned and every hold released.`,
+                  : `Previous round “${engine.state.title}” ended without a booking: ${
+                      returned
+                        ? `$${(returned / 100).toFixed(2)} returned and every hold released`
+                        : "every hold released and nothing charged"
+                    }.`,
             });
           }
           store.save(s);

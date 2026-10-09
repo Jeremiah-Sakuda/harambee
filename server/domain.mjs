@@ -551,9 +551,14 @@ export class Engine {
     const p = this.state.participants.find((p) => p.id === actor);
     this.log(`${p.name} isn’t ready to confirm a limit yet.`, "revision");
   }
+  // Only a one-click confirmation of a quoted amount unlocks an option. A typed answer is private
+  // and already becomes the saved budget, so it must not answer "did they type exactly $X?".
   limitConfirmed(id, amount) {
     return (this.state.limitConfirmations ?? []).some(
-      (c) => c.participantId === id && c.amountCents === amount,
+      (c) =>
+        c.participantId === id &&
+        c.amountCents === amount &&
+        (c.kind ?? "confirm") === "confirm",
     );
   }
   book(actor, { version, fault = "none" } = {}) {

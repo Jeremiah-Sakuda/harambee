@@ -6,14 +6,9 @@ globalThis.fetch = async () => {
   throw Error("Network disabled in offline sandbox matrix");
 };
 for (const scenario of scenarios) {
-  test(scenario.title, async (t) => {
-    const observation = await scenario.run();
-    try {
-      scenario.verify(observation);
-    } catch (error) {
-      if (scenario.knownGap && error.message.includes(scenario.failureMarker))
-        t.todo(scenario.knownGap);
-      throw error;
-    }
+  // Every scenario now passes, so a regression of a once-known gap fails CI instead of
+  // being reported as a TODO. scripts/simulate-sandbox.mjs still reports the gap history.
+  test(scenario.title, async () => {
+    scenario.verify(await scenario.run());
   });
 }

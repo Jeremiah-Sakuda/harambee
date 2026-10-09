@@ -8,6 +8,7 @@
 //   node scripts/evaluate-noamount-strict.mjs --rescore eval/revision-noamount-results-live.json
 //   node scripts/evaluate-noamount-strict.mjs [--live] [--write]
 import { readFileSync, writeFileSync } from "node:fs";
+import { sourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { fileURLToPath } from "node:url";
 
 // From the briefs' notes: "not a Why on any option that raises Alex's share". With Sam gone,
@@ -70,6 +71,12 @@ const results = source.results.map((r) => {
 });
 const precise = results.filter((r) => r.questionPrecision);
 const report = {
+  // Which code produced these results: commit, uncommitted changes, file hashes.
+  source: sourceFingerprint([
+    "server/revision-options.mjs",
+    "server/ai.mjs",
+    "server/domain.mjs",
+  ]),
   cases: "revision-cases-noamount",
   scorer: "strict",
   mode: source.mode,

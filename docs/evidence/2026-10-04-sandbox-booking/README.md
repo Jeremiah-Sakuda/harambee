@@ -37,5 +37,5 @@ All 15 provider operations (5 create, 5 authorize, 1 void, 4 capture) ended `con
   - The original approval never covers the increase; each remaining buyer approves only the $100 difference.
   - Capture happens only once everyone holds the current version.
 - The separate-buyer check compared PayPal payer IDs. Matching each participant to their buyer relied on the operator logging into the intended account; participant links are not authentication.
-- It does not demonstrate failure recovery against PayPal (refunds after a failed reservation). That run is recorded separately when performed.
+- It does not demonstrate failure recovery against PayPal (refunds after a failed reservation). That was later run against the PayPal sandbox: see the [October 8 group refund](../2026-10-08-sandbox-group-refund/README.md).
 - It is not merchant inventory, a real stay, real funds, webhooks, or user research.

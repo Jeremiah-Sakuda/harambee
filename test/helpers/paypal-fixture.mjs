@@ -66,6 +66,9 @@ export function fixture() {
       c.status = "REFUNDED";
       const r = { id: `R${id}-${key}`, status: "COMPLETED", amount: c.amount };
       refunds.set(r.id, r);
+      // PayPal's order GET lists refunds under purchase_units[].payments.refunds.
+      const payments = orders.get(id.slice(2))?.purchase_units[0].payments;
+      if (payments) payments.refunds = [...(payments.refunds ?? []), r];
       return r;
     },
     getOrder: async (id) => orders.get(id),

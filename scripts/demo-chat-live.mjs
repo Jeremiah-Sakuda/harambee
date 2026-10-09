@@ -3,6 +3,7 @@
 // which reasons the model gave. Use it before recording so narration only claims what recurs.
 // Usage: node --env-file-if-exists=.env scripts/demo-chat-live.mjs [runs] [--write]
 import { readFileSync, writeFileSync } from "node:fs";
+import { sourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { Engine } from "../server/domain.mjs";
 import { proposeRevisions } from "../server/revision-options.mjs";
 
@@ -62,6 +63,12 @@ for (let i = 0; i < runs; i++) {
   });
 }
 const report = {
+  // Which code produced these results: commit, uncommitted changes, file hashes.
+  source: sourceFingerprint([
+    "server/revision-options.mjs",
+    "server/ai.mjs",
+    "server/domain.mjs",
+  ]),
   chat: notes.split("\n"),
   runs: results.length,
   note: "Live runs of the sample chat after Sam withdraws. Narrate only what recurs across runs.",

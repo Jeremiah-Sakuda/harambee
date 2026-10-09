@@ -5,6 +5,7 @@ import {
   MessageCircleQuestion,
   ShieldCheck,
   Sparkles,
+  ListChecks,
 } from "lucide-react";
 
 const usd = (cents) =>
@@ -44,6 +45,7 @@ export default function RevisionOptions({
   onRequest,
   onDemoAnswer,
   onCancelTrip,
+  ai = false,
 }) {
   // The latest request to each person about this amount (or any "ask"), with its status.
   const requestFor = (participantId, kind, amountCents = null) =>
@@ -107,7 +109,7 @@ export default function RevisionOptions({
           </div>
           <button className="primary" disabled={busy} onClick={onSuggest}>
             {busy ? "Reading the chat…" : "Suggest options"}{" "}
-            <Sparkles size={16} />
+            {ai ? <Sparkles size={16} /> : <ListChecks size={16} />}
           </button>
         </div>
         <button className="link-button" onClick={onEditNotes}>
@@ -254,7 +256,9 @@ export default function RevisionOptions({
             )}
             {o.removedLimits?.length > 0 && (
               <p className="rev-note">
-                Code removed a limit this suggestion used:{" "}
+                {o.source === "local-planner"
+                  ? "The planner skipped a limit that isn’t firm: "
+                  : "Code removed a limit this suggestion used: "}
                 {o.removedLimits.join(" ")}
               </p>
             )}

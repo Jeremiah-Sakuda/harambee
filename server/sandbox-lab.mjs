@@ -148,6 +148,12 @@ export class SandboxLab {
           !CAPTURE_NOT_TAKEN.includes(orderCapture.status)
         )
           session.captureId = orderCapture.id;
+        // The order lists its refunds too, so a refund whose response was lost still gets its ID.
+        const orderRefund = order.purchase_units
+          ?.flatMap((u) => u.payments?.refunds ?? [])
+          .findLast((r) => !REFUND_NOT_MADE.includes(r.status));
+        if (orderRefund?.id && !session.refundId)
+          session.refundId = orderRefund.id;
         if (auth) {
           session.authorizationId = auth.id;
           const detail = await this.client.getAuthorization(auth.id);

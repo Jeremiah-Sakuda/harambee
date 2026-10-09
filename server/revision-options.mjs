@@ -711,6 +711,26 @@ function finish(engine, ctx, lines, proposed, meta) {
       });
     }
   }
+  // Someone offering to pay more without a number ("I can stretch a bit") is asked how far, unless
+  // a question to them already exists.
+  for (const o of options)
+    for (const b of o.basis)
+      if (
+        b.kind === "willing_more" &&
+        !literalAmounts(body(lines[b.line - 1])).length &&
+        ![...(meta.clarifications ?? []), ...codeQuestions].some(
+          (q) => q.participantId === b.participantId,
+        )
+      ) {
+        const first = b.name.split(" ")[0];
+        codeQuestions.push({
+          participantId: b.participantId,
+          line: b.line,
+          question: `${first} wrote “${body(lines[b.line - 1])
+            .trim()
+            .slice(0, 90)}”. How far could ${first} go?`,
+        });
+      }
   // Questions code raised while checking limits join the model's, without repeats.
   const clarifications = [...(meta.clarifications ?? [])];
   for (const q of codeQuestions)
@@ -1129,7 +1149,7 @@ async function suggest(engine, ctx, notes, lines) {
           // It must be about money (a figure counts), the cabin, or whether someone is coming.
           (amountsIn(c.question).length > 0 ||
             spokenFigure(c.question) ||
-            /\b(?:pay\w*|spend\w*|budget|limit|afford|cost\w*|cover\w*|bucks|dollars|price|more|less|higher|lower|extra|stretch\w*|cheaper|share|max\w*|cabin|place|pine|creek\w*|coming|come|join\w*|attend\w*|still in|drop\w*|out)\b|\$/i.test(
+            /\b(?:pay\w*|spend\w*|budget|limit|afford|cost\w*|cover\w*|bucks|dollars|price|(?:much|any|pay|spend|chip in|put in)\s+more|more than|less|higher|lower|extra|stretch\w*|cheaper|share|max\w*|cabin|place|pine|creek\w*|coming|still com\w*|join\w*|attend\w*|still in|in or out|drop\w*)\b|\$/i.test(
               c.question,
             )),
       )
@@ -1148,7 +1168,45 @@ async function suggest(engine, ctx, notes, lines) {
           ) && !spokenFigure(c.question)
             ? c.question.slice(0, 300)
             : "Please confirm the amount directly with this person.",
-      }));
+      }))
+      // A question goes to the person whose message it is about: whoever wrote the cited line, or
+      // the person that line names ("Maya told me…" → Maya). A question with no cited line must
+      // name its addressee. Generic questions sent to everyone aren't shown, each person gets at
+      // most one, and the group at most one.
+      .map((c) => {
+        const named = (p, text) =>
+          p && new RegExp(`\\b${escapeRe(firstName(p))}\\b`, "i").test(text);
+        const addressee = ctx.active.find((p) => p.id === c.participantId);
+        if (!c.participantId) return c;
+        const line = c.line ? lines[c.line - 1] : null;
+        if (!line) return named(addressee, c.question) ? c : null;
+        const speaker = ctx.active.find((p) => speakerMatches(line, p));
+        // Someone relaying another person's view ("Maya told me…"): ask that person directly.
+        const relayed = ctx.active.find(
+          (p) =>
+            p.id !== speaker?.id &&
+            named(p, body(line)) &&
+            named(p, c.question),
+        );
+        if (relayed) return { ...c, participantId: relayed.id };
+        const to =
+          addressee &&
+          (speaker?.id === addressee.id || named(addressee, body(line)))
+            ? addressee
+            : speaker;
+        // Don't re-address a question whose text speaks to someone else.
+        const speaksTo = ctx.active.find((p) =>
+          new RegExp(`^\\s*${escapeRe(firstName(p))}\\b`, "i").test(c.question),
+        );
+        return to && (!speaksTo || speaksTo.id === to.id)
+          ? { ...c, participantId: to.id }
+          : null;
+      })
+      .filter(
+        (c, i, all) =>
+          c &&
+          all.findIndex((x) => x && x.participantId === c.participantId) === i,
+      );
     return {
       proposals: result.options.map((o) => ({ ...o, source: "openai" })),
       meta: {

@@ -281,6 +281,7 @@ export class GroupPayments {
       expiresAt: new Date(Date.now() + 60000).toISOString(),
     };
     e.persist();
+    let capturing = null;
     try {
       for (const p of this.s.payments.filter(
         (p) => p.status === "authorized",
@@ -289,6 +290,7 @@ export class GroupPayments {
           Date.parse(this.s.reservation.expiresAt) > Date.now(),
           "Fixture inventory lease expired. Recovery required.",
         );
+        capturing = p;
         await this.run(p, "capture");
         need(
           p.status === "captured",
@@ -296,6 +298,7 @@ export class GroupPayments {
             ? `${p.providerIssue} Recovery required.`
             : "Capture is not confirmed. Recovery required.",
         );
+        capturing = null;
       }
       need(
         fault !== "reservation_failure",
@@ -314,17 +317,21 @@ export class GroupPayments {
     } catch (error) {
       this.s.status = "recovery_pending";
       // What stopped it, so the board can say so plainly.
-      const failing = this.s.payments.find((p) =>
-        ["capture_declined", "capture_unknown", "capture_pending"].includes(
-          p.status,
-        ),
-      );
+      const failing =
+        this.s.payments.find((p) =>
+          ["capture_declined", "capture_unknown", "capture_pending"].includes(
+            p.status,
+          ),
+        ) ??
+        // PayPal rejected the capture outright (a definite 4xx): it's a payment failure, not the cabin's.
+        (capturing && capturing.status !== "captured" ? capturing : null);
       this.s.stop = failing
         ? {
-            reason:
-              failing.status === "capture_declined"
-                ? "capture_declined"
-                : "capture_unknown",
+            reason: ["capture_unknown", "capture_pending"].includes(
+              failing.status,
+            )
+              ? "capture_unknown"
+              : "capture_declined",
             participantId: failing.participantId,
           }
         : {

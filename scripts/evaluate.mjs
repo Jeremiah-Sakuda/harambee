@@ -12,7 +12,7 @@ const originalFetch = globalThis.fetch,
   key = process.env.OPENAI_API_KEY;
 const results = [];
 try {
-  for (const c of cases.filter(c => !live || !("modelAmount" in c))) {
+  for (const c of cases.filter((c) => !live || !("modelAmount" in c))) {
     if (!live) {
       delete process.env.OPENAI_API_KEY;
       if ("modelAmount" in c) {
@@ -71,7 +71,7 @@ const report = {
   fixtureVersion: 1,
   mode: live ? "live-provider" : "offline-parser-and-injected-validator",
   liveProviderRequested: live,
-  liveProviderExecuted: live && results.some(r => r.provider === "openai"),
+  liveProviderExecuted: live && results.some((r) => r.provider === "openai"),
   passed: results.filter((r) => r.pass).length,
   total: results.length,
   limitations:

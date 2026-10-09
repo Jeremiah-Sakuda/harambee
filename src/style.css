@@ -2309,3 +2309,36 @@ dialog .terms,
     padding: 0 12px;
   }
 }
+
+/* A friend's link: their next step first, and a shorter hero on phones. */
+.next-step-card h2 {
+  margin: 4px 0 6px;
+}
+.participant-status {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f0f4e6;
+  color: var(--deep);
+  font-size: var(--fs-sm);
+}
+@media (max-width: 660px) {
+  .participant-hero {
+    max-height: 180px;
+  }
+  .participant-hero .hero-content h2 {
+    display: none;
+  }
+}
+/* Destructive actions look destructive. */
+button.danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  font-size: 11px;
+  padding: 11px 16px;
+  border-radius: 5px;
+  min-height: 43px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}

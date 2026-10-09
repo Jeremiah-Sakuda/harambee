@@ -3,14 +3,15 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../../", import.meta.url));
-export function sourceFingerprint() {
-  const files = [
+export function sourceFingerprint(
+  files = [
     "server/domain.mjs",
     "server/paypal.mjs",
     "server/sandbox-lab.mjs",
     "server/group-payments.mjs",
     "server/store.mjs",
-  ];
+  ],
+) {
   return {
     commit: execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: root,

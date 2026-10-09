@@ -66,6 +66,8 @@ function fixture() {
       c.status = "REFUNDED";
       const r = { id: `R${id}`, status: "COMPLETED", amount: c.amount };
       refunds.set(r.id, r);
+      const payments = orders.get(id.slice(2))?.purchase_units[0].payments;
+      if (payments) payments.refunds = [...(payments.refunds ?? []), r];
       return r;
     },
     getOrder: async (id) => orders.get(id),
@@ -672,3 +674,41 @@ for (const [name, reported] of [
     assert.equal(captures, 3);
   });
 }
+
+test("a refund whose response was lost still records its refund ID, read from the order", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  await assert.rejects(
+    f.g.book("organizer", { version: 1, fault: "reservation_failure" }),
+  );
+  const real = f.client.refund;
+  f.client.refund = async (...args) => {
+    await real(...args);
+    throw Error("response lost after PayPal refunded");
+  };
+  await f.g.recover("organizer");
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+  assert.ok(
+    f.e.state.payments.every((p) => p.status === "refunded" && p.refundId),
+  );
+});
+
+test("a capture PayPal rejects outright is reported as that person's payment, not the cabin", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  const real = f.client.capture;
+  let calls = 0;
+  f.client.capture = async (...args) => {
+    if (++calls === 2)
+      throw Object.assign(Error("AUTHORIZATION_EXPIRED"), { status: 422 });
+    return real(...args);
+  };
+  await assert.rejects(f.g.book("organizer", { version: 1 }));
+  assert.deepEqual(f.e.state.stop, {
+    reason: "capture_declined",
+    participantId: f.e.state.payments[1].participantId,
+  });
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+});
