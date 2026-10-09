@@ -44,7 +44,7 @@ The following is our proposed strategy, not additional official judging criteria
 | --- | --- |
 | Technological Implementation | Show real sandbox authorizations from several payers, approved top-ups, capture, and recovery after a partial failure. Demonstrate how AI converts chat into constraints while code enforces money and consent. |
 | Design | Make the commitment board, revised shares, checkout, reservation confirmation, and recovery states understandable as one complete journey on mobile and desktop. |
-| Potential Impact | Use organizer interviews and observed user sessions to support the specific problem of fronting group deposits. Measure comprehension and coordination effort; do not invent savings or adoption. |
+| Potential Impact | Make the specific problem of fronting group deposits land fast, with sourced context, a named audience, and a demo where the organizer's card is never on the line. Do not invent savings or adoption. |
 | Innovation/Idea | Demonstrate constraint-aware renegotiation tied to approved financial commitments. Explain the difference from bill splitting and group collection without claiming that every component is novel. |
 | Presentation | Show the dropout, feasible revision, participant approval, sandbox payment evidence, and reservation result in under three minutes. Include a concise, clearly labeled failure-recovery example. |
 

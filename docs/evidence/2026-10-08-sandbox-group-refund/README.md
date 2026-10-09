@@ -34,4 +34,4 @@ Public plan snapshots rename the operation field `key` to `paypalRequestId` to i
 
 ![Three confirmed refund receipts](settled-receipts.png)
 
-The receipt heading was found to say “Simulated payment operations” even in sandbox mode and corrected after the run. The receipts screenshot uses that display-only correction; payment code and stored transactions are unchanged. This run is separate from the four-person filming story and its AI rehearsal. A recorded video and user research remain pending.
+The receipt heading was found to say “Simulated payment operations” even in sandbox mode and corrected after the run. The receipts screenshot uses that display-only correction; payment code and stored transactions are unchanged. This run is separate from the four-person filming story and its AI rehearsal. The recorded video is still to come.

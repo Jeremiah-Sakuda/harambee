@@ -1,6 +1,6 @@
-# Validation protocol — not completed research
+# Validation protocol — for after the hackathon
 
-No participants have been recruited or observed and no merchant has been interviewed. Use consented synthetic trip notes; retain only anonymized research records.
+A plan for testing the problem and the product with real organizers and operators once the hackathon prototype is done. It has not been run. Use consented synthetic trip notes; retain only anonymized research records.
 
 ## Organizers and group comprehension
 

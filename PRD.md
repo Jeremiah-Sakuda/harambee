@@ -12,7 +12,7 @@ The goal is to win first place overall in the PayPal AI Hackathon. Prioritize a 
 
 The primary user organizes a cabin trip for three to eight friends. Participants have different budgets, attendance, and room preferences. Today the organizer must negotiate shares and decide whether to commit money before everyone pays. A participating cabin operator is the merchant and controls reservation inventory.
 
-The hypothesis is that visible commitments and explicit revision approval reduce the organizer's financial exposure and coordination effort. No adoption, conversion, or time-saving result is established. The first validation task is to interview five recent trip organizers and identify how often deposits, late payment, or dropouts actually caused problems.
+The hypothesis is that visible commitments and explicit revision approval reduce the organizer's financial exposure and coordination effort. No adoption, conversion, or time-saving result is established. After the hackathon, the first validation step would be talking to recent trip organizers about how often deposits, late payment, or dropouts caused problems.
 
 ## Product decisions
 
@@ -101,7 +101,7 @@ Gate by October 9: prove the merchant money flow and recovery before building a 
 
 The 2:45 video spends 20 seconds on the organizer's problem, 35 on interpreting constraints and approvals, 45 on the dropout and top-ups, 35 on sandbox captures and the reservation receipt, and 30 on a separately labeled failed-capture recovery case. Some initial approvals can be prepared in advance and labeled; show at least one checkout functioning.
 
-Implementation evidence is payment coordination and recovery. Design evidence is the understandable commitment board. Impact evidence comes from organizer interviews. Innovation is agreement revision tied to explicit financial consent. Presentation must show the actual booking state and payment evidence, not only animated totals. The most relevant optional award is AG Grid when the comparison board materially benefits from it.
+Implementation evidence is payment coordination and recovery. Design evidence is the understandable commitment board. Impact is the case for the problem (one friend fronting the cost and absorbing dropouts), the audience, and a demo that visibly removes that risk. Innovation is agreement revision tied to explicit financial consent. Presentation must show the actual booking state and payment evidence, not only animated totals. The most relevant optional award is AG Grid when the comparison board materially benefits from it.
 
 ## Unresolved decisions
 
