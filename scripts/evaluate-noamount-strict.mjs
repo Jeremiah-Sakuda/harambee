@@ -8,6 +8,7 @@
 //   node scripts/evaluate-noamount-strict.mjs --rescore eval/revision-noamount-results-live.json
 //   node scripts/evaluate-noamount-strict.mjs [--live] [--write]
 import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // From the briefs' notes: "not a Why on any option that raises Alex's share". With Sam gone,
 // every option raises everyone's share ($600 or $480 split three ways vs $150 before), so the
@@ -28,7 +29,7 @@ if (rescore > 0) {
   // Run the briefs the same way the original scorer does, then score strictly.
   const { execFileSync } = await import("node:child_process");
   const args = [
-    new URL("./evaluate-noamount.mjs", import.meta.url).pathname,
+    fileURLToPath(new URL("./evaluate-noamount.mjs", import.meta.url)),
     ...(process.argv.includes("--live") ? ["--live"] : []),
   ];
   source = JSON.parse(
