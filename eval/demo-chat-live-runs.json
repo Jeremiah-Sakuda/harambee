@@ -1,4 +1,13 @@
 {
+  "source": {
+    "commit": "ba90ffbe3ca726b7b6c213d28971209c47482c08",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/revision-options.mjs": "d21beaf12c10ed67666824a9fdc7f33429783ecf74a46c51955d53a5ae49ec84",
+      "server/ai.mjs": "7562a87326c9b478024d346e4a9c9725d9453678fb380f7db610361dbd6716c9",
+      "server/domain.mjs": "a7da78bde4f0107df278db8142668106c740c40dd4e85e756d2a2a6ea985b8dc"
+    }
+  },
   "chat": [
     "Maya: I can spend up to $220. A quiet room would be lovely.",
     "Jordan: My budget is $220. I’m happy to share a room.",
@@ -16,13 +25,14 @@
       "run": 1,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 6341,
-      "summary": "Maya lowered her spending limit to a firm $170, replacing her earlier $220 limit. Alex expressed a preference for the cheaper cabin if costs rise but has no firm limit stated. Jordan can pay more than $220 if needed. Sam dropped out. The options reflect Maya's new lower limit, Alex's preference for the cheaper cabin, and Jordan's willingness to stretch the budget.",
+      "latencyMs": 6112,
+      "summary": "",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: alex: Alex, can you confirm if $220 is still your firm maximum for the cabin, or would you accept the Creekside place at a lower price?"
+        "model: alex: Can you confirm if you are okay paying somewhat more than $170 to stay at Pine, or do you prefer the cheaper cabin regardless?",
+        "code: jordan: Jordan wrote “I can stretch a bit if that keeps us at Pine & Still.”. How far could Jordan go?"
       ],
       "options": [
         {
@@ -54,8 +64,7 @@
           ],
           "why": [
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
-            "jordan: My budget is $220. I’m happy to share a room."
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
           ],
           "notWhy": [],
           "removed": []
@@ -80,13 +89,14 @@
       "run": 2,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 5680,
-      "summary": "Maya lowered her spending limit from $220 to $170, and Alex prefers the cheaper cabin if costs rise. Jordan can pay more to keep the pricier Pine & Still cabin. Sam left, so their budget is removed.",
+      "latencyMs": 7526,
+      "summary": "",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: jordan: Jordan, can you specify a spending limit for yourself if you stretch your budget to keep Pine & Still?"
+        "model: alex: Would you be comfortable paying more than $220 for the Pine & Still Cabin if needed, or do you strictly prefer the cheaper Creekside Hideaway?",
+        "code: jordan: Jordan wrote “I can stretch a bit if that keeps us at Pine & Still.”. How far could Jordan go?"
       ],
       "options": [
         {
@@ -117,25 +127,28 @@
             160
           ],
           "why": [
-            "maya: Honestly my rent just went up, I can’t go above $170 now.",
             "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
-            "jordan: My budget is $220.",
-            "alex: Up to $220 works for me."
+            "maya: Honestly my rent just went up, I can’t go above $170 now."
           ],
           "notWhy": [],
           "removed": []
         },
         {
           "listingId": "pine",
-          "source": "rule",
-          "matchesRule": false,
+          "source": "openai",
+          "matchesRule": true,
           "shares": [
             200,
             200,
             200
           ],
-          "why": [],
-          "notWhy": [],
+          "why": [
+            "jordan: I can stretch a bit if that keeps us at Pine & Still.",
+            "alex: Up to $220 works for me. I might arrive late Friday."
+          ],
+          "notWhy": [
+            "superseded: maya: I can spend up to $220. A quiet room would be lovely."
+          ],
           "removed": []
         }
       ],
@@ -145,13 +158,13 @@
       "run": 3,
       "provider": "openai",
       "model": "gpt-4.1-mini-2025-04-14",
-      "latencyMs": 4880,
-      "summary": "Maya's newer lower spending limit replaces her earlier one. Alex prefers the cheaper cabin if needed but gave no firm limit. Jordan can pay more than initially stated to keep Pine & Still. Sam dropped out, so no payment from them.",
+      "latencyMs": 4720,
+      "summary": "",
       "needsConfirming": [
         "maya 170"
       ],
       "questions": [
-        "model: alex: Could you please confirm your maximum spending limit or if the cheaper cabin is a firm preference for you?"
+        "model: jordan: Jordan, you said you can stretch a bit to stay at Pine & Still. What exact maximum amount can you contribute?"
       ],
       "options": [
         {
@@ -165,10 +178,11 @@
           ],
           "why": [
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "jordan: I can stretch a bit if that keeps us at Pine & Still."
+            "jordan: I can stretch a bit if that keeps us at Pine & Still.",
+            "alex: Up to $220 works for me."
           ],
           "notWhy": [
-            "elsewhere: alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
+            "superseded: maya: I can spend up to $220."
           ],
           "removed": []
         },
@@ -182,9 +196,8 @@
             160
           ],
           "why": [
-            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more.",
             "maya: Honestly my rent just went up, I can’t go above $170 now.",
-            "jordan: My budget is $220. I’m happy to share a room."
+            "alex: If it gets pricey I’d rather do the cheaper Creekside place than pay more."
           ],
           "notWhy": [],
           "removed": []

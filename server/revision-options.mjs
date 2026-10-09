@@ -158,6 +158,8 @@ const notALimit = (text, amount) =>
     (s) => NOT_A_LIMIT.test(s) || (ACCEPTS.test(s) && !CEILING.test(s)),
   );
 const body = (line) => splitSpeaker(line).body;
+// “Quoted message.” without a doubled full stop after it.
+const said = (text) => `“${text}”${/[.!?…]$/.test(text.trim()) ? "" : "."}`;
 const firstName = (p) => p.name.split(" ")[0];
 const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 function ambiguousLimit(lines, index, person, amount, active = []) {
@@ -166,7 +168,7 @@ function ambiguousLimit(lines, index, person, amount, active = []) {
   const quote = text.trim().slice(0, 90);
   const ask = (reason) => ({
     reason,
-    question: `${first} wrote “${quote}”. Ask for a firm limit before using it.`,
+    question: `${first} wrote ${said(quote)} Ask for a firm limit before using it.`,
   });
   if (COMMAND.test(text))
     return ask(
@@ -355,7 +357,7 @@ function evaluate(engine, ctx, lines, option) {
     const ambiguity = unsure
       ? {
           reason: `The model read ${first}’s message as ${unsure}, not a firm limit, so code asked instead of using it.`,
-          question: `${first} wrote “${body(line).trim().slice(0, 90)}”. Ask for a firm limit before using it.`,
+          question: `${first} wrote ${said(body(line).trim().slice(0, 90))} Ask for a firm limit before using it.`,
         }
       : ambiguousLimit(lines, c.line - 1, person, c.amountCents, ctx.active);
     if (ambiguity) {
@@ -726,9 +728,11 @@ function finish(engine, ctx, lines, proposed, meta) {
         codeQuestions.push({
           participantId: b.participantId,
           line: b.line,
-          question: `${first} wrote “${body(lines[b.line - 1])
-            .trim()
-            .slice(0, 90)}”. How far could ${first} go?`,
+          question: `${first} wrote ${said(
+            body(lines[b.line - 1])
+              .trim()
+              .slice(0, 90),
+          )} How far could ${first} go?`,
         });
       }
   // Questions code raised while checking limits join the model's, without repeats.
@@ -1206,7 +1210,22 @@ async function suggest(engine, ctx, notes, lines) {
         (c, i, all) =>
           c &&
           all.findIndex((x) => x && x.participantId === c.participantId) === i,
-      );
+      )
+      // A figure in a question to someone must be one they wrote themselves.
+      .map((c) => {
+        const p = ctx.active.find((x) => x.id === c.participantId);
+        const own = p
+          ? lines
+              .filter((l) => speakerMatches(l, p))
+              .flatMap((l) => literalAmounts(body(l)))
+          : lines.flatMap((l) => literalAmounts(l));
+        return amountsIn(c.question).every((a) => own.includes(a))
+          ? c
+          : {
+              ...c,
+              question: "Please confirm the amount directly with this person.",
+            };
+      });
     return {
       proposals: result.options.map((o) => ({ ...o, source: "openai" })),
       meta: {

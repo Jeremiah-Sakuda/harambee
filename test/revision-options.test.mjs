@@ -1474,3 +1474,25 @@ test("someone offering to pay more without a number is asked how far", async () 
   assert.equal(q.source, "code");
   assert.match(q.question, /How far could Jordan go\?/);
 });
+
+test("a question can only quote amounts its addressee wrote", async () => {
+  const { out } = await withModel(afterDropout(), {
+    summary: "",
+    options: [option({ title: "Same cabin" })],
+    clarifications: [
+      {
+        participantId: "alex",
+        line: 6,
+        question: "Alex, are you okay paying more than $170 to stay at Pine?",
+        topic: "limit",
+      },
+    ],
+  });
+  const q = out.clarifications.find(
+    (c) => c.participantId === "alex" && c.source !== "code",
+  );
+  assert.equal(
+    q.question,
+    "Please confirm the amount directly with this person.",
+  );
+});

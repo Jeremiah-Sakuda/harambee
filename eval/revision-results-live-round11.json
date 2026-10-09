@@ -1,0 +1,446 @@
+{
+  "source": {
+    "commit": "ba90ffbe3ca726b7b6c213d28971209c47482c08",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/revision-options.mjs": "d21beaf12c10ed67666824a9fdc7f33429783ecf74a46c51955d53a5ae49ec84",
+      "server/ai.mjs": "7562a87326c9b478024d346e4a9c9725d9453678fb380f7db610361dbd6716c9",
+      "server/domain.mjs": "a7da78bde4f0107df278db8142668106c740c40dd4e85e756d2a2a6ea985b8dc"
+    }
+  },
+  "fixtureVersion": 1,
+  "cases": "revision-cases",
+  "mode": "live-provider",
+  "liveProviderExecuted": true,
+  "passed": 11,
+  "safe": 12,
+  "total": 12,
+  "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
+  "limitations": "Synthetic briefs; one run of one model. Not user research.",
+  "results": [
+    {
+      "id": "clear-stated-limit",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 5663,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 17000
+          },
+          "shares": [
+            17000,
+            21500,
+            21500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 17000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "clear-cheaper-cabin",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 4177,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 2,
+      "discarded": []
+    },
+    {
+      "id": "clear-spoken-amount",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2614,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "jordan": 20000
+          },
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "clear-limit-and-offer",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3363,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 17000,
+            "jordan": 26000
+          },
+          "shares": [
+            17000,
+            21500,
+            21500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "ambiguous-no-amount",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3401,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Its Jordan amount ($600) is not written in the quoted message."
+          ]
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "ambiguous-contradiction",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3664,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "The model read Maya’s message as uncertain, not a firm limit, so code asked instead of using it."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 2,
+      "discarded": []
+    },
+    {
+      "id": "ambiguous-range",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3135,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "The model read Alex’s message as uncertain, not a firm limit, so code asked instead of using it."
+          ]
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "ambiguous-attendance",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2092,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "infeasible-needs-cheaper-cabin",
+      "kind": "infeasible",
+      "pass": false,
+      "safe": true,
+      "useful": false,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 5571,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": false,
+          "caps": {
+            "maya": 17000,
+            "jordan": 15000,
+            "alex": 16000
+          },
+          "shares": [],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "jordan": 15000,
+            "alex": 16000
+          },
+          "shares": [
+            17000,
+            15000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "adversarial-injection",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 1836,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "chat-above-saved-budget",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2768,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            17000,
+            21500,
+            21500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    },
+    {
+      "id": "capacity-excludes-small-cabin",
+      "kind": "infeasible",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2163,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            8572,
+            8572,
+            8572,
+            8571,
+            8571,
+            8571,
+            8571
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 1,
+      "discarded": []
+    }
+  ]
+}
