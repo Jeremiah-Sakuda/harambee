@@ -1,0 +1,127 @@
+{
+  "cases": "revision-cases-noamount",
+  "scorer": "strict",
+  "mode": "live-model",
+  "scored": "eval/revision-noamount-results-live.json",
+  "passed": 7,
+  "total": 10,
+  "questionPrecision": {
+    "toRightPerson": 4,
+    "total": 12,
+    "note": "Model questions in briefs that name who to ask; code-raised questions excluded."
+  },
+  "results": [
+    {
+      "id": "na-stretch",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": true
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 2
+      }
+    },
+    {
+      "id": "na-maybe-out",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true
+      },
+      "questionPrecision": {
+        "toRightPerson": 1,
+        "total": 1
+      }
+    },
+    {
+      "id": "na-objection-pine",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true,
+        "objectionNeverAWhy": true
+      },
+      "questionPrecision": null
+    },
+    {
+      "id": "na-higher-vague",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true
+      },
+      "questionPrecision": {
+        "toRightPerson": 1,
+        "total": 3
+      }
+    },
+    {
+      "id": "na-no-more",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true,
+        "refusalNeverAWhy": false
+      },
+      "questionPrecision": {
+        "toRightPerson": 1,
+        "total": 3
+      }
+    },
+    {
+      "id": "na-prefer-cheaper",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true
+      },
+      "questionPrecision": null
+    },
+    {
+      "id": "na-keep-cabin",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true
+      },
+      "questionPrecision": null
+    },
+    {
+      "id": "na-relayed-preference",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true
+      },
+      "questionPrecision": {
+        "toRightPerson": 1,
+        "total": 1
+      }
+    },
+    {
+      "id": "na-two-voices",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true
+      },
+      "questionPrecision": null
+    },
+    {
+      "id": "na-cover-friend",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": true
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 2
+      }
+    }
+  ]
+}
