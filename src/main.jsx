@@ -1212,7 +1212,11 @@ function App() {
                     </article>
                   ))}
                 </div>
-                <h3>Simulated payment operations</h3>
+                <h3>
+                  {state.provider === "paypal-sandbox"
+                    ? "PayPal sandbox payment operations"
+                    : "Simulated payment operations"}
+                </h3>
                 {state.operations.length === 0 ? (
                   <p className="empty">
                     Your first approval starts the paper trail.

@@ -13,6 +13,7 @@
     "test:sandbox": "node --test test/sandbox.test.mjs test/group-payments.test.mjs test/sandbox-matrix.test.mjs",
     "sandbox:simulate": "node scripts/simulate-sandbox.mjs",
     "sandbox:live": "node scripts/test-paypal-sandbox.mjs",
+    "filming:preflight": "node scripts/filming-preflight.mjs",
     "eval": "node scripts/evaluate.mjs && node scripts/evaluate-revisions.mjs >/dev/null && node scripts/evaluate-revisions.mjs --holdout >/dev/null && node scripts/evaluate-revisions.mjs --holdout2 >/dev/null",
     "eval:live": "node --env-file-if-exists=.env scripts/evaluate.mjs --live",
     "paypal:check": "node scripts/paypal-check.mjs",
