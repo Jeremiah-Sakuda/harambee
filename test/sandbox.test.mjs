@@ -284,3 +284,129 @@ test("PayPal adapter asks for full representations and sets checkout return URLs
   assert.equal(context.cancel_url, "http://127.0.0.1:5171/?paypal=cancel");
   assert.equal(sent[1].init.headers.Prefer, undefined);
 });
+
+// A captured session whose provider double records every refund write per request ID.
+const capturedLab = (refundBehaviour) => {
+  const amount = { currency_code: "USD", value: "1.00" };
+  const capture = { id: "CAP", status: "COMPLETED", amount };
+  const refunds = [],
+    keys = [];
+  const lab = fixture({
+    refund: async (id, key) => {
+      keys.push(key);
+      const outcome = refundBehaviour(keys.length);
+      if (outcome) throw outcome;
+      // PayPal-Request-Id is idempotent: the same key never refunds twice.
+      let r = refunds.find((x) => x.key === key);
+      if (!r) {
+        r = {
+          id: `REF${refunds.length + 1}`,
+          key,
+          status: "COMPLETED",
+          amount,
+        };
+        refunds.push(r);
+        capture.status = "REFUNDED";
+      }
+      return r;
+    },
+    getOrder: async () => ({
+      purchase_units: [
+        {
+          payments: {
+            authorizations: [{ id: "AUTH" }],
+            captures: [capture],
+            refunds: refunds.map(({ key, ...r }) => r),
+          },
+        },
+      ],
+    }),
+    getAuthorization: async () => ({ status: "CAPTURED", amount }),
+    getCapture: async () => capture,
+    getRefund: async (id) => refunds.find((r) => r.id === id),
+  });
+  lab.state.sessions.push({
+    id: "session",
+    amount: 100,
+    status: "captured",
+    orderId: "ORDER",
+    authorizationId: "AUTH",
+    captureId: "CAP",
+    operations: [],
+  });
+  return { lab, refunds, keys, session: () => lab.state.sessions[0] };
+};
+
+for (const [name, error] of [
+  [
+    "PREVIOUS_REQUEST_IN_PROGRESS",
+    {
+      status: 422,
+      details: { details: [{ issue: "PREVIOUS_REQUEST_IN_PROGRESS" }] },
+    },
+  ],
+  [
+    "DUPLICATE_REQUEST_ID",
+    { status: 422, details: { details: [{ issue: "DUPLICATE_REQUEST_ID" }] } },
+  ],
+  ["HTTP 409", { status: 409, details: {} }],
+  ["HTTP 429", { status: 429, details: { name: "RATE_LIMIT_REACHED" } }],
+])
+  test(`a replay answered ${name} stays unknown and settles on the next reconcile`, async () => {
+    const f = capturedLab((n) =>
+      n === 1
+        ? Error("timeout")
+        : n === 2
+          ? Object.assign(Error("undecided"), error)
+          : null,
+    );
+    await assert.rejects(f.lab.run("refund", { id: "session" }), /unknown/);
+    assert.equal(f.session().status, "refund_unknown");
+    // The reconcile replays the same request ID and PayPal has not decided yet.
+    await assert.rejects(f.lab.run("reconcile", { id: "session" }));
+    assert.equal(f.session().status, "refund_unknown");
+    assert.equal(f.session().operations.length, 1);
+    assert.equal(f.session().operations[0].status, "unknown");
+    await f.lab.run("reconcile", { id: "session" });
+    assert.equal(f.session().status, "refunded");
+    assert.equal(f.refunds.length, 1);
+    assert.equal(new Set(f.keys).size, 1, "one request ID for the capture");
+  });
+
+test("a refund replay PayPal definitively rejects becomes a deliberate retry only after the capture is re-read", async () => {
+  const f = capturedLab((n) =>
+    n === 1
+      ? Error("timeout")
+      : n === 2
+        ? Object.assign(Error("rejected"), {
+            status: 422,
+            details: { details: [{ issue: "UNPROCESSABLE" }] },
+          })
+        : null,
+  );
+  await assert.rejects(f.lab.run("refund", { id: "session" }));
+  await assert.rejects(f.lab.run("reconcile", { id: "session" }));
+  assert.equal(f.session().operations[0].status, "failed");
+  // No unresolved operation remains: PayPal's records decide what comes next.
+  await f.lab.run("reconcile", { id: "session" });
+  assert.equal(f.session().status, "refund_failed");
+  assert.match(f.session().providerIssue, /still shows the capture completed/);
+  assert.equal(f.keys.length, 2, "reconcile itself issued no refund");
+  await f.lab.run("refund", { id: "session" });
+  assert.equal(f.session().status, "refunded");
+  assert.equal(f.refunds.length, 1);
+  assert.notEqual(f.keys[2], f.keys[0], "the retry uses a new request ID");
+});
+
+test("a stuck refund_unknown with a refund already on PayPal settles without another refund", async () => {
+  const f = capturedLab(() => null);
+  await f.lab.run("refund", { id: "session" });
+  const s = f.session();
+  // Simulate a lost local result after PayPal refunded, and a failed replay record.
+  s.status = "refund_unknown";
+  delete s.refundId;
+  s.operations[0].status = "failed";
+  await f.lab.run("reconcile", { id: "session" });
+  assert.equal(s.status, "refunded");
+  assert.equal(f.keys.length, 1);
+});
