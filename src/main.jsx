@@ -1,6 +1,7 @@
 import {
   paymentSummary,
   organizerRecovery,
+  participantCheckouts,
   recoveryMessage,
   recoveryLabel,
   fundingRows,
@@ -706,27 +707,18 @@ function App() {
             </p>
           )}
           {!isOrganizer &&
-            state.provider === "paypal-sandbox" &&
-            state.payments
-              .filter(
-                (p) =>
-                  p.participantId === actor &&
-                  p.sandboxSessionId &&
-                  !["voided", "refunded", "captured", "authorized"].includes(
-                    p.status,
-                  ),
-              )
-              .map((p) => (
-                <div key={p.id}>
-                  <p>
-                    Version {p.version} · additional {usd(p.amount)} ·{" "}
-                    {label(p.status)}
-                  </p>
-                  {p.approvalUrl && (
-                    <a href={p.approvalUrl}>
-                      Approve this exact amount in PayPal sandbox
-                    </a>
-                  )}
+            participantCheckouts(state, actor).map((p) => (
+              <div key={p.id}>
+                <p>
+                  Version {p.version} · additional {usd(p.amount)} ·{" "}
+                  {label(p.status)}
+                </p>
+                {p.approvalUrl && (
+                  <a href={p.approvalUrl}>
+                    Approve this exact amount in PayPal sandbox
+                  </a>
+                )}
+                {p.canConfirm && (
                   <button
                     className="secondary"
                     disabled={busy}
@@ -739,17 +731,16 @@ function App() {
                   >
                     I approved in PayPal — confirm authorization
                   </button>
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      act("reconcile-payment", { paymentId: p.id })
-                    }
-                  >
-                    Reconcile payment
-                  </button>
-                </div>
-              ))}
+                )}
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => act("reconcile-payment", { paymentId: p.id })}
+                >
+                  Reconcile payment
+                </button>
+              </div>
+            ))}
         </section>
         <div className="layout">
           <div className="main-column">
@@ -1515,7 +1506,7 @@ function App() {
                       : state.status === "confirmed"
                         ? `Your local fixture reservation is confirmed. ${isOrganizer ? "Each person’s receipt is" : "Your receipt is"} under Activity & receipts.`
                         : state.status === "recovery_pending"
-                          ? stopped.next
+                          ? stopped.guidance
                           : state.status === "cancelled"
                             ? "Collection is closed. Released holds and refunds are recorded in activity."
                             : state.status === "revision_required"
@@ -1557,9 +1548,8 @@ function App() {
                   >
                     {busy
                       ? "Checking payments…"
-                      : stopped?.onlyRefunds
-                        ? "Check refund status"
-                        : "Return money & release holds"}
+                      : (stopped?.actionLabel ??
+                        "Return money & release holds")}
                     <RefreshCw size={16} />
                   </button>
                   {stopped?.refundFailed && isOrganizer && (

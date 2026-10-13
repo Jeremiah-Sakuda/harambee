@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   paymentSummary,
   organizerRecovery,
+  participantCheckouts,
   recoveryMessage,
   recoveryLabel,
   fundingRows,
@@ -111,6 +112,10 @@ test("only pending refunds offer status checking; other open outcomes need recov
     { participantId: "alex", amount: 20000, status: "voided" },
   ];
   assert.equal(organizerRecovery(trip(payments)).onlyRefunds, true);
+  assert.equal(
+    organizerRecovery(trip(payments)).actionLabel,
+    "Check refund status",
+  );
   for (const status of [
     "captured",
     "authorized",
@@ -141,9 +146,12 @@ test("returned money is described as returned, including alongside remaining hol
     assert.match(organizer.text, /Maya’s \$200 has been returned/);
     assert.doesNotMatch(organizer.text, /nobody was charged/i);
     assert.equal(paymentSummary(state.payments).returned, 20000);
-    if (!extra.length)
+    if (!extra.length) {
       assert.match(organizer.text, /Nothing remains charged or held/);
-    else assert.doesNotMatch(organizer.text, /Nothing remains charged or held/);
+      assert.equal(organizer.actionLabel, "Finish closing the trip");
+      assert.match(organizer.guidance, /All payments are settled/);
+    } else
+      assert.doesNotMatch(organizer.text, /Nothing remains charged or held/);
   }
 });
 test("stop reasons and provider names survive projection; active trips have no recovery message", () => {
@@ -263,5 +271,89 @@ test("a released hold has one name, and a recovery waiting on refunds says so", 
     ],
   });
   assert.equal(stopped.onlyRefunds, true);
-  assert.match(stopped.next, /^Holds released\. Waiting for .*Maya’s \$150 refund/);
+  assert.match(stopped.guidance, /^Holds released\. Waiting for .*Maya’s \$150 refund/);
+});
+test("participant checkout actions require the current open plan and never reappear during recovery", () => {
+  const state = trip([
+    {
+      id: "p1",
+      participantId: "maya",
+      version: 1,
+      sandboxSessionId: "s1",
+      status: "approval_required",
+      amount: 20000,
+      approvalUrl: "https://www.sandbox.paypal.com/checkoutnow?token=fixture",
+    },
+  ]);
+  state.version = 1;
+  state.participants.forEach((p) => (p.active = true));
+  for (const status of [
+    "recovery_pending",
+    "booking",
+    "confirmed",
+    "cancelled",
+    "revision_required",
+    "cancelling",
+  ])
+    assert.deepEqual(
+      participantCheckouts({ ...state, status }, "maya"),
+      [],
+      status,
+    );
+  state.status = "collecting";
+  assert.equal(participantCheckouts(state, "maya")[0].canConfirm, true);
+  assert.equal(
+    participantCheckouts(state, "maya")[0].approvalUrl,
+    state.payments[0].approvalUrl,
+  );
+  assert.deepEqual(participantCheckouts(state, "jordan"), []);
+  assert.deepEqual(participantCheckouts({ ...state, version: 2 }, "maya"), []);
+  for (const status of [
+    "refund_failed",
+    "refund_pending",
+    "refund_unknown",
+    "refunded",
+    "captured",
+    "authorized",
+    "abandoned",
+    "voided",
+    "capture_unknown",
+  ])
+    assert.deepEqual(
+      participantCheckouts(
+        { ...state, payments: [{ ...state.payments[0], status }] },
+        "maya",
+      ),
+      [],
+      status,
+    );
+  state.participants[0].active = false;
+  assert.deepEqual(participantCheckouts(state, "maya"), []);
+});
+test("uncertain checkout creation and authorization offer reconciliation without a fresh approval", () => {
+  const state = trip([]);
+  state.version = 1;
+  state.status = "collecting";
+  state.participants[0].active = true;
+  for (const status of [
+    "created",
+    "create_unknown",
+    "authorization_unknown",
+    "authorization_pending",
+    "authorize_unknown",
+  ]) {
+    state.payments = [
+      {
+        participantId: "maya",
+        version: 1,
+        sandboxSessionId: "s1",
+        status,
+        amount: 20000,
+        approvalUrl: "old checkout",
+      },
+    ];
+    const [checkout] = participantCheckouts(state, "maya");
+    assert.equal(checkout.canConfirm, false, status);
+    assert.equal(checkout.approvalUrl, null, status);
+  }
 });

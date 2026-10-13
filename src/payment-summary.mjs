@@ -127,6 +127,8 @@ export function organizerRecovery(state) {
   )
     parts.push("Nothing remains charged or held.");
   parts.push("Nobody is charged twice.");
+  const settled =
+    p.returned.length + p.released.length === state.payments.length;
   const onlyRefunds =
     p.refundPending.length > 0 &&
     p.refundPending.length + p.returned.length + p.released.length ===
@@ -138,10 +140,16 @@ export function organizerRecovery(state) {
     text: parts.join(" "),
     refundFailed: p.refundFailed.length > 0,
     onlyRefunds,
-    // What the organizer's recovery button does next, in the board's own words.
-    next: onlyRefunds
-      ? `Holds released. Waiting for ${provider} to confirm ${names(p.refundPending)}’s ${total(p.refundPending)} refund; checking never repeats it.`
-      : "Return what was taken and release every hold. Harambee checks each payment with the provider first.",
+    actionLabel: settled
+      ? "Finish closing the trip"
+      : onlyRefunds
+        ? "Check refund status"
+        : "Return money & release holds",
+    guidance: settled
+      ? "All payments are settled. The organizer can finish closing the trip."
+      : onlyRefunds
+        ? `Holds released. Waiting for ${provider} to confirm ${names(p.refundPending)}’s ${total(p.refundPending)} refund; checking never repeats it.`
+        : "Return what was taken and release every hold. Harambee checks each payment with the provider first.",
   };
 }
 
@@ -241,4 +249,37 @@ export function fundingRows(state) {
   add("checking", "Outcome being checked", checking);
   add("returned", "Returned", b.returned);
   return rows;
+}
+
+// Checkout actions are only meaningful for an active participant's current
+// open-plan payment. Recovery outcomes must never resurrect an approval link.
+export function participantCheckouts(state, actor) {
+  if (
+    state.provider !== "paypal-sandbox" ||
+    !["collecting", "ready"].includes(state.status) ||
+    !state.participants.some((p) => p.id === actor && p.active)
+  )
+    return [];
+  const checkoutStates = [
+    "created",
+    "create_unknown",
+    "approval_required",
+    "buyer_approved",
+    "authorization_unknown",
+    "authorization_pending",
+    "authorize_unknown",
+  ];
+  return state.payments
+    .filter(
+      (p) =>
+        p.participantId === actor &&
+        p.version === state.version &&
+        p.sandboxSessionId &&
+        checkoutStates.includes(p.status),
+    )
+    .map((p) => ({
+      ...p,
+      approvalUrl: p.status === "approval_required" ? p.approvalUrl : null,
+      canConfirm: ["approval_required", "buyer_approved"].includes(p.status),
+    }));
 }
