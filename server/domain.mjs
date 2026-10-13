@@ -540,6 +540,30 @@ export class Engine {
     // The amount stays out of the shared log; the organizer sees it on the option they chose.
     this.log(`${p.name} confirmed a limit for the revised plan.`, "revision");
   }
+  // How far the group's saved budgets fall short of a cabin, as one total for the organizer. It
+  // never names anyone, depends on no chat text, and exists only when every budget is saved.
+  budgetShortfall(total) {
+    const budgets = this.active.map((p) => p.budget);
+    if (budgets.some((b) => b == null)) return 0;
+    return Math.max(0, total - budgets.reduce((n, b) => n + b, 0));
+  }
+  // When a fresh read of the chat no longer raises a question, its open request is withdrawn, so
+  // nobody is still asked about a line the organizer edited away. Returns how many closed.
+  retireLimitRequests(stillAsked) {
+    const stale = (this.state.limitRequests ?? []).filter(
+      (r) =>
+        r.status === "pending" &&
+        r.version === this.state.version &&
+        !stillAsked(r),
+    );
+    for (const r of stale) r.status = "withdrawn";
+    if (stale.length)
+      this.log(
+        `The organizer re-read the chat; ${stale.length === 1 ? "one open question no longer applies and was" : `${stale.length} open questions no longer apply and were`} withdrawn.`,
+        "revision",
+      );
+    return stale.length;
+  }
   declineLimit(actor, requestId) {
     this.assertOpen();
     const request = this.state.limitRequests.find((r) => r.id === requestId);

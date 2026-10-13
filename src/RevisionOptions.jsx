@@ -185,6 +185,30 @@ export default function RevisionOptions({
       {data.options.length > 0 && !data.options.some((o) => o.feasible) && (
         <div className="rev-stuck">
           <strong>No option fits everyone’s limits.</strong>
+          {(() => {
+            // One line per cabin, as a group total; never one person's budget.
+            const gaps = data.options.filter(
+              (o, i, all) =>
+                o.shortfall &&
+                all.findIndex((x) => x.listingId === o.listingId) === i,
+            );
+            return (
+              gaps.length > 0 && (
+                <ul className="rev-gaps">
+                  {gaps.map((o) => (
+                    <li key={o.listingId}>
+                      {o.listingName}:{" "}
+                      {o.shortfall.basis === "chat"
+                        ? "limits stated in the chat"
+                        : "saved budgets"}{" "}
+                      cover {usd(o.shortfall.coveredCents)} of {usd(o.total)} ·{" "}
+                      <strong>{usd(o.shortfall.cents)} short</strong>
+                    </li>
+                  ))}
+                </ul>
+              )
+            );
+          })()}
           <p>
             Anyone who can go higher can raise their own budget in their view;
             then re-read the chat. Or end the trip: every hold is released and
@@ -287,7 +311,11 @@ export default function RevisionOptions({
               </p>
             )}
             {!o.feasible ? (
-              <p className="rev-infeasible">{o.reason}</p>
+              <p className="rev-infeasible">
+                {o.reason}
+                {o.shortfall &&
+                  ` The group is ${usd(o.shortfall.cents)} short of ${usd(o.total)}.`}
+              </p>
             ) : (
               <table className="rev-table">
                 <thead>
@@ -365,18 +393,24 @@ export default function RevisionOptions({
                 Publish this option <ArrowRight size={16} />
               </button>
             )}
-            {o.feasible && !o.ready && (
-              <small className="rev-wait">
-                Waiting for{" "}
-                {o.confirmations
-                  .filter((c) => c.needed)
-                  .map((c) => first(c.name))
-                  .join(" and ")}{" "}
-                to confirm that limit. Until then these shares use only limits
-                stated in the chat; everyone’s saved budgets apply once it’s
-                confirmed.
-              </small>
-            )}
+            {o.feasible &&
+              !o.ready &&
+              (() => {
+                const needed = o.confirmations.filter((c) => c.needed);
+                const notReady = needed.filter(
+                  (c) =>
+                    requestFor(c.participantId, "confirm", c.amountCents)
+                      ?.status === "declined",
+                );
+                const names = (cs) => cs.map((c) => first(c.name)).join(" and ");
+                return (
+                  <small className="rev-wait">
+                    {notReady.length
+                      ? `${names(notReady)} ${notReady.length === 1 ? "isn’t" : "aren’t"} ready. Publish another option or ask again.`
+                      : `Waiting for ${names(needed)} to confirm ${needed.length === 1 ? "that limit" : "those limits"}. Until then these shares use only limits stated in the chat; everyone’s saved budgets apply once ${needed.length === 1 ? "it’s" : "they’re"} confirmed.`}
+                  </small>
+                );
+              })()}
           </article>
         ))}
       </div>

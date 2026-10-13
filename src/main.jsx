@@ -230,7 +230,8 @@ function App() {
       "Maya Chen, Jordan Ellis, Alex Rivera, Sam Taylor",
     ),
     [listingId, setListingId] = useState("pine"),
-    [budget, setBudget] = useState("220");
+    [budget, setBudget] = useState("220"),
+    [roster, setRoster] = useState(null);
   const dialog = useRef(null);
   const dialogTrigger = useRef(null);
   // PayPal sends buyers back with ?paypal=return|cancel|lab&payment=<id>.
@@ -246,8 +247,22 @@ function App() {
     }
   }
   useEffect(() => {
+    // A confirmation meant for one person never carries into another view.
+    setNotice("");
     load();
   }, [actor]);
+  // A new question from the organizer replaces any earlier "Not now" or "Saved" message.
+  const openRequests = (state?.limitRequests ?? [])
+    .filter((r) => r.participantId === actor && r.status === "pending")
+    .map((r) => r.id)
+    .join();
+  const seenRequests = useRef("");
+  useEffect(() => {
+    const seen = seenRequests.current.split(",");
+    if (openRequests.split(",").some((id) => id && !seen.includes(id)))
+      setNotice("");
+    seenRequests.current = openRequests;
+  }, [openRequests]);
   // Other people act in their own windows; keep this one current while it's visible.
   useEffect(() => {
     const refresh = () =>
@@ -304,6 +319,21 @@ function App() {
       dialog.current?.showModal();
     } else if (!modal) dialog.current?.close();
   }, [modal]);
+  // An unrecognised friend link offers the current names; it never falls back to the organizer.
+  const unknownLink = !state && /unknown demo role/i.test(error);
+  useEffect(() => {
+    if (!unknownLink || roster) return;
+    fetch("/api/state", { headers: { "x-demo-actor": "organizer" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) =>
+        setRoster(
+          (s?.participants ?? [])
+            .filter((p) => p.active)
+            .map((p) => ({ id: p.id, name: p.name })),
+        ),
+      )
+      .catch(() => setRoster([]));
+  }, [unknownLink]);
   async function act(endpoint, input = {}, who = actor) {
     setBusy(true);
     setError("");
@@ -410,7 +440,7 @@ function App() {
       await load();
     }
   }
-  async function review(p, suggestion = null, kind = "approve") {
+  async function review(p, suggestion = null, kind = "approve", extra = {}) {
     // Loading disables Review; capture its focus before the browser moves it away.
     dialogTrigger.current = document.activeElement;
     setBusy(true);
@@ -425,8 +455,15 @@ function App() {
       const person = own.participants.find((x) => x.id === p.id);
       setActor(p.id);
       setState(own);
-      setBudget(person.budget === null ? "" : String(person.budget / 100));
-      setModal({ kind, id: p.id, suggestion });
+      // Raising a budget for a request starts from the amount the organizer asked about.
+      setBudget(
+        extra.request?.amountCents
+          ? String(extra.request.amountCents / 100)
+          : person.budget === null
+            ? ""
+            : String(person.budget / 100),
+      );
+      setModal({ kind, id: p.id, suggestion, ...extra });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -464,20 +501,24 @@ function App() {
         <Leaf size={32} />
         <h1>Getting everyone together.</h1>
         <p>
-          {/unknown demo role/i.test(error)
-            ? "This link doesn’t match anyone on the current trip. It may be from an earlier round."
+          {unknownLink
+            ? "This link doesn’t match anyone on the current trip. It may be from an earlier round. Ask your organizer for a new link, or choose your name if you’re on this trip."
             : error || "Opening your trip…"}
         </p>
-        {/unknown demo role/i.test(error) ? (
-          <button
-            onClick={() => {
-              history.replaceState(null, "", "/");
-              setError("");
-              setActor("organizer");
-            }}
-          >
-            Open the current trip
-          </button>
+        {unknownLink ? (
+          roster?.length > 0 && (
+            <nav className="role-chooser" aria-label="Who are you?">
+              {roster.map((p) => (
+                <a
+                  key={p.id}
+                  className="secondary"
+                  href={`/?participant=${encodeURIComponent(p.id)}`}
+                >
+                  I’m {p.name.split(" ")[0]}
+                </a>
+              ))}
+            </nav>
+          )
         ) : (
           error && <button onClick={() => load()}>Try again</button>
         )}
@@ -723,7 +764,9 @@ function App() {
                   busy={busy}
                   onConfirm={(cents) => answerLimit(r, cents)}
                   onDecline={() => declineLimit(r)}
-                  onUpdateBudget={() => review(currentPerson, null, "budget")}
+                  onUpdateBudget={() =>
+                    review(currentPerson, null, "budget", { request: r })
+                  }
                 />
               ))}
             {!isOrganizer && currentPerson && !myRequests.length && (
@@ -806,7 +849,11 @@ function App() {
               <>
                 <div className="section-heading">
                   <div>
-                    <h2>Everyone has a place.</h2>
+                    <h2>
+                      {state.status === "revision_required"
+                        ? `A new plan for ${active.length}.`
+                        : "Everyone has a place."}
+                    </h2>
                     <p>Clear shares. Individual approvals. One shared plan.</p>
                   </div>
                   <span className="version">PLAN V{state.version}</span>
@@ -998,8 +1045,13 @@ function App() {
                   <div className="table-foot">
                     <ShieldCheck size={16} />
                     <span>
-                      Nothing is charged until everyone agrees and the booking
-                      begins.
+                      {state.status === "confirmed"
+                        ? "Charged at booking; the cabin’s cancellation terms apply."
+                        : state.status === "cancelled"
+                          ? "Collection is closed; nothing more will be charged."
+                          : state.status === "recovery_pending"
+                            ? "Nothing more will be collected; what was taken is being returned."
+                            : "Nothing is charged until everyone agrees and the booking begins."}
                     </span>
                   </div>
                 </section>
@@ -1461,7 +1513,7 @@ function App() {
                     {state.status === "ready"
                       ? "All shares are approved and held. The organizer can now book."
                       : state.status === "confirmed"
-                        ? "Your local fixture reservation is confirmed. View each person’s receipt below."
+                        ? `Your local fixture reservation is confirmed. ${isOrganizer ? "Each person’s receipt is" : "Your receipt is"} under Activity & receipts.`
                         : state.status === "recovery_pending"
                           ? stopped.next
                           : state.status === "cancelled"
@@ -1791,9 +1843,18 @@ function App() {
               />
             </label>
             <p className="terms">
-              <ShieldCheck size={17} />I approve this exact version and personal
-              share. Booking starts only after everyone approves. Fixture
-              cancellation: full refund before check-in.
+              <ShieldCheck size={17} />
+              <span>
+                I approve this exact version and personal share.{" "}
+                <strong>Paid to: {listing.name}</strong> (sample listing; in
+                this demo the{" "}
+                {state.provider === "paypal-sandbox"
+                  ? "PayPal sandbox merchant account"
+                  : "payment simulator"}{" "}
+                stands in for the cabin), never to the organizer or a friend.
+                Booking starts only after everyone approves. Fixture
+                cancellation: full refund before check-in.
+              </span>
             </p>
             {error && (
               <p className="inline-error" role="alert">
@@ -1826,78 +1887,104 @@ function App() {
               follow roster order. Shares may reveal something about ceilings
               even though raw budgets are private.
             </p>
-            <button
-              className="secondary full"
-              disabled={busy || !isOpen || !budget || actor !== modalPerson.id}
-              onClick={async () => {
+            {(() => {
+              const share = shareFor(modalPerson.id);
+              const typed = Math.round(Number(budget) * 100);
+              const valid = Boolean(budget) && Number.isFinite(typed) && typed > 0;
+              // An edited ceiling is saved by the same tap that approves, never as a hidden step.
+              const edited = valid && typed !== modalPerson.budget;
+              const extra = Math.max(0, share - heldFor(modalPerson.id)) || share;
+              const canEdit = isOpen && actor === modalPerson.id;
+              const saveOnly = async () => {
                 if (
-                  await act(
-                    "budget",
-                    { amount: Math.round(Number(budget) * 100) },
-                    modalPerson.id,
-                  )
+                  await act("budget", { amount: typed }, modalPerson.id)
                 )
                   setNotice(
                     "Budget saved. No share was approved and no payment was authorized.",
                   );
-              }}
-            >
-              Save budget only
-            </button>
-            {notice && <p role="status">{notice}</p>}
-            <p className="secure-note">
-              Saved ceiling:{" "}
-              {modalPerson.budget == null
-                ? "not yet set"
-                : usd(modalPerson.budget)}
-              . Save edits before approving. A lower ceiling may require a
-              revised plan.
-            </p>
-            {state.status !== "revision_required" && (
-              <button
-                className="primary full"
-                disabled={
-                  busy ||
-                  !isOpen ||
-                  actor !== modalPerson.id ||
-                  modalPerson.budget == null ||
-                  Math.round(Number(budget) * 100) !== modalPerson.budget ||
-                  modalPerson.budget < shareFor(modalPerson.id) ||
-                  state.status === "revision_required"
-                }
-                onClick={async () => {
-                  const next = await act(
-                    "approve",
-                    { version: state.version },
-                    modalPerson.id,
-                  );
-                  if (next) {
-                    const checkout = next.payments?.findLast(
-                      (p) =>
-                        p.participantId === modalPerson.id && p.approvalUrl,
-                    );
-                    if (
-                      next.provider === "paypal-sandbox" &&
-                      checkout?.status === "approval_required"
-                    )
-                      return location.assign(checkout.approvalUrl);
-                    setModal(null);
-                    setNotice(
-                      state.provider === "paypal-sandbox"
-                        ? "Consent recorded. Complete your PayPal sandbox checkout below, then confirm the authorization."
-                        : "Your agreement and simulated hold are recorded. Nothing has been charged.",
-                    );
-                  }
-                }}
-              >
-                {busy
-                  ? "Recording your approval…"
-                  : state.provider === "paypal-sandbox"
-                    ? `Agree & open sandbox checkout for ${usd(Math.max(0, shareFor(modalPerson.id) - heldFor(modalPerson.id)) || shareFor(modalPerson.id))}`
-                    : "Agree & authorize simulated hold"}
-                <Check size={17} />
-              </button>
-            )}
+              };
+              return (
+                <>
+                  {notice && <p role="status">{notice}</p>}
+                  <p className="secure-note">
+                    Saved ceiling:{" "}
+                    {modalPerson.budget == null
+                      ? "not yet set"
+                      : usd(modalPerson.budget)}
+                    .{" "}
+                    {valid && typed < share
+                      ? `That’s below your ${usd(share)} share, so approving needs a higher ceiling. Saving it asks your organizer for a revised plan.`
+                      : edited && state.status !== "revision_required"
+                        ? `Approving saves ${usd(typed)} as your ceiling first.`
+                        : "A lower ceiling may require a revised plan."}
+                  </p>
+                  {state.status !== "revision_required" && (
+                    <div className="dialog-sticky">
+                      <button
+                        className="primary full"
+                        disabled={
+                          busy || !canEdit || !valid || typed < share
+                        }
+                        onClick={async () => {
+                          if (
+                            edited &&
+                            !(await act(
+                              "budget",
+                              { amount: typed },
+                              modalPerson.id,
+                            ))
+                          )
+                            return;
+                          const next = await act(
+                            "approve",
+                            { version: state.version },
+                            modalPerson.id,
+                          );
+                          if (next) {
+                            const checkout = next.payments?.findLast(
+                              (p) =>
+                                p.participantId === modalPerson.id &&
+                                p.approvalUrl,
+                            );
+                            if (
+                              next.provider === "paypal-sandbox" &&
+                              checkout?.status === "approval_required"
+                            )
+                              return location.assign(checkout.approvalUrl);
+                            setModal(null);
+                            setNotice(
+                              state.provider === "paypal-sandbox"
+                                ? "Consent recorded. Complete your PayPal sandbox checkout below, then confirm the authorization."
+                                : "Your agreement and simulated hold are recorded. Nothing has been charged.",
+                            );
+                          }
+                        }}
+                      >
+                        {busy
+                          ? "Recording your approval…"
+                          : `${edited ? `Save ${usd(typed)}, agree` : "Agree"} & ${
+                              state.provider === "paypal-sandbox"
+                                ? `open sandbox checkout for ${usd(extra)}`
+                                : "authorize simulated hold"
+                            }`}
+                        <Check size={17} />
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    className={
+                      state.status === "revision_required"
+                        ? "secondary full"
+                        : "text-button"
+                    }
+                    disabled={busy || !canEdit || !valid || !edited}
+                    onClick={saveOnly}
+                  >
+                    Save budget only, don’t approve yet
+                  </button>
+                </>
+              );
+            })()}
             <p className="secure-note">
               {state.provider === "paypal-sandbox"
                 ? "Sandbox buyers approve their own exact additional amount in PayPal. No real money."
@@ -1909,6 +1996,13 @@ function App() {
           <>
             <span className="eyebrow">YOUR PRIVATE BUDGET</span>
             <h2>Change your budget, {modalPerson.name.split(" ")[0]}?</h2>
+            {modal.request?.kind === "confirm" && (
+              <p className="change-why">
+                Your organizer asked whether {usd(modal.request.amountCents)} is
+                your limit. Saving exactly {usd(modal.request.amountCents)}{" "}
+                answers yes.
+              </p>
+            )}
             <p>
               Only you and the planner use this number. The organizer doesn’t
               see it, though if it caps your share, your share will equal it.
@@ -1938,24 +2032,40 @@ function App() {
               className="primary full"
               disabled={busy || !isOpen || !budget || actor !== modalPerson.id}
               onClick={async () => {
-                if (
-                  await act(
-                    "budget",
-                    { amount: Math.round(Number(budget) * 100) },
-                    modalPerson.id,
+                const cents = Math.round(Number(budget) * 100);
+                if (!(await act("budget", { amount: cents }, modalPerson.id)))
+                  return;
+                // A saved budget answers an open question about it, so nobody confirms twice.
+                const open =
+                  myRequests.find((r) => r.id === modal.request?.id) ??
+                  myRequests.find((r) => r.kind === "confirm") ??
+                  myRequests.find((r) => r.kind === "ask");
+                let saved =
+                  "Saved. Your organizer will publish new shares that fit. You can change it again until then.";
+                if (open && (open.kind === "ask" || open.amountCents === cents)) {
+                  if (
+                    !(await act(
+                      "confirm-limit",
+                      { amountCents: cents, requestId: open.id },
+                      modalPerson.id,
+                    ))
                   )
-                )
-                  setModal({ ...modal, saved: true });
+                    return;
+                  saved =
+                    open.kind === "ask"
+                      ? "Saved. That answers your organizer’s question; they see that you answered, not the number."
+                      : `Saved. Your organizer can now use ${usd(cents)}.`;
+                } else if (open?.kind === "confirm")
+                  saved =
+                    cents > open.amountCents
+                      ? `Saved ${usd(cents)}. Your organizer asked whether ${usd(open.amountCents)} is your limit, so that question is still open: confirm ${usd(open.amountCents)} on your card if it is, or choose Not now.`
+                      : `Saved ${usd(cents)}. That’s below the ${usd(open.amountCents)} your organizer asked about, so their question is still open; choose Not now on it if ${usd(open.amountCents)} doesn’t work.`;
+                setModal({ ...modal, saved });
               }}
             >
               Save my budget
             </button>
-            {modal.saved && (
-              <p role="status">
-                Saved. Your organizer will publish new shares that fit. You can
-                change it again until then.
-              </p>
-            )}
+            {modal.saved && <p role="status">{modal.saved}</p>}
             <p className="secure-note">
               Saved ceiling:{" "}
               {modalPerson.budget == null

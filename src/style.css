@@ -2363,3 +2363,37 @@ button.danger {
   font-weight: 500;
   margin-bottom: 8px;
 }
+/* The approve button stays on screen on phones; an edited ceiling saves with the same tap. */
+dialog .text-button {
+  display: block;
+  margin: 10px auto 0;
+}
+@media (max-width: 480px) {
+  .dialog-sticky {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -25px;
+    padding: 4px 25px 14px;
+    background: #fcfcf7;
+    box-shadow: 0 -10px 16px -12px #17332440;
+    z-index: 1;
+  }
+}
+.rev-gaps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+}
+.role-chooser {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.role-chooser a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  text-decoration: none;
+}

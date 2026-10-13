@@ -19,6 +19,28 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 try {
   process.loadEnvFile(path.join(root, ".env"));
 } catch {}
+// An option no limit fits says by how much, as one group total: from amounts stated in the chat
+// (public) when those set every share, otherwise from saved budgets. Organizer-only responses.
+const withShortfall = (engine, out) => ({
+  ...out,
+  options: out.options.map((o) => {
+    if (o.feasible) return o;
+    const stated = o.confirmations.reduce((n, c) => n + c.amountCents, 0);
+    const fromChat =
+      o.confirmations.length === engine.active.length && stated < o.total;
+    const cents = fromChat ? o.total - stated : engine.budgetShortfall(o.total);
+    return cents > 0
+      ? {
+          ...o,
+          shortfall: {
+            cents,
+            coveredCents: o.total - cents,
+            basis: fromChat ? "chat" : "saved",
+          },
+        }
+      : o;
+  }),
+});
 const store = new Store(
   process.env.DATA_FILE || path.join(root, "data", "plan.json"),
 );
@@ -117,18 +139,33 @@ const server = http.createServer(async (req, res) => {
         engine.assertOpen();
         // A reset or another change during the model call must not let this old engine save.
         const started = engine;
-        return json(
-          res,
-          200,
-          await proposeRevisions(started, {
-            notes: input.notes,
-            isCurrent: () => started === engine && !mutating,
-          }),
-        );
+        const out = await proposeRevisions(started, {
+          notes: input.notes,
+          isCurrent: () => started === engine && !mutating,
+        });
+        // Questions these options no longer raise are withdrawn (same matching as request-limit).
+        if (started === engine && !mutating)
+          engine.retireLimitRequests((r) =>
+            r.kind === "ask"
+              ? out.clarifications.some((c) => c.participantId === r.participantId)
+              : [
+                  ...out.options.flatMap((o) => o.confirmations),
+                  ...out.clarifications.filter((c) => c.amountCents),
+                ].some(
+                  (c) =>
+                    c.participantId === r.participantId &&
+                    c.amountCents === r.amountCents,
+                ),
+          );
+        return json(res, 200, withShortfall(started, out));
       }
       if (url.pathname === "/api/revision-options/recheck") {
         engine.assertOrganizer(actor);
-        return json(res, 200, recheckRevisions(engine, input.batchId));
+        return json(
+          res,
+          200,
+          withShortfall(engine, recheckRevisions(engine, input.batchId)),
+        );
       }
       if (mutating)
         throw new DomainError(
