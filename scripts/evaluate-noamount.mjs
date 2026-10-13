@@ -4,6 +4,7 @@
 // The briefs (eval/revision-cases-noamount.json) were committed before either run.
 // Usage: node scripts/evaluate-noamount.mjs [--live] [--write]
 //   default: the local planner (no model); --live: the configured model (needs OPENAI_API_KEY).
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { sourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { Engine } from "../server/domain.mjs";
@@ -18,12 +19,12 @@ if (!live) {
     throw Error("Network disabled for the local planner run");
   };
 }
-const cases = JSON.parse(
-  readFileSync(
-    new URL("../eval/revision-cases-noamount.json", import.meta.url),
-    "utf8",
-  ),
-);
+const casesFlag = process.argv.indexOf("--cases");
+const casesPath =
+  casesFlag > 0
+    ? process.argv[casesFlag + 1]
+    : new URL("../eval/revision-cases-noamount.json", import.meta.url);
+const cases = JSON.parse(readFileSync(casesPath, "utf8"));
 const memory = () => {
   let disk;
   return {
@@ -97,7 +98,11 @@ const report = {
     "server/ai.mjs",
     "server/domain.mjs",
   ]),
-  cases: "revision-cases-noamount",
+  cases:
+    casesFlag > 0 ? process.argv[casesFlag + 1] : "revision-cases-noamount",
+  casesSha256: createHash("sha256")
+    .update(readFileSync(casesPath))
+    .digest("hex"),
   mode: live ? "live-model" : "local-planner",
   passed: results.filter((r) => r.pass).length,
   total: results.length,

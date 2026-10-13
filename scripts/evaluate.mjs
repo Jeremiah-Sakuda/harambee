@@ -75,7 +75,7 @@ const report = {
   passed: results.filter((r) => r.pass).length,
   total: results.length,
   limitations:
-    "Synthetic labeled cases; injected model errors test validation, not actual model accuracy. No user correction-effort experiment.",
+    "Synthetic labeled parser cases and injected model-output validation; provider accuracy and participant effort are separate benchmarks.",
   results,
 };
 console.log(JSON.stringify(report, null, 2));

@@ -16,12 +16,12 @@ import { fileURLToPath } from "node:url";
 // refusal may never be a Why at all.
 const NEVER_WHY = { "na-no-more": ["alex"] };
 
-const cases = JSON.parse(
-  readFileSync(
-    new URL("../eval/revision-cases-noamount.json", import.meta.url),
-    "utf8",
-  ),
-);
+const casesFlag = process.argv.indexOf("--cases");
+const casesPath =
+  casesFlag > 0
+    ? process.argv[casesFlag + 1]
+    : new URL("../eval/revision-cases-noamount.json", import.meta.url);
+const cases = JSON.parse(readFileSync(casesPath, "utf8"));
 const rescore = process.argv.indexOf("--rescore");
 let source;
 if (rescore > 0) {
@@ -32,6 +32,7 @@ if (rescore > 0) {
   const args = [
     fileURLToPath(new URL("./evaluate-noamount.mjs", import.meta.url)),
     ...(process.argv.includes("--live") ? ["--live"] : []),
+    ...(casesFlag > 0 ? ["--cases", process.argv[casesFlag + 1]] : []),
   ];
   source = JSON.parse(
     execFileSync(process.execPath, args, {
@@ -42,13 +43,15 @@ if (rescore > 0) {
 }
 const results = source.results.map((r) => {
   const c = cases.find((c) => c.id === r.id);
+  if (!c) throw Error(`Result ${r.id} is not in the supplied corpus`);
+  const neverWhy = NEVER_WHY[r.id] ?? c.expect.refusal;
   const who = (q) => q.split(":")[1]?.trim();
   const modelQuestions = r.questions.filter((q) => !q.startsWith("code:"));
   const checks = {
     ...r.checks,
-    ...(NEVER_WHY[r.id]
+    ...(neverWhy
       ? {
-          refusalNeverAWhy: NEVER_WHY[r.id].every((id) =>
+          refusalNeverAWhy: neverWhy.every((id) =>
             r.options.every((o) => !o.why.some((w) => w.startsWith(`${id}:`))),
           ),
         }
@@ -97,7 +100,8 @@ const report = {
           "server/ai.mjs",
           "server/domain.mjs",
         ])),
-  cases: "revision-cases-noamount",
+  cases: source.cases ?? "revision-cases-noamount",
+  casesSha256: source.casesSha256 ?? null,
   scorer: "strict",
   mode: source.mode,
   scored: rescore > 0 ? process.argv[rescore + 1] : "fresh run",
