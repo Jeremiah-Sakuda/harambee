@@ -712,3 +712,67 @@ test("a capture PayPal rejects outright is reported as that person's payment, no
   await f.g.recover("organizer");
   assert.equal(f.e.state.status, "cancelled");
 });
+
+test("capture-confirmed refund settlement keeps missing receipt visible and recovers it without another refund", async () => {
+  const f = fixture();
+  for (const p of f.e.active) await f.approve(p.id);
+  const real = f.client.refund;
+  let calls = 0,
+    hideRefunds = true;
+  f.client.refund = async (...args) => {
+    calls++;
+    await real(...args);
+    throw Error("response lost");
+  };
+  const get = f.client.getOrder;
+  f.client.getOrder = async (id) => {
+    const order = structuredClone(await get(id));
+    if (hideRefunds)
+      for (const unit of order.purchase_units) delete unit.payments.refunds;
+    return order;
+  };
+  await assert.rejects(
+    f.g.book("organizer", { version: 1, fault: "reservation_failure" }),
+  );
+  await f.g.recover("organizer");
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.status, "cancelled");
+  assert.equal(calls, 3);
+  for (const p of f.e.state.payments) {
+    assert.equal(p.status, "refunded");
+    assert.equal(p.refundReferenceMissing, true);
+    assert.equal(p.refundEvidence, "capture-status");
+    assert.equal(p.refundId, undefined);
+  }
+  assert.ok(
+    f.e.state.operations
+      .filter((o) => o.type === "refund")
+      .every(
+        (o) => o.referenceMissing && o.evidenceSource === "capture-status",
+      ),
+  );
+  const restarted = new Engine(f.store),
+    lab = new SandboxLab(f.labStore, f.client),
+    group = new GroupPayments(restarted, lab);
+  hideRefunds = false;
+  for (const p of restarted.state.payments)
+    await group.reconcile("organizer", p.id);
+  assert.equal(
+    calls,
+    3,
+    "checking receipt references never issues another refund",
+  );
+  assert.ok(
+    restarted.state.payments.every(
+      (p) =>
+        p.refundId &&
+        !p.refundReferenceMissing &&
+        p.refundEvidence === "refund-resource",
+    ),
+  );
+  assert.ok(
+    restarted.state.operations
+      .filter((o) => o.type === "refund")
+      .every((o) => o.providerId && !o.referenceMissing),
+  );
+});

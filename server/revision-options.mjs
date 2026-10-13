@@ -740,6 +740,36 @@ function finish(engine, ctx, lines, proposed, meta) {
           )} How far could ${first} go?`,
         });
       }
+  // Explicit refusal and relayed preferences need the person's own answer even if the model
+  // omitted a question. These are code checks, not additional model successes.
+  for (const [index, line] of lines.entries()) {
+    const person = ctx.active.find((p) => speakerMatches(line, p));
+    if (!person || literalAmounts(body(line)).length) continue;
+    const text = body(line);
+    const relayed = /\b(?:told me|said|says|mentioned)\b/i.test(text)
+      ? ctx.active.find(
+          (p) =>
+            p.id !== person.id &&
+            new RegExp(`\\b${escapeRe(firstName(p))}\\b`, "i").test(text),
+        )
+      : null;
+    const target =
+      relayed || (PUSHBACK.test(text) && !FINE.test(text) ? person : null);
+    if (
+      !target ||
+      [...(meta.clarifications ?? []), ...codeQuestions].some(
+        (q) => q.participantId === target.id,
+      )
+    )
+      continue;
+    codeQuestions.push({
+      participantId: target.id,
+      line: index + 1,
+      question: relayed
+        ? `${firstName(target)}, could you confirm your own cabin preference before the plan changes?`
+        : `${firstName(target)}, what firm spending limit should the new plan respect?`,
+    });
+  }
   // Questions code raised while checking limits join the model's, without repeats.
   const clarifications = [...(meta.clarifications ?? [])];
   for (const q of codeQuestions)

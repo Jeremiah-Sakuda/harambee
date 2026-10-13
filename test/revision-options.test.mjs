@@ -1515,3 +1515,22 @@ test("a firm limit cited only where it changes nothing still gets a confirm ques
   assert.equal(q.amountCents, 17000);
   assert.match(q.question, /no option uses \$170 yet/);
 });
+
+test("omitted model questions about refusal and relayed preferences become explicit code questions", async () => {
+  for (const [notes, who] of [
+    ["Alex: I really can't pay any more than I already have.", "alex"],
+    ["Jordan: Maya told me she really doesn't want Creekside.", "maya"],
+  ]) {
+    const { out } = await withModel(
+      afterDropout(),
+      { options: [option()], clarifications: [] },
+      notes,
+    );
+    assert.ok(
+      out.clarifications.some(
+        (q) => q.participantId === who && q.source === "code",
+      ),
+      JSON.stringify(out.clarifications),
+    );
+  }
+});

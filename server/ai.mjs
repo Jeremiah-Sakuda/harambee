@@ -25,7 +25,17 @@ export function groundLine(source) {
   const token = matches[0]?.[1].replace(/\.$/, "");
   const valid =
     token && /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(token);
+  const ceiling =
+    /\b(?:max(?:imum)?|ceiling|budget|limit|cap(?:ped)?|up to|at most|no more than|tops)\b/i.test(
+      body,
+    );
+  const expense =
+    /\b(?:already (?:paid|sent|spent)|(?:deposit|cost|price|refund|repay|reimburse)(?:ment)?|at least|minimum|per night|each night|owe[ds]?)\b/i.test(
+      body,
+    );
   const ambiguous =
+    !ceiling ||
+    expense ||
     matches.length !== 1 ||
     !valid ||
     body.includes(":") ||
@@ -42,9 +52,10 @@ export function groundLine(source) {
     needsReview: ambiguous || person === "Unassigned" || cents > 10_000_000,
   };
 }
+const DRAFT_SUMMARY =
+  "Review each person's own words before changing the plan. Budget suggestions never change approved amounts.";
 export const localInterpret = (text) => ({
-  summary:
-    "Review these source-linked preferences before changing the plan. Budget suggestions never change approved amounts.",
+  summary: DRAFT_SUMMARY,
   constraints: text
     .split("\n")
     .map((source, index) => ({ source, index }))
@@ -71,7 +82,6 @@ export async function interpret(text) {
   const schema = {
     type: "object",
     properties: {
-      summary: { type: "string" },
       constraints: {
         type: "array",
         items: {
@@ -82,21 +92,13 @@ export async function interpret(text) {
             person: { type: "string" },
             budgetCents: { type: ["integer", "null"] },
             needsReview: { type: "boolean" },
-            preference: { type: "string" },
           },
-          required: [
-            "source",
-            "line",
-            "person",
-            "budgetCents",
-            "needsReview",
-            "preference",
-          ],
+          required: ["source", "line", "person", "budgetCents", "needsReview"],
           additionalProperties: false,
         },
       },
     },
-    required: ["summary", "constraints"],
+    required: ["constraints"],
     additionalProperties: false,
   };
   try {
@@ -132,11 +134,7 @@ export async function interpret(text) {
       ?.flatMap((o) => o.content ?? [])
       .find((c) => c.type === "output_text")?.text;
     const result = JSON.parse(output);
-    if (
-      typeof result.summary !== "string" ||
-      !Array.isArray(result.constraints) ||
-      result.constraints.length > 40
-    )
+    if (!Array.isArray(result.constraints) || result.constraints.length > 40)
       throw new Error("Invalid model response");
     for (const c of result.constraints) {
       if (
@@ -144,7 +142,6 @@ export async function interpret(text) {
         !c.source ||
         !text.split("\n")[c.line - 1]?.includes(c.source) ||
         typeof c.person !== "string" ||
-        typeof c.preference !== "string" ||
         typeof c.needsReview !== "boolean" ||
         !Number.isInteger(c.line) ||
         c.line < 1 ||
@@ -166,10 +163,15 @@ export async function interpret(text) {
         c.budgetCents = grounded.budgetCents;
         c.needsReview = true;
       }
+      // Model prose is never evidence of consent or payment. Show the actual source instead.
+      const source = text.split("\n")[c.line - 1];
+      c.source = source.slice(0, 500);
+      c.preference = splitSpeaker(source).body.trim().slice(0, 300);
       c.needsReview ||= grounded.needsReview;
     }
     return {
-      ...result,
+      constraints: result.constraints,
+      summary: DRAFT_SUMMARY,
       provider: "openai",
       model: raw.model,
       latencyMs: Date.now() - start,

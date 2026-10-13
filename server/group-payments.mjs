@@ -33,6 +33,10 @@ export class GroupPayments {
     p.providerId = session.authorizationId || session.orderId || null;
     p.captureId = session.captureId;
     p.refundId = session.refundId;
+    p.refundReferenceMissing =
+      session.refundReferenceMissing ??
+      (session.status === "refunded" && !session.refundId);
+    p.refundEvidence = session.refundEvidence ?? null;
     p.payerId = session.payerId;
     p.approvalUrl = session.approvalUrl;
     // A provider-reported failure is itself the guidance for what to do next.

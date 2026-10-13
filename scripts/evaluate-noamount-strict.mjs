@@ -58,6 +58,17 @@ const results = source.results.map((r) => {
     id: r.id,
     pass: Object.values(checks).every(Boolean),
     checks,
+    questionRecall: c.expect.askWho
+      ? {
+          required: 1,
+          modelAnswered: Number(
+            modelQuestions.some((q) => who(q) === c.expect.askWho),
+          ),
+          pipelineAnswered: Number(
+            r.questions.some((q) => who(q) === c.expect.askWho),
+          ),
+        }
+      : null,
     // Of the model's questions, how many go to the person the brief says to ask.
     questionPrecision: c.expect.askWho
       ? {
@@ -72,11 +83,13 @@ const results = source.results.map((r) => {
 const precise = results.filter((r) => r.questionPrecision);
 const report = {
   // Which code produced these results: commit, uncommitted changes, file hashes.
-  source: sourceFingerprint([
-    "server/revision-options.mjs",
-    "server/ai.mjs",
-    "server/domain.mjs",
-  ]),
+  source:
+    source.source ??
+    sourceFingerprint([
+      "server/revision-options.mjs",
+      "server/ai.mjs",
+      "server/domain.mjs",
+    ]),
   cases: "revision-cases-noamount",
   scorer: "strict",
   mode: source.mode,
@@ -90,6 +103,21 @@ const report = {
     ),
     total: precise.reduce((n, r) => n + r.questionPrecision.total, 0),
     note: "Model questions in briefs that name who to ask; code-raised questions excluded.",
+  },
+  questionRecall: {
+    required: results.reduce(
+      (n, r) => n + (r.questionRecall?.required ?? 0),
+      0,
+    ),
+    modelAnswered: results.reduce(
+      (n, r) => n + (r.questionRecall?.modelAnswered ?? 0),
+      0,
+    ),
+    pipelineAnswered: results.reduce(
+      (n, r) => n + (r.questionRecall?.pipelineAnswered ?? 0),
+      0,
+    ),
+    note: "Necessary questions answered, including misses; pipeline includes code-raised questions, model does not.",
   },
   results,
 };

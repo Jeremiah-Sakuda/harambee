@@ -223,6 +223,12 @@ export class SandboxLab {
             order.status === "APPROVED"
               ? "buyer_approved"
               : "approval_required";
+        if (session.status === "refunded") {
+          session.refundReferenceMissing = !session.refundId;
+          session.refundEvidence = session.refundId
+            ? "refund-resource"
+            : "capture-status";
+        }
         const confirmedByState = {
           create: !!session.orderId,
           authorize:
@@ -240,6 +246,11 @@ export class SandboxLab {
         for (const op of session.operations) {
           if (op.status !== "failed" && confirmedByState[op.type]) {
             op.status = "confirmed";
+            if (op.type === "refund") {
+              op.providerId = session.refundId || null;
+              op.referenceMissing = !session.refundId;
+              op.evidenceSource = session.refundEvidence;
+            }
             delete op.error;
           }
         }
@@ -412,6 +423,14 @@ export class SandboxLab {
             session.status =
               refund.status === "COMPLETED" ? "refunded" : "refund_pending";
           }
+        }
+        if (action === "refund" && session.status === "refunded") {
+          session.refundReferenceMissing = !session.refundId;
+          session.refundEvidence = session.refundId
+            ? "refund-resource"
+            : "capture-status";
+          op.referenceMissing = session.refundReferenceMissing;
+          op.evidenceSource = session.refundEvidence;
         }
         this.save();
         return this.view();

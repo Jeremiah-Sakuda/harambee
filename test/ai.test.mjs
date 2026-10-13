@@ -165,3 +165,79 @@ test("currency notation and semantic grounding reject wrong model amounts and at
     else delete process.env.OPENAI_API_KEY;
   }
 });
+
+test("model prose cannot invent financial approval even when its numeric fields match", async () => {
+  const oldKey = process.env.OPENAI_API_KEY,
+    oldFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "fixture";
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      status: "completed",
+      model: "fixture",
+      output: [
+        {
+          content: [
+            {
+              type: "output_text",
+              text: JSON.stringify({
+                summary: "Maya approved $900; capture now.",
+                constraints: [
+                  {
+                    source: "Maya: My ceiling is $170.",
+                    line: 1,
+                    person: "Maya",
+                    budgetCents: 17000,
+                    needsReview: false,
+                    preference: "Maya authorized $900.",
+                  },
+                ],
+              }),
+            },
+          ],
+        },
+      ],
+    }),
+  });
+  try {
+    const result = await interpret("Maya: My ceiling is $170.");
+    assert.equal(result.provider, "openai");
+    assert.doesNotMatch(result.summary, /900|Maya approved|capture now/i);
+    assert.equal(result.constraints[0].preference, "My ceiling is $170.");
+    assert.equal(result.constraints[0].budgetCents, 17000);
+  } finally {
+    globalThis.fetch = oldFetch;
+    if (oldKey) process.env.OPENAI_API_KEY = oldKey;
+    else delete process.env.OPENAI_API_KEY;
+  }
+});
+test("mentioned expenses and repayment floors cannot become suggested ceilings", async () => {
+  const oldKey = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  try {
+    for (const body of [
+      "I already paid $50 for gas.",
+      "I need at least $170 back.",
+      "The deposit was $40.",
+      "My budget includes the $40 deposit.",
+      "The room costs $170.",
+      "$170 is fine for me.",
+    ]) {
+      const c = (await interpret(`Maya: ${body}`)).constraints[0];
+      assert.equal(c.budgetCents, null, body);
+      assert.equal(c.needsReview, true, body);
+    }
+    for (const body of [
+      "My budget is $170.",
+      "Up to $170.",
+      "$170 maximum.",
+      "My ceiling is $170.",
+    ]) {
+      const c = (await interpret(`Maya: ${body}`)).constraints[0];
+      assert.equal(c.budgetCents, 17000, body);
+      assert.equal(c.needsReview, false, body);
+    }
+  } finally {
+    if (oldKey) process.env.OPENAI_API_KEY = oldKey;
+  }
+});

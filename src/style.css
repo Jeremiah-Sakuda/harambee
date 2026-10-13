@@ -488,7 +488,7 @@ span svg {
 }
 .person-name > div > span {
   font-size: var(--fs-xs);
-  color: #86907e;
+  color: var(--muted);
   display: block;
   margin-top: 4px;
   line-height: 1.5;
@@ -500,7 +500,7 @@ span svg {
 .person-share small {
   display: block;
   font-size: var(--fs-xs);
-  color: #929887;
+  color: var(--muted);
   margin-top: 2px;
   text-decoration: line-through;
 }
@@ -521,7 +521,7 @@ span svg {
 }
 .neutral {
   background: #f3f4ef;
-  color: #78806f;
+  color: var(--muted);
 }
 .amber {
   background: #fbefda;
@@ -530,7 +530,7 @@ span svg {
 .commitment small {
   display: block;
   font-size: var(--fs-xs);
-  color: #858e7c;
+  color: var(--muted);
   margin-top: 4px;
 }
 .row-action {
@@ -725,7 +725,7 @@ span svg {
 }
 .funding-amount > span {
   font-size: var(--fs-xs);
-  color: #89917e;
+  color: var(--muted);
 }
 .next-step {
   display: flex;
@@ -748,7 +748,7 @@ span svg {
   font-size: var(--fs-xs);
   line-height: 1.7;
   margin-top: 4px;
-  color: #818875;
+  color: var(--muted);
 }
 .next-step.success {
   background: #edf4e7;

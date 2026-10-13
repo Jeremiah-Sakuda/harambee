@@ -106,6 +106,15 @@ export default function SandboxLab() {
               <p>Order {s.orderId || "response not confirmed"}</p>
               {s.authorizationId && <p>Authorization {s.authorizationId}</p>}
               {s.captureId && <p>Capture {s.captureId}</p>}
+              {s.status === "refunded" &&
+                (s.refundReferenceMissing || !s.refundId) && (
+                  <p role="status">
+                    Money returned; refund receipt reference pending. Use
+                    capture {s.captureId} in PayPal sandbox activity or
+                    reconcile to check for the reference. Do not repeat the
+                    refund.
+                  </p>
+                )}
               {s.investigation && <p role="status">{s.investigation}</p>}
               <div className="sandbox-buttons">
                 {s.approvalUrl &&

@@ -1,3 +1,8 @@
+import {
+  paymentSummary,
+  recoveryMessage,
+  recoveryLabel,
+} from "./payment-summary.mjs";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -158,15 +163,12 @@ function NextStep({
   } else if (state.status === "revision_required") {
     heading = "The plan is changing";
     text = `${departed ? `${departed} left. ` : ""}Your organizer is choosing a new plan. You'll review your new share before anything changes, and your current hold isn't charged.`;
-  } else if (
-    state.status === "recovery_pending" ||
-    state.status === "booking"
-  ) {
-    const back = sum(["captured", "refund_pending"]);
-    heading = "Booking stopped";
-    text = back
-      ? `Your ${usd(back)} will be returned. Nothing for you to do; nobody is charged twice.`
-      : "Your hold will be released and you won't be charged. Nothing for you to do.";
+  } else if (state.status === "booking") {
+    heading = "Booking in progress";
+    text =
+      "Your organizer is completing the booking. Activity & receipts shows confirmed payment updates.";
+  } else if (state.status === "recovery_pending") {
+    ({ heading, text } = recoveryMessage(mine));
   } else if (state.status === "confirmed") {
     heading = "You're booked";
     text = `You paid ${usd(sum(["captured"]))}. Your receipt is under Activity & receipts.`;
@@ -491,13 +493,9 @@ function App() {
       pays(id)
         .filter((p) => p.status === "authorized")
         .reduce((s, p) => s + p.amount, 0),
-    // A capture that failed leaves the authorization in place until recovery releases it.
-    held = state.payments
-      .filter((p) => ["authorized", "failed"].includes(p.status))
-      .reduce((s, p) => s + p.amount, 0),
-    captured = state.payments
-      .filter((p) => p.status === "captured" || p.status === "refund_pending")
-      .reduce((s, p) => s + p.amount, 0),
+    balances = paymentSummary(state.payments),
+    held = balances.held,
+    captured = balances.captured,
     // Approvals only count toward an open or booked plan; a plan awaiting revision has none yet.
     count = ["collecting", "ready", "booking", "confirmed"].includes(
       state.status,
@@ -559,6 +557,10 @@ function App() {
         refundFailed = by(["refund_failed"]),
         checking = by([
           "capture_unknown",
+          "capture_pending",
+          "refund_unknown",
+          "authorization_unknown",
+          "authorization_pending",
           "void_unknown",
           "void_pending",
           "authorize_unknown",
@@ -946,11 +948,7 @@ function App() {
                       hold = payment
                         .filter((x) => x.status === "authorized")
                         .reduce((s, x) => s + x.amount, 0),
-                      charge = payment
-                        .filter((x) =>
-                          ["captured", "refund_pending"].includes(x.status),
-                        )
-                        .reduce((s, x) => s + x.amount, 0);
+                      charge = paymentSummary(payment).captured;
                     return (
                       <div
                         className={`person-row ${!p.active ? "departed" : ""}`}
@@ -1017,21 +1015,7 @@ function App() {
                             </span>
                           ) : state.status === "recovery_pending" ? (
                             <span className="status neutral">
-                              {payment.some((x) => x.status === "unknown")
-                                ? `Checking with ${provider}`
-                                : charge
-                                  ? `${usd(charge)} to return`
-                                  : payment.some((x) => x.status === "failed")
-                                    ? "Payment failed · hold to release"
-                                    : payment.every((x) =>
-                                          [
-                                            "voided",
-                                            "refunded",
-                                            "abandoned",
-                                          ].includes(x.status),
-                                        )
-                                      ? "Settled · nothing owed"
-                                      : "Hold to release"}
+                              {recoveryLabel(payment)}
                             </span>
                           ) : approved(p.id) ? (
                             <>
@@ -1394,8 +1378,11 @@ function App() {
                           {op.status}
                         </span>
                         <small title={op.key}>
-                          {op.providerId || `SIM-OP-${op.id.slice(0, 8)}`} · v
-                          {op.version}
+                          {op.providerId ||
+                            (op.provider === "paypal-sandbox"
+                              ? "Provider reference pending"
+                              : `SIM-OP-${op.id.slice(0, 8)}`)}{" "}
+                          · v{op.version}
                           {Number.isInteger(op.attempts)
                             ? ` · attempt ${op.attempts}`
                             : ""}
@@ -1404,6 +1391,35 @@ function App() {
                     ))}
                   </div>
                 )}
+                {state.payments
+                  .filter(
+                    (p) =>
+                      p.status === "refunded" &&
+                      (p.refundReferenceMissing ||
+                        (state.provider === "paypal-sandbox" && !p.refundId)),
+                  )
+                  .map((p) => (
+                    <div className="alert" role="status" key={p.id}>
+                      <ReceiptText size={18} />
+                      <span>
+                        Money returned, receipt reference pending. Capture
+                        reference: {p.captureId}. Your organizer can use this
+                        reference in PayPal sandbox activity; checking it never
+                        repeats the refund.
+                      </span>
+                      {isOrganizer && (
+                        <button
+                          className="secondary"
+                          disabled={busy}
+                          onClick={() =>
+                            act("reconcile-payment", { paymentId: p.id })
+                          }
+                        >
+                          Check receipt reference
+                        </button>
+                      )}
+                    </div>
+                  ))}
               </section>
             )}
           </div>
@@ -1469,14 +1485,27 @@ function App() {
                 </div>
                 <div className="funding-amount">
                   <strong>
-                    {usd(state.status === "confirmed" ? captured : held)}
+                    {usd(
+                      state.status === "confirmed" ||
+                        (state.status === "recovery_pending" && captured > 0)
+                        ? captured
+                        : state.status === "recovery_pending" &&
+                            balances.checkingCapture > 0
+                          ? balances.checkingCapture
+                          : held,
+                    )}
                   </strong>
                   <span>
                     {state.status === "confirmed"
                       ? state.provider === "paypal-sandbox"
                         ? "charged in sandbox"
                         : "charged in simulation"
-                      : "held, not charged"}
+                      : state.status === "recovery_pending" && captured > 0
+                        ? "captured, return not confirmed"
+                        : state.status === "recovery_pending" &&
+                            balances.checkingCapture > 0
+                          ? "payment outcome being checked"
+                          : "held, not charged"}
                   </span>
                 </div>
                 <dl className="funding-breakdown">
@@ -1485,28 +1514,25 @@ function App() {
                     <dd>{usd(held)}</dd>
                   </div>
                   <div>
-                    <dt>Captured, not returned</dt>
+                    <dt>Captured, return not confirmed</dt>
                     <dd>{usd(captured)}</dd>
                   </div>
                   <div>
                     <dt>Refund pending (of captured)</dt>
-                    <dd>
-                      {usd(
-                        state.payments
-                          .filter((p) => p.status === "refund_pending")
-                          .reduce((n, p) => n + p.amount, 0),
-                      )}
-                    </dd>
+                    <dd>{usd(balances.refundPending)}</dd>
                   </div>
+                  {(balances.checkingCapture > 0 ||
+                    balances.checkingHold > 0) && (
+                    <div>
+                      <dt>Outcome being checked</dt>
+                      <dd>
+                        {usd(balances.checkingCapture + balances.checkingHold)}
+                      </dd>
+                    </div>
+                  )}
                   <div>
                     <dt>Returned</dt>
-                    <dd>
-                      {usd(
-                        state.payments
-                          .filter((p) => p.status === "refunded")
-                          .reduce((n, p) => n + p.amount, 0),
-                      )}
-                    </dd>
+                    <dd>{usd(balances.returned)}</dd>
                   </div>
                 </dl>
               </div>
