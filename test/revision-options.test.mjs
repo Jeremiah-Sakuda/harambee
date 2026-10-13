@@ -1178,6 +1178,10 @@ test("chat exports with timestamps keep their speakers", async () => {
     "[10/7/26, 9:41:05 PM] Maya: Honestly my rent just went up, I can’t go above $170 now.",
     "10/7/26, 21:41 - Maya: Honestly my rent just went up, I can’t go above $170 now.",
     "Maya  9:41 PM: Honestly my rent just went up, I can’t go above $170 now.",
+    // WhatsApp on iPhone: a leading direction mark, and "~ Name" for unsaved contacts.
+    "\u200e[10/7/26, 9:41:05 PM] Maya Chen: Honestly my rent just went up, I can’t go above $170 now.",
+    "~ Maya: Honestly my rent just went up, I can’t go above $170 now.",
+    "Maya, 9:41 PM: Honestly my rent just went up, I can’t go above $170 now.",
   ]) {
     const { out } = await withProposals(
       afterDropout(),
