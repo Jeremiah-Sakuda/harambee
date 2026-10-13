@@ -12,6 +12,8 @@
   --cream: #f4f3e9;
   --white: #fff;
   --accent: #cfdfb0;
+  --focus-ring: #244d3a;
+  --focus-halo: #fff;
   --warn: #8a5b17;
   --danger: #a5382e;
   /* Text floor: nothing smaller than --fs-xs; money and consent text at --fs-sm or more. */
@@ -63,9 +65,11 @@ a:focus-visible,
 select:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
-summary:focus-visible {
-  outline: 3px solid #9aad74;
+summary:focus-visible,
+.recovery-controls:focus {
+  outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
+  box-shadow: 0 0 0 4px var(--focus-halo);
 }
 a {
   color: inherit;
@@ -846,6 +850,23 @@ span svg {
   margin-left: auto;
   min-height: 25px;
   min-width: 25px;
+}
+.recovery-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  width: fit-content;
+  margin-top: 8px;
+  color: var(--forest);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  text-underline-offset: 3px;
+}
+.recovery-controls {
+  display: grid;
+  gap: 10px;
+  scroll-margin-block: 24px;
 }
 .revision-banner {
   display: flex;

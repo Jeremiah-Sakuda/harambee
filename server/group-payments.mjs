@@ -202,6 +202,7 @@ export class GroupPayments {
     // The lab persists its session before any provider call, so no session means nothing exists at PayPal.
     if (!this.lab.state.sessions.some((s) => s.id === p.sandboxSessionId)) {
       p.status = "abandoned";
+      delete p.recoveryError;
       this.engine.persist();
       return;
     }
@@ -360,6 +361,12 @@ export class GroupPayments {
     e.persist();
     for (const p of this.s.payments.filter((p) => !terminal(p))) {
       try {
+        // Approval saves the group payment before the lab session. An interruption
+        // between those saves leaves nothing at the provider to reconcile.
+        if (!this.lab.state.sessions.some((s) => s.id === p.sandboxSessionId)) {
+          await this.release(p);
+          continue;
+        }
         await this.run(p, "reconcile");
         if (p.status === "captured") await this.run(p, "refund");
         // A refund PayPal reported as failed is retried only when the organizer asks, with a new request ID.

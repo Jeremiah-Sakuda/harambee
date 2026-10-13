@@ -906,9 +906,14 @@ function App() {
                 {stopped && (
                   <div className="alert error stopped" role="status">
                     <AlertCircle size={18} />
-                    <span>
+                    <div>
                       <strong>{stopped.title}</strong> {stopped.text}
-                    </span>
+                      {isOrganizer && (
+                        <a className="recovery-jump" href="#recovery-controls">
+                          Review recovery actions <ArrowRight size={16} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
                 {state.status === "revision_required" && isOrganizer && (
@@ -1584,7 +1589,13 @@ function App() {
                 </p>
               ) : state.status === "recovery_pending" ||
                 state.status === "booking" ? (
-                <>
+                <div
+                  id="recovery-controls"
+                  className="recovery-controls"
+                  role="group"
+                  aria-label="Recovery actions"
+                  tabIndex={-1}
+                >
                   <button
                     className="primary full"
                     disabled={busy || !isOrganizer}
@@ -1607,7 +1618,7 @@ function App() {
                       Retry the failed refund
                     </button>
                   )}
-                </>
+                </div>
               ) : state.status === "cancelled" ? (
                 <>
                   {isOrganizer && (

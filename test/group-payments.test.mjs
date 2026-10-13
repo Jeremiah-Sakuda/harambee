@@ -281,6 +281,44 @@ test("a payment with no sandbox session can be released instead of wedging the p
   assert.equal(f.e.state.payments[0].status, "abandoned");
 });
 
+for (const action of ["cancel", "expire", "recover"]) {
+  test(`${action} settles an interrupted approval before lab-session creation`, async () => {
+    const f = fixture();
+    await f.approve("jordan");
+    f.lab.run = async () => {
+      throw Error("interrupted before lab session creation");
+    };
+    await assert.rejects(f.g.approve("maya", 1), /interrupted/);
+    if (action === "recover") {
+      // Also migrate a trip wedged by an earlier recovery attempt.
+      f.e.state.status = "recovery_pending";
+      f.e.state.payments.at(-1).recoveryError = "Sandbox session not found.";
+      f.e.persist();
+    }
+    const e = new Engine(f.store);
+    const lab = new SandboxLab(f.labStore, f.client);
+    const g = new GroupPayments(e, lab);
+    await g[action]("organizer");
+    await g.recover("organizer");
+    const saved = new Engine(f.store).state;
+    assert.equal(saved.status, "cancelled");
+    assert.equal(
+      saved.payments.find((p) => p.participantId === "jordan").status,
+      "voided",
+    );
+    const unstarted = saved.payments.find((p) => p.participantId === "maya");
+    assert.equal(unstarted.status, "abandoned");
+    assert.equal(unstarted.recoveryError, undefined);
+    assert.equal(f.orders.size, 1);
+    assert.equal(f.caps.size, 0);
+    assert.equal(lab.state.sessions.length, 1);
+    assert.equal(
+      lab.state.sessions[0].operations.filter((o) => o.type === "void").length,
+      1,
+    );
+  });
+}
+
 test("order create timeout reconciles by replaying the same PayPal-Request-Id", async () => {
   const f = fixture();
   const create = f.client.createOrder;
