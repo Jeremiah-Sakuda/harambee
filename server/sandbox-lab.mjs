@@ -16,6 +16,11 @@ const verifyAmount = (amount, expected) => {
 // silently, and never left looking like "still pending".
 const CAPTURE_NOT_TAKEN = ["DECLINED", "FAILED"];
 const REFUND_NOT_MADE = ["FAILED", "CANCELLED"];
+// A same-ID replay answered with these issues has not been decided by PayPal yet.
+const IN_FLIGHT_ISSUES = [
+  "PREVIOUS_REQUEST_IN_PROGRESS",
+  "DUPLICATE_REQUEST_ID",
+];
 const reasonOf = (r) =>
   r?.status_details?.reason
     ? ` (${String(r.status_details.reason).toLowerCase().replaceAll("_", " ")})`
@@ -308,6 +313,19 @@ export class SandboxLab {
             session.investigation =
               "The provider has not proved the prior operation outcome. Inspect sandbox activity and reconcile again; no replacement charge is allowed.";
           } else delete session.investigation;
+          // PayPal definitively rejected the refund replay, and its own records (just read above)
+          // show the capture still completed with no refund on it. Only then does the existing
+          // deliberate-retry path, with a new request ID, become available.
+          if (
+            !unresolved &&
+            session.status === "refund_unknown" &&
+            capture?.status === "COMPLETED" &&
+            !session.refundId
+          ) {
+            session.status = "refund_failed";
+            session.providerIssue =
+              "PayPal rejected the last refund request and still shows the capture completed with no refund. The money is still captured; nothing was retried automatically.";
+          }
           this.save();
           return this.view();
         }
@@ -435,16 +453,22 @@ export class SandboxLab {
         this.save();
         return this.view();
       } catch (error) {
+        const issue =
+          error.details?.details?.[0]?.issue || error.details?.name || "";
+        // PayPal may still be working on this request ID, or throttled it: the outcome is not
+        // known, so it stays unknown and the next reconcile replays the same ID.
+        const undecided =
+          [409, 429].includes(error.status) || IN_FLIGHT_ISSUES.includes(issue);
         op.status =
-          error.status >= 400 && error.status < 500 ? "failed" : "unknown";
+          error.status >= 400 && error.status < 500 && !undecided
+            ? "failed"
+            : "unknown";
         session.status =
           op.status === "unknown"
             ? `${action}_unknown`
             : action === "create"
               ? "create_failed"
               : session.status;
-        const issue =
-          error.details?.details?.[0]?.issue || error.details?.name || "";
         // Local verification failures are not provider HTTP errors; say which one happened.
         op.error =
           error instanceof DomainError

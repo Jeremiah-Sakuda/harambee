@@ -798,6 +798,40 @@ export class Engine {
     s.limitRequests = s.limitRequests.filter(
       (r) => mine(r) && r.version === s.version,
     );
+    // Another person's checkout link, PayPal buyer, provider session, request IDs and
+    // investigation notes are theirs and the organizer's; others see status and amount.
+    if (actor !== "organizer") {
+      for (const p of s.payments)
+        if (p.participantId !== actor)
+          for (const field of [
+            "payerId",
+            "approvalUrl",
+            "sandboxSessionId",
+            "investigation",
+            "recoveryError",
+          ])
+            delete p[field];
+      s.operations = s.operations.map((op, i) =>
+        !op.participantId || op.participantId === actor
+          ? op
+          : {
+              // A sandbox operation's ID is its PayPal-Request-Id; a positional ID keeps
+              // lists keyed. Keys, errors and debug IDs are dropped.
+              id: op.provider === "paypal-sandbox" ? `op-${i}` : op.id,
+              type: op.type,
+              status: op.status,
+              amount: op.amount,
+              participantId: op.participantId,
+              paymentId: op.paymentId,
+              version: op.version,
+              provider: op.provider,
+              providerId: op.providerId,
+              at: op.at,
+              createdAt: op.createdAt,
+              attempts: op.attempts,
+            },
+      );
+    }
     s.catalog = catalog;
     s.current = s.versions.find((v) => v.number === s.version);
     s.actor = actor;

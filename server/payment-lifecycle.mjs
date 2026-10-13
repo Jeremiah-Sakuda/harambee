@@ -81,8 +81,17 @@ export class PaymentLifecycle {
     this.engine.persist();
   }
   async execute(p, action, checkout = {}) {
-    // Manual reconciliation can resume a checkout whose plan record was saved first.
-    if (action === "reconcile" && !this.#session(p)) action = "create";
+    // Manual reconciliation can resume a checkout whose plan record was saved first, but only
+    // while that checkout is still wanted: a settled payment never gets a new PayPal order.
+    if (action === "reconcile" && !this.#session(p)) {
+      if (
+        p.status !== "created" ||
+        p.version !== this.s.version ||
+        !["collecting", "ready"].includes(this.s.status)
+      )
+        return;
+      action = "create";
+    }
     try {
       await this.lab.run(action, {
         id: p.sandboxSessionId,

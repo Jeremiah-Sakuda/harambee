@@ -4,11 +4,15 @@ export class PayPalSandbox {
   constructor({
     clientId = process.env.PAYPAL_CLIENT_ID,
     secret = process.env.PAYPAL_CLIENT_SECRET,
+    // Optional operator payee. Untested in sandbox: PayPal may refuse a payee on an
+    // AUTHORIZE order without partner approval.
+    payeeEmail = process.env.PAYPAL_PAYEE_EMAIL,
   } = {}) {
     if (!clientId || !secret)
       throw new Error("PayPal sandbox credentials are required.");
     this.clientId = clientId;
     this.secret = secret;
+    this.payeeEmail = payeeEmail || null;
   }
   async request(path, { method = "POST", body, key } = {}) {
     if (!this.token || this.tokenUntil < Date.now()) {
@@ -40,7 +44,10 @@ export class PayPalSandbox {
         ...(method === "POST" ? { Prefer: "return=representation" } : {}),
         ...(key ? { "PayPal-Request-Id": key } : {}),
       },
-      ...(body ? { body: JSON.stringify(body) } : {}),
+      // A string body is sent verbatim (webhook verification embeds PayPal's raw event).
+      ...(body
+        ? { body: typeof body === "string" ? body : JSON.stringify(body) }
+        : {}),
     });
     const data = r.status === 204 ? {} : await r.json();
     if (!r.ok)
@@ -67,6 +74,9 @@ export class PayPalSandbox {
             ...(description ? { description: description.slice(0, 127) } : {}),
             // Links the PayPal order back to this plan and payment in the dashboard.
             ...(customId ? { custom_id: customId.slice(0, 127) } : {}),
+            ...(this.payeeEmail
+              ? { payee: { email_address: this.payeeEmail } }
+              : {}),
           },
         ],
         ...(returnUrl
@@ -125,6 +135,22 @@ export class PayPalSandbox {
   getRefund(id) {
     return this.request(`/v2/payments/refunds/${encodeURIComponent(id)}`, {
       method: "GET",
+    });
+  }
+  // POST /v1/notifications/verify-webhook-signature. The event is embedded byte for byte:
+  // re-serializing it could change what PayPal signed.
+  verifyWebhookSignature({ headers, rawBody, webhookId }) {
+    const field = (name, value) =>
+      `${JSON.stringify(name)}:${JSON.stringify(value)}`;
+    return this.request("/v1/notifications/verify-webhook-signature", {
+      body: `{${[
+        field("auth_algo", headers["paypal-auth-algo"]),
+        field("cert_url", headers["paypal-cert-url"]),
+        field("transmission_id", headers["paypal-transmission-id"]),
+        field("transmission_sig", headers["paypal-transmission-sig"]),
+        field("transmission_time", headers["paypal-transmission-time"]),
+        field("webhook_id", webhookId),
+      ].join(",")},"webhook_event":${rawBody}}`,
     });
   }
   getCapture(id) {

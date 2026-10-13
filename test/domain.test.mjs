@@ -167,6 +167,60 @@ test("private ceilings are absent from other identities including organizer", ()
   assert.equal(e.view("organizer").participants[0].budget, undefined);
   assert.equal(e.view("maya").participants[0].budget, 22000);
   assert.equal(e.view("maya").participants[1].budget, undefined);
+  // Another person's PayPal checkout, buyer and request IDs stay with them and the organizer.
+  const checkout = {
+    payerId: "MAYA-BUYER",
+    approvalUrl: "https://www.sandbox.paypal.com/checkoutnow?token=MAYA",
+    sandboxSessionId: "maya-session",
+    investigation: "Maya's capture is unproven.",
+  };
+  e.state.payments.push({
+    id: "maya-pay",
+    participantId: "maya",
+    version: 1,
+    amount: 15000,
+    status: "approval_required",
+    ...checkout,
+  });
+  e.state.operations.push({
+    id: "maya-request-id",
+    key: "maya-request-id",
+    type: "create",
+    status: "confirmed",
+    amount: 15000,
+    paymentId: "maya-pay",
+    participantId: "maya",
+    version: 1,
+    provider: "paypal-sandbox",
+    error: "Maya's provider error",
+    debugId: "MAYA-DEBUG",
+  });
+  const jordan = JSON.stringify(e.view("jordan"));
+  for (const secret of [
+    ...Object.values(checkout),
+    "maya-request-id",
+    "Maya's provider error",
+    "MAYA-DEBUG",
+  ])
+    assert.ok(!jordan.includes(secret), `jordan must not see ${secret}`);
+  const seen = e.view("jordan").payments.find((p) => p.id === "maya-pay");
+  assert.equal(seen.status, "approval_required");
+  assert.equal(seen.amount, 15000);
+  const op = e
+    .view("jordan")
+    .operations.find((o) => o.paymentId === "maya-pay");
+  assert.equal(op.status, "confirmed");
+  assert.equal(op.amount, 15000);
+  for (const actor of ["maya", "organizer"]) {
+    const own = e.view(actor).payments.find((p) => p.id === "maya-pay");
+    assert.deepEqual(
+      Object.fromEntries(Object.keys(checkout).map((k) => [k, own[k]])),
+      checkout,
+    );
+    assert.ok(
+      e.view(actor).operations.some((o) => o.key === "maya-request-id"),
+    );
+  }
 });
 test("file store survives process-level engine recreation", () => {
   const dir = mkdtempSync(join(tmpdir(), "harambee-test-"));
