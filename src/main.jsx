@@ -1,5 +1,6 @@
 import {
   paymentSummary,
+  organizerRecovery,
   recoveryMessage,
   recoveryLabel,
 } from "./payment-summary.mjs";
@@ -524,89 +525,7 @@ function App() {
     myRequests = (state.limitRequests ?? []).filter(
       (r) => r.participantId === actor && r.status === "pending",
     ),
-    // Money copy names the provider actually in use.
-    provider =
-      state.provider === "paypal-sandbox" ? "PayPal" : "the payment simulator",
-    firstOf = (id) =>
-      state.participants.find((p) => p.id === id)?.name.split(" ")[0],
-    // Plain-language account of a stopped booking or cancellation, from the reason the server
-    // recorded and each payment's actual status, so nobody has to read an operations log.
-    stopped = (() => {
-      if (state.status !== "recovery_pending") return null;
-      const by = (statuses) =>
-        state.payments.filter((p) => statuses.includes(p.status));
-      const names = (ps) =>
-        list([...new Set(ps.map((p) => firstOf(p.participantId)))]);
-      const total = (ps) => usd(ps.reduce((n, p) => n + p.amount, 0));
-      const stop = state.stop ?? {};
-      const who = stop.participantId ? firstOf(stop.participantId) : "One";
-      const cause =
-        {
-          capture_declined: `${who}’s payment didn’t go through.`,
-          capture_unknown: `${provider.replace(/^./, (c) => c.toUpperCase())} didn’t confirm one payment in time; Harambee checks with it before doing anything else.`,
-          reservation_failed: "The cabin couldn’t be reserved.",
-          reservation_unknown:
-            "The cabin’s reply timed out; Harambee checks the reservation before deciding.",
-          lease_expired:
-            "The cabin hold ran out before every payment was confirmed.",
-          cancelled: "The organizer cancelled the trip.",
-          expired: "The collection deadline passed.",
-        }[stop.reason] ?? "Something stopped the booking.";
-      const toReturn = by(["captured"]),
-        returning = by(["refund_pending"]),
-        refundFailed = by(["refund_failed"]),
-        checking = by([
-          "capture_unknown",
-          "capture_pending",
-          "refund_unknown",
-          "authorization_unknown",
-          "authorization_pending",
-          "void_unknown",
-          "void_pending",
-          "authorize_unknown",
-          "unknown",
-        ]);
-      const parts = [cause, "Nothing more will be collected."];
-      if (toReturn.length)
-        parts.push(`${names(toReturn)}’s ${total(toReturn)} will be returned.`);
-      if (returning.length)
-        parts.push(
-          `${names(returning)}’s ${total(returning)} is being returned; ${provider} is still processing it.`,
-        );
-      if (refundFailed.length)
-        parts.push(
-          `PayPal reports ${names(refundFailed)}’s refund of ${total(refundFailed)} failed. That money is still captured; nothing was retried automatically.`,
-        );
-      // Only mention holds that still exist.
-      const holds = by(["authorized", "failed", "capture_declined"]);
-      const taken = toReturn.length || returning.length || refundFailed.length;
-      if (checking.length)
-        parts.push(
-          `${names(checking)}’s payment is still being confirmed with ${provider}.`,
-        );
-      else if (holds.length)
-        parts.push(
-          taken
-            ? "Every other hold will be released, never charged."
-            : "Every hold will be released; nobody was charged.",
-        );
-      else if (!taken) parts.push("Nobody was charged.");
-      parts.push("Nobody is charged twice.");
-      return {
-        title: ["cancelled", "expired"].includes(stop.reason)
-          ? "Closing the trip."
-          : "Booking stopped.",
-        text: parts.join(" "),
-        refundFailed: refundFailed.length > 0,
-        onlyRefunds:
-          returning.length > 0 &&
-          state.payments.every((p) =>
-            ["refund_pending", "refunded", "voided", "abandoned"].includes(
-              p.status,
-            ),
-          ),
-      };
-    })();
+    stopped = organizerRecovery(state);
   const statusText = {
     collecting: "Getting the group together",
     ready: "Everyone’s in. Let’s go.",

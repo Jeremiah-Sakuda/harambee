@@ -4,33 +4,142 @@ const usd = (n) =>
     currency: "USD",
     maximumFractionDigits: n % 100 ? 2 : 0,
   }).format(n / 100);
+// One vocabulary for balances, participant guidance and organizer recovery.
+const outcomeGroup = {
+  authorized: "held",
+  failed: "held",
+  capture_declined: "held",
+  captured: "toReturn",
+  refunded: "returned",
+  refund_pending: "refundPending",
+  refund_failed: "refundFailed",
+  refund_unknown: "refundUnknown",
+  capture_unknown: "checkingCapture",
+  capture_pending: "checkingCapture",
+  unknown: "checkingCapture",
+  authorization_unknown: "checkingHold",
+  authorization_pending: "checkingHold",
+  authorize_unknown: "checkingHold",
+  void_unknown: "checkingHold",
+  void_pending: "checkingHold",
+  voided: "released",
+  abandoned: "released",
+};
+function classify(payments) {
+  const groups = Object.fromEntries(
+    [...new Set(Object.values(outcomeGroup)), "other"].map((key) => [key, []]),
+  );
+  for (const payment of payments)
+    groups[outcomeGroup[payment.status] ?? "other"].push(payment);
+  return groups;
+}
+const sum = (payments) => payments.reduce((n, p) => n + p.amount, 0);
 export function paymentSummary(payments) {
-  const sum = (...statuses) =>
-    payments
-      .filter((p) => statuses.includes(p.status))
-      .reduce((n, p) => n + p.amount, 0);
+  const p = classify(payments);
   return {
-    held: sum("authorized", "failed", "capture_declined"),
-    captured: sum(
-      "captured",
-      "refund_pending",
-      "refund_failed",
-      "refund_unknown",
-    ),
-    returned: sum("refunded"),
-    refundPending: sum("refund_pending"),
-    refundFailed: sum("refund_failed"),
-    refundUnknown: sum("refund_unknown"),
-    checkingCapture: sum("capture_unknown", "capture_pending", "unknown"),
-    checkingHold: sum(
-      "authorization_unknown",
-      "authorization_pending",
-      "authorize_unknown",
-      "void_unknown",
-      "void_pending",
-    ),
+    held: sum(p.held),
+    captured: sum([
+      ...p.toReturn,
+      ...p.refundPending,
+      ...p.refundFailed,
+      ...p.refundUnknown,
+    ]),
+    returned: sum(p.returned),
+    refundPending: sum(p.refundPending),
+    refundFailed: sum(p.refundFailed),
+    refundUnknown: sum(p.refundUnknown),
+    checkingCapture: sum(p.checkingCapture),
+    checkingHold: sum(p.checkingHold),
   };
 }
+
+export function organizerRecovery(state) {
+  if (state.status !== "recovery_pending") return null;
+  const p = classify(state.payments);
+  const provider =
+    state.provider === "paypal-sandbox" ? "PayPal" : "the payment simulator";
+  const firstOf = (id) =>
+    state.participants.find((p) => p.id === id)?.name.split(" ")[0] ??
+    "A participant";
+  const names = (payments) =>
+    new Intl.ListFormat("en", { type: "conjunction" }).format([
+      ...new Set(payments.map((p) => firstOf(p.participantId))),
+    ]);
+  const total = (payments) => usd(sum(payments));
+  const stop = state.stop ?? {};
+  const who = stop.participantId ? firstOf(stop.participantId) : "One";
+  const cause =
+    {
+      capture_declined: `${who}’s payment didn’t go through.`,
+      capture_unknown: `${provider.replace(/^./, (c) => c.toUpperCase())} didn’t confirm one payment in time; Harambee checks with it before doing anything else.`,
+      reservation_failed: "The cabin couldn’t be reserved.",
+      reservation_unknown:
+        "The cabin’s reply timed out; Harambee checks the reservation before deciding.",
+      lease_expired:
+        "The cabin hold ran out before every payment was confirmed.",
+      cancelled: "The organizer cancelled the trip.",
+      expired: "The collection deadline passed.",
+    }[stop.reason] ?? "Something stopped the booking.";
+  const parts = [cause, "Nothing more will be collected."];
+  if (p.toReturn.length)
+    parts.push(`${names(p.toReturn)}’s ${total(p.toReturn)} will be returned.`);
+  if (p.refundPending.length)
+    parts.push(
+      `${names(p.refundPending)}’s ${total(p.refundPending)} is being returned; ${provider} is still processing it.`,
+    );
+  if (p.refundFailed.length)
+    parts.push(
+      `${provider.replace(/^./, (c) => c.toUpperCase())} reports ${names(p.refundFailed)}’s refund of ${total(p.refundFailed)} failed. That money is still captured; nothing was retried automatically.`,
+    );
+  if (p.returned.length)
+    parts.push(
+      `${names(p.returned)}’s ${total(p.returned)} has been returned.`,
+    );
+  const checking = [
+    ...p.checkingCapture,
+    ...p.checkingHold,
+    ...p.refundUnknown,
+  ];
+  const taken =
+    p.toReturn.length ||
+    p.refundPending.length ||
+    p.refundFailed.length ||
+    p.returned.length;
+  if (checking.length)
+    parts.push(
+      `${names(checking)}’s payment is still being confirmed with ${provider}.`,
+    );
+  // Completed refunds are evidence of a prior charge, not evidence nobody was charged.
+  if (p.held.length)
+    parts.push(
+      taken || checking.length
+        ? "Remaining holds will be released, never charged."
+        : "Every hold will be released; nobody was charged.",
+    );
+  else if (!taken && !checking.length) parts.push("Nobody was charged.");
+  if (
+    p.returned.length &&
+    !p.toReturn.length &&
+    !p.refundPending.length &&
+    !p.refundFailed.length &&
+    !checking.length &&
+    !p.held.length
+  )
+    parts.push("Nothing remains charged or held.");
+  parts.push("Nobody is charged twice.");
+  return {
+    title: ["cancelled", "expired"].includes(stop.reason)
+      ? "Closing the trip."
+      : "Booking stopped.",
+    text: parts.join(" "),
+    refundFailed: p.refundFailed.length > 0,
+    onlyRefunds:
+      p.refundPending.length > 0 &&
+      p.refundPending.length + p.returned.length + p.released.length ===
+        state.payments.length,
+  };
+}
+
 export function recoveryMessage(payments) {
   const p = paymentSummary(payments);
   if (p.refundFailed)
