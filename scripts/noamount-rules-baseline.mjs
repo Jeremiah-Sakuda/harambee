@@ -1,6 +1,7 @@
 // Frozen transparent comparator: source-linked cabin preferences and targeted questions.
 // Deliberately separate from the application/model verifier. A development baseline, not user data.
 import { readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { splitSpeaker } from "../server/ai.mjs";
 import { sourceFingerprint } from "./lib/source-fingerprint.mjs";
 const casesFlag = process.argv.indexOf("--cases");

@@ -1578,8 +1578,9 @@ function App() {
                   state.status === "booking") &&
                 !isOrganizer ? (
                 <p className="participant-status">
-                  Your organizer is returning money and releasing holds. Nothing
-                  for you to do.
+                  {state.status === "booking"
+                    ? "Your organizer is completing the booking; confirmed updates appear in Activity & receipts."
+                    : recoveryMessage(pays(actor)).text}
                 </p>
               ) : state.status === "recovery_pending" ||
                 state.status === "booking" ? (

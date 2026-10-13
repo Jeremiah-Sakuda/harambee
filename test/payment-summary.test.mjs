@@ -29,6 +29,7 @@ test("uncertain capture and hold outcomes never promise no charge or release", (
     "authorization_unknown",
     "authorization_pending",
     "void_unknown",
+    "void_pending",
   ]) {
     const payments = [{ amount: 20000, status }];
     const p = paymentSummary(payments);
