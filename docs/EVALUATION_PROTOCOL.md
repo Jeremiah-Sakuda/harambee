@@ -1,6 +1,6 @@
 # Comparing planning assistance
 
-Compare the hybrid model workflow, the transparent rules comparator and a participant form on the same deidentified trip briefs. The current ten briefs are development fixtures; the next comparison uses separately authored input.
+Compare the hybrid model workflow, the transparent rules comparator and a participant form on the same deidentified trip briefs. The current ten briefs are development fixtures. A first frozen comparison on [16 separately authored briefs](../eval/revision-cases-independent.README.md) ran on October 13, 2026 ([results](REVISION_OPTIONS.md#independent-briefs)); their author was a separate AI agent, so briefs written by a person and the participant-form arm remain to do.
 
 1. Freeze the model prompt, verifier, rule comparator and scorer at a recorded commit before collecting new briefs. Record source hashes and model settings.
 2. Ask an author who has not read the development fixtures to supply 12–20 synthetic briefs. For the no-amount comparison, include refusals, relayed views, attendance uncertainty, competing cabin preferences and mixed updates without dollar figures. Clear ceilings and past expenses are covered separately by the 28-case notes benchmark. Use sample names and no credentials or personal data.

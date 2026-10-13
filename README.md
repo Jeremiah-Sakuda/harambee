@@ -25,14 +25,14 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | --- | --- |
 | Separate buyers approve their shares, a dropout releases a hold, and the group books with exact-difference top-ups | [Recorded PayPal sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md): three buyers, two $100 top-ups, $600 captured |
 | Booking failure returns each person's money | [Recorded group refund](docs/evidence/2026-10-08-sandbox-group-refund/README.md): three $200 captures refunded, independently confirmed through PayPal |
-| Versioned consent, payment recovery and source-grounded planning | 137 automated tests, a 28-case notes benchmark, 26 revision fixtures and a 16-scenario offline PayPal matrix |
-| AI turns chat into options, source-linked reasons and questions | Recorded gpt-4.1-mini runs: 24–26/26 synthetic briefs useful across the last five rounds; 8/10 no-amount briefs under the strict scorer. [Results, comparators and methodology](docs/REVISION_OPTIONS.md) |
+| Versioned consent, payment recovery and source-grounded planning | 176 automated tests, a 28-case notes benchmark, 26 revision fixtures and a 16-scenario offline PayPal matrix |
+| AI turns chat into options, source-linked reasons and questions | On 16 briefs written without seeing our fixtures, gpt-4.1-mini plus code checks passed 10/16, against 6/16 for a rules comparator. [Results and methodology](docs/REVISION_OPTIONS.md) |
 
 **Demo setup:** PayPal sandbox uses test funds; cabin availability and reservations use local sample inventory. The default credential-free mode uses simulated payments and a local planner. Provider evidence identifies the source and configuration used in each run.
 
-![Left: revision options from a recorded model run. Right: the board after the recorded PayPal sandbox booking](docs/preview.png)
+![After Sam leaves: a live gpt-4.1-mini option for $170 / $215 / $215 with quoted reasons, Maya confirming her $170 limit on her phone, and Jordan approving only the extra $65](docs/preview.png)
 
-*Two recorded examples: live gpt-4.1-mini revision options with simulated payments (left), and the PayPal sandbox booking with $600 captured (right).*
+*Captured on October 13, 2026 from the current build with a live gpt-4.1-mini run and simulated payments. The PayPal sandbox runs are in [Demonstrated end to end](#demonstrated-end-to-end).*
 
 ## How this differs
 
@@ -150,13 +150,16 @@ Reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/gu
 
 When someone leaves, the organizer chooses **Suggest options**. A model (gpt-4.1-mini) reads the group chat and proposes up to three options, each with its reasons quoted from people's own messages. Code checks every quote, amount and speaker, computes every share, and shows the plain rebalance alongside. A limit read from chat counts only after its owner confirms it in their own view, and the model never sees anyone's saved budget. Without a key, a labelled **local planner (not AI)** keeps the flow working.
 
-| | Recorded model results | Local planner and rules |
-| --- | --- | --- |
-| Sample chat, 3 live runs | Only Maya confirms, $170 / $215 / $215; that card's **Why** is Maya's limit and Jordan's “I can stretch a bit…”; Alex's Creekside wish is shown as pointing to another option; every run asks Jordan how much more he could pay | Same table and confirmation; code supplies clarification checks |
-| 26 synthetic briefs with amounts | 24–26/26 useful across the last five rounds, 26/26 budget-safe | 23/26 useful, 26/26 safe |
-| 10 briefs with no amount, pre-registered | 8/10 under the strict scorer; all 3 of its questions went to the person the brief names (earlier runs: 7/10, with 3–4 of 12–15) | Current local planner: 2/10, with 2 of 6 required questions. Development rules comparator: 10/10, with 6 of 6. [Comparison design](docs/EVALUATION_PROTOCOL.md) |
+Recorded on October 13, 2026 at commit `31589b9`; each result file carries its source hashes:
 
-Publishing always recomputes from participant-confirmed budgets. The benchmark uses fixed synthetic briefs, with each provider run recorded separately.
+| Test | gpt-4.1-mini + code checks | Without the model |
+| --- | --- | --- |
+| [16 independent briefs with no amount](docs/REVISION_OPTIONS.md#independent-briefs) | 10/16; asked 8 of the 11 needed questions, all to the right person | Rules comparator: 6/16 (4 of 11). Local planner: 0/16 |
+| 26 synthetic briefs with amounts | 25/26 useful; 24/26 from the model alone. Earlier rounds: 24–26/26 | Local planner: 23/26 |
+| 10 no-amount development briefs | 8/10; the model asked 1 of 6 needed questions, code 4 more | Rules written for these briefs: 10/10. Local planner: 2/10 |
+| The demo's sample chat, 3 runs | Maya's $170 / $215 / $215 card in 2 of 3; in the third, code asks Maya to confirm $170 | Local planner: same card and confirmation |
+
+The independent briefs were written by a separate AI agent that saw none of our fixtures or code, not by a person; [details](eval/revision-cases-independent.README.md). Every publishable option stayed within saved budgets, which holds by construction. Publishing always recomputes from participant-confirmed budgets. The benchmark uses fixed synthetic briefs, with each provider run recorded separately.
 
 **[How options are checked, privacy, the ambiguity backstop, recorded provider runs and benchmark design →](docs/REVISION_OPTIONS.md)**
 

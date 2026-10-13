@@ -1,0 +1,285 @@
+{
+  "source": {
+    "commit": "31589b906710488fa8948ca3b664978d619594bc",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/revision-options.mjs": "022945fbb14f7e052ffdfa7a38070fcdcffec5833261c13648f1f2aa8b5a89a9",
+      "server/ai.mjs": "9c48f61e53b8912af1bd3068dd09928b2b49d909b436679138b94b6283392ab6",
+      "server/proposal-source.mjs": "50e1fd826b65f73ac06f86034c802fbe51fbf2d2e087b4d9cc4f258ee6285a95",
+      "server/domain.mjs": "dbede459296c291de8111b1a9983f6f8e5edffa5a07083b284506c20aa1c1a09"
+    }
+  },
+  "cases": "eval/revision-cases-independent.json",
+  "casesSha256": "8d74bc5705633d02e1a2d1b4b0eac983019dc354a399ad30b2fb8dcae4979892",
+  "scorer": "strict",
+  "mode": "local-planner",
+  "scored": "fresh run",
+  "passed": 0,
+  "total": 16,
+  "questionPrecision": {
+    "toRightPerson": 0,
+    "total": 0,
+    "note": "Model questions in briefs that name who to ask; code-raised questions excluded."
+  },
+  "questionRecall": {
+    "required": 11,
+    "modelAnswered": 0,
+    "pipelineAnswered": 2,
+    "note": "Necessary questions answered, including misses; pipeline includes code-raised questions, model does not."
+  },
+  "results": [
+    {
+      "id": "ind-flat-refusal",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": false,
+        "refusalNeverAWhy": true
+      },
+      "questionRecall": null,
+      "questionPrecision": null
+    },
+    {
+      "id": "ind-negation-trailing",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": false,
+        "objectionNeverAWhy": true
+      },
+      "questionRecall": null,
+      "questionPrecision": null
+    },
+    {
+      "id": "ind-anything-but-creek",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": false,
+        "objectionNeverAWhy": true
+      },
+      "questionRecall": null,
+      "questionPrecision": null
+    },
+    {
+      "id": "ind-changed-mind",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": false,
+        "objectionNeverAWhy": true
+      },
+      "questionRecall": null,
+      "questionPrecision": null
+    },
+    {
+      "id": "ind-sarcastic-refusal",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": false,
+        "refusalNeverAWhy": true
+      },
+      "questionRecall": null,
+      "questionPrecision": null
+    },
+    {
+      "id": "ind-vague-stretch",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-relayed-maya",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 1
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-attendance-alex",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-conditional-on-alex",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-relayed-refusal",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 1
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-negation-not-no",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-torn-alex",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-guests-alex",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-defer-to-maya",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-retracted-yes",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "ind-refusal-plus-undecided",
+      "pass": false,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": false,
+        "wordsBackTheirChoice": false,
+        "refusalNeverAWhy": true
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
+      "questionPrecision": {
+        "toRightPerson": 0,
+        "total": 0
+      }
+    }
+  ]
+}

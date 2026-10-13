@@ -1,0 +1,263 @@
+{
+  "source": {
+    "commit": "31589b906710488fa8948ca3b664978d619594bc",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/revision-options.mjs": "022945fbb14f7e052ffdfa7a38070fcdcffec5833261c13648f1f2aa8b5a89a9",
+      "server/ai.mjs": "9c48f61e53b8912af1bd3068dd09928b2b49d909b436679138b94b6283392ab6",
+      "server/proposal-source.mjs": "50e1fd826b65f73ac06f86034c802fbe51fbf2d2e087b4d9cc4f258ee6285a95",
+      "server/domain.mjs": "dbede459296c291de8111b1a9983f6f8e5edffa5a07083b284506c20aa1c1a09"
+    }
+  },
+  "fixtureVersion": 1,
+  "cases": "revision-cases-holdout2",
+  "mode": "live-provider",
+  "liveProviderExecuted": true,
+  "passed": 6,
+  "passedFromSource": 6,
+  "safe": 6,
+  "total": 6,
+  "safetyNote": "Saved-budget safety holds by construction (the allocator never exceeds a saved budget); the check guards regressions and forbidden caps or cabins, not model judgment.",
+  "acceptance": "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
+  "limitations": "Synthetic briefs; one run of one model. Not user research.",
+  "results": [
+    {
+      "id": "h2-clear-firm",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "usefulFromSource": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3292,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "jordan": 19000
+          },
+          "shares": [
+            20500,
+            19000,
+            20500
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "codeClarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-updated",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "usefulFromSource": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3767,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "maya": 19000
+          },
+          "shares": [
+            19000,
+            20500,
+            20500
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "creek",
+          "feasible": true,
+          "caps": {
+            "maya": 19000
+          },
+          "shares": [
+            16000,
+            16000,
+            16000
+          ],
+          "source": "openai",
+          "removedLimits": [
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "codeClarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-clear-unrelated-hedge",
+      "kind": "clear",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "usefulFromSource": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2857,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {
+            "alex": 18000
+          },
+          "shares": [
+            21000,
+            21000,
+            18000
+          ],
+          "source": "openai",
+          "removedLimits": []
+        },
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": []
+        }
+      ],
+      "clarifications": 0,
+      "codeClarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-ish",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "usefulFromSource": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3413,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "The model read Maya’s message as uncertain, not a firm limit, so code asked instead of using it.",
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        }
+      ],
+      "clarifications": 1,
+      "codeClarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-either",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "usefulFromSource": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 2379,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "The model read Alex’s message as uncertain, not a firm limit, so code asked instead of using it."
+          ]
+        }
+      ],
+      "clarifications": 1,
+      "codeClarifications": 0,
+      "discarded": []
+    },
+    {
+      "id": "h2-ambiguous-relayed",
+      "kind": "ambiguous",
+      "pass": true,
+      "safe": true,
+      "useful": true,
+      "usefulFromSource": true,
+      "provider": "openai",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "latencyMs": 3455,
+      "options": [
+        {
+          "listingId": "pine",
+          "feasible": true,
+          "caps": {},
+          "shares": [
+            20000,
+            20000,
+            20000
+          ],
+          "source": "rule",
+          "removedLimits": [
+            "It attributed a limit to Alex from someone else’s message.",
+            "Code dropped a reason it couldn’t find in that person’s own message."
+          ]
+        }
+      ],
+      "clarifications": 2,
+      "codeClarifications": 1,
+      "discarded": []
+    }
+  ]
+}
