@@ -8,67 +8,19 @@ import {
 const need = (ok, message) => {
   if (!ok) throw new DomainError(message);
 };
-const terminal = (p) => ["voided", "refunded", "abandoned"].includes(p.status);
+import {
+  PaymentLifecycle,
+  paymentSettled as terminal,
+} from "./payment-lifecycle.mjs";
 // One coordinator per persisted plan. HTTP serializes all mutations across await boundaries.
 // PayPal sandbox is an alternate execution path for the same versions/consents/allocations.
 export class GroupPayments {
   constructor(engine, lab) {
     this.engine = engine;
-    this.lab = lab;
+    this.lifecycle = new PaymentLifecycle(engine, lab);
   }
   get s() {
     return this.engine.state;
-  }
-  sync(p) {
-    if (p.status === "abandoned") return;
-    const session = this.lab.state.sessions.find(
-      (s) => s.id === p.sandboxSessionId,
-    );
-    if (!session) return;
-    // A definitely rejected order create, or an order PayPal dropped before approval, left nothing held.
-    p.status = ["create_failed", "expired_unapproved"].includes(session.status)
-      ? "abandoned"
-      : session.status;
-    p.providerIssue = session.providerIssue ?? null;
-    p.providerId = session.authorizationId || session.orderId || null;
-    p.captureId = session.captureId;
-    p.refundId = session.refundId;
-    p.refundReferenceMissing =
-      session.refundReferenceMissing ??
-      (session.status === "refunded" && !session.refundId);
-    p.refundEvidence = session.refundEvidence ?? null;
-    p.payerId = session.payerId;
-    p.approvalUrl = session.approvalUrl;
-    // A provider-reported failure is itself the guidance for what to do next.
-    p.investigation = session.investigation ?? session.providerIssue ?? null;
-    for (const op of session.operations) {
-      const entry = {
-        ...op,
-        key: op.id,
-        paymentId: p.id,
-        participantId: p.participantId,
-        version: p.version,
-        provider: "paypal-sandbox",
-      };
-      const index = this.s.operations.findIndex((o) => o.id === op.id);
-      if (index < 0) this.s.operations.push(entry);
-      else this.s.operations[index] = entry;
-    }
-    if (["collecting", "ready"].includes(this.s.status))
-      this.s.status = this.engine.ready() ? "ready" : "collecting";
-    this.engine.persist();
-  }
-  async run(p, action, checkout = {}) {
-    try {
-      await this.lab.run(action, {
-        id: p.sandboxSessionId,
-        amount: p.amount,
-        groupPlanId: this.s.id,
-        ...checkout,
-      });
-    } finally {
-      this.sync(p);
-    }
   }
   async approve(actor, version, { appUrl } = {}) {
     const e = this.engine;
@@ -114,25 +66,13 @@ export class GroupPayments {
       });
     e.persist();
     if (held < share) {
-      const p = {
-        id: randomUUID(),
-        participantId: actor,
-        version,
-        amount: share - held,
-        status: "created",
-        sandboxSessionId: randomUUID(),
-      };
-      this.s.payments.push(p);
-      e.persist();
-      const back = (result) =>
-        appUrl
-          ? `${appUrl}/?${new URLSearchParams({ participant: actor, paypal: result, payment: p.id })}`
-          : undefined;
-      await this.run(p, "create", {
-        returnUrl: back("return"),
-        cancelUrl: back("cancel"),
-        description: `${this.s.title} · ${person.name} · version ${version}`,
-      });
+      await this.lifecycle.create(
+        { participantId: actor, version, amount: share - held },
+        {
+          appUrl,
+          description: `${this.s.title} · ${person.name} · version ${version}`,
+        },
+      );
     }
     this.s.status = e.ready() ? "ready" : "collecting";
     e.log(
@@ -155,7 +95,7 @@ export class GroupPayments {
       "This consent is stale. Reconcile and release it; review the new version.",
     );
     need(this.engine.approved(actor), "Review the current agreement first.");
-    await this.run(p, "authorize");
+    await this.lifecycle.execute(p, "authorize");
     await this.distinctBuyer(p);
     this.s.status = this.engine.ready() ? "ready" : "collecting";
     this.engine.persist();
@@ -172,7 +112,7 @@ export class GroupPayments {
           other.payerId === p.payerId,
       );
     if (shared) {
-      await this.release(p);
+      await this.lifecycle.release(p);
       need(
         false,
         "Each participant needs their own sandbox buyer. That buyer already holds another share, so this hold was voided. Approve again and log in with a different sandbox buyer account.",
@@ -185,41 +125,12 @@ export class GroupPayments {
       p && (actor === "organizer" || actor === p.participantId),
       "Only the participant or organizer may reconcile.",
     );
-    await this.run(
-      p,
-      this.lab.state.sessions.some((s) => s.id === p.sandboxSessionId)
-        ? "reconcile"
-        : "create",
-    );
+    await this.lifecycle.execute(p, "reconcile");
     if (["collecting", "ready"].includes(this.s.status))
       await this.distinctBuyer(p);
     if (["collecting", "ready"].includes(this.s.status))
       this.s.status = this.engine.ready() ? "ready" : "collecting";
     this.engine.persist();
-  }
-  async release(p) {
-    if (terminal(p)) return;
-    // The lab persists its session before any provider call, so no session means nothing exists at PayPal.
-    if (!this.lab.state.sessions.some((s) => s.id === p.sandboxSessionId)) {
-      p.status = "abandoned";
-      delete p.recoveryError;
-      this.engine.persist();
-      return;
-    }
-    this.sync(p);
-    if (p.status !== "authorized") {
-      await this.run(p, "reconcile");
-    }
-    if (p.status === "authorized") await this.run(p, "void");
-    // Orders never authorized by this app carry no hold and cannot be completed after revision.
-    else if (["approval_required", "buyer_approved"].includes(p.status)) {
-      p.status = "abandoned";
-      this.engine.persist();
-    }
-    need(
-      terminal(p),
-      "A prior payment is unresolved. Reconcile it before changing the plan.",
-    );
   }
   async withdraw(actor, participantId) {
     const e = this.engine;
@@ -235,7 +146,7 @@ export class GroupPayments {
     for (const p of this.s.payments.filter(
       (p) => p.participantId === participantId,
     ))
-      await this.release(p);
+      await this.lifecycle.release(p);
     e.withdraw(actor, participantId);
   }
   async revise(actor, input) {
@@ -259,7 +170,7 @@ export class GroupPayments {
         e.held(p.participantId) >
           shares.find((s) => s.id === p.participantId)?.share
       )
-        await this.release(p);
+        await this.lifecycle.release(p);
     }
     e.revise(actor, input);
   }
@@ -296,7 +207,7 @@ export class GroupPayments {
           "Fixture inventory lease expired. Recovery required.",
         );
         capturing = p;
-        await this.run(p, "capture");
+        await this.lifecycle.execute(p, "capture");
         need(
           p.status === "captured",
           p.status === "capture_declined"
@@ -359,26 +270,8 @@ export class GroupPayments {
     );
     this.s.status = "recovery_pending";
     e.persist();
-    for (const p of this.s.payments.filter((p) => !terminal(p))) {
-      try {
-        // Approval saves the group payment before the lab session. An interruption
-        // between those saves leaves nothing at the provider to reconcile.
-        if (!this.lab.state.sessions.some((s) => s.id === p.sandboxSessionId)) {
-          await this.release(p);
-          continue;
-        }
-        await this.run(p, "reconcile");
-        if (p.status === "captured") await this.run(p, "refund");
-        // A refund PayPal reported as failed is retried only when the organizer asks, with a new request ID.
-        else if (p.status === "refund_failed") {
-          if (retryRefunds) await this.run(p, "refund");
-        } else if (!["refund_pending", "refunded"].includes(p.status))
-          await this.release(p);
-      } catch (error) {
-        p.recoveryError = error.message;
-        e.persist();
-      }
-    }
+    for (const p of this.s.payments.filter((p) => !terminal(p)))
+      await this.lifecycle.recover(p, { retryRefunds });
     if (this.s.payments.every(terminal)) {
       this.s.status = "cancelled";
       if (this.s.reservation) this.s.reservation.status = "cancelled";
