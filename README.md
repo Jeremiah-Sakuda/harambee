@@ -25,14 +25,14 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | --- | --- |
 | PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
 | Real sandbox group compensation: [three $200 captures refunded after fixture commit failure](docs/evidence/2026-10-08-sandbox-group-refund/README.md), independently checked with PayPal; $600 returned, no booking | The narrated demo video (link added here once published) |
-| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (127 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
+| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (134 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
 | AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last five live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 8/10 under the strict scorer ([benchmark details](#revision-options-after-a-dropout)) | Benchmark corpus: synthetic group-trip briefs |
 
 ## How this differs
 
 As of October 2026, in what we found:
 
-| What exists | What it does | What Harambee adds |
+| What exists | What it does | Harambee’s implementation |
 | --- | --- | --- |
 | “Nobody pays until everyone pays” group checkout ([PayByGroup, 2012](https://techcrunch.com/2012/09/25/no-more-awkward-you-owe-me-money-reminders-paybygroup-lets-friends-split-group-purchases)) and tipping-point collection ([Crowdtilt/Tilt](https://en.wikipedia.org/wiki/Tilt.com), acquired by Airbnb in 2017) | Each person commits a share; nobody is charged unless the whole amount is reached. PayByGroup also let percentages change as more people joined | The all-or-nothing idea is theirs. Harambee adds what happens when the group *changes* after people have committed: a new version, fresh consent from everyone, and only the difference authorized |
 | Commit-now, pay-later group funds ([TableCash, September 2026](https://www.wboc.com/online_features/press_releases/tablecash-launches-commit-now-pay-later-for-group-plans-friends-put-a-card-down-up/article_8bd46577-9275-532c-b7ae-25630e5e5648.html), company press release) | Each person saves a card behind their share for a house or cabin; cards are charged together when the goal fills, and promises can be withdrawn before then. Money goes to the organizer through Stripe | The closest current product. Harambee's holds go to the merchant rather than an organizer, and after a dropout nobody's earlier promise stretches to a higher share |
@@ -59,13 +59,18 @@ Rollout model:
 
 **Initial customer segment:** independent cabin and glamping operators with their own booking site who already accept PayPal, reached the way StretchBill reaches them: as an app in the property-management marketplaces they already use. The rollout starts with operator onboarding, inventory timing and a clear fee model.
 
+**Hypothetical operator example:** a direct-booking cabin quotes $600 for four friends and permits a 48-hour collection window. Each approves a $150 hold. One leaves before booking, so that hold is released; the remaining friends choose $170 / $215 / $215, and approve only $20 / $65 / $65 more. The operator commits the dates only when the current agreement can be funded; an unavailable stay leads to release/refund rather than a completed reservation. The demo exercises this with sample inventory.
+
+For an initial operator agreement, the proposed responsibilities are: the operator owns availability and cancellation terms and covers its payment-processing costs; Harambee supplies agreement tracking and reconciliation; any platform fee is disclosed in the quote before approvals. Refund/support costs and the inventory hold window are agreed before onboarding. The adoption test is whether the operator completes more direct group bookings without greater support cost—not a forecast or a promised saving.
+
+
 **Lessons from earlier group-payment products:**
 
 - Airbnb's 2017 split payments charged the organizer's share and held the booking for 72 hours while everyone else paid; if anyone didn't, the reservation was forfeited and everyone refunded ([The Points Guy](https://thepointsguy.com/news/airbnb-launches-split-payments/)). It had no way to re-split when someone left. Harambee keeps every share as a hold, including the organizer's, and lets the remaining group re-approve a new split.
 - Tilt was acquired by Airbnb and shut down in 2017 ([Wikipedia](https://en.wikipedia.org/wiki/Tilt.com)), so its end says little about demand.
 - Collection apps (pools, TableCash) route money to the organizer, which makes the organizer the group's bank again. Harambee's authorizations go to the merchant.
 
-These are our reading of public sources.
+These comparisons describe published product features. Harambee’s contribution here is the implemented guarantee of version-bound agreement and exact-difference approval; public descriptions alone do not establish that another product lacks it.
 
 ## Run locally
 
@@ -120,7 +125,7 @@ Set `OPENAI_API_KEY` and optionally `OPENAI_MODEL`, then restart. In **Planning 
 
 Without a key, or if the model times out or returns unverified content, the app explicitly uses a **local parser**. That fallback is not an AI model. Both paths produce reviewable drafts only: they cannot change budgets, consents, amounts, or payment states. Notes and interpretations are not persisted; they remain in browser memory until reload. If the model is enabled, submitted text is sent to its provider with `store: false`. Do not submit unconsented personal conversations. Latency and token usage are displayed for model responses; provider cost is not calculated. Source-linked drafts now check extracted amounts and names against conservative line-level USD grounding. Contradictions lose their numeric suggestion; discrepant model fields are replaced by source-grounded values and explicitly flagged. Each draft can open a participant review with the source visible; applying a suggestion to the field, saving a budget, and approving a share remain separate actions.
 
-Run `npm run eval` for the 22-case parser/verifier benchmark: synthetic labeled inputs and three injected model-output mistakes. [`eval/results.json`](eval/results.json) records the results. `npm run eval:live -- --write` runs the optional notes-interpreter benchmark against the configured provider; the committed live benchmarks below evaluate revision options.
+Run `npm run eval` for the 28-case parser/verifier benchmark: synthetic labeled inputs and three injected model-output mistakes. [`eval/results.json`](eval/results.json) records the results. `npm run eval:live -- --write` runs the optional notes-interpreter benchmark against the configured provider; the committed live benchmarks below evaluate revision options.
 
 Reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 

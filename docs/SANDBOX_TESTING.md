@@ -61,3 +61,8 @@ The return URL is the optional local test screen at `http://127.0.0.1:3702/?payp
 The directory contains a private session store and a sanitized evidence journal: resource IDs, request IDs, statuses and source hashes, without tokens, passwords, buyer emails or full provider payloads. Preserve these records while any operation is unresolved. The [October 8 actual run](evidence/2026-10-08-paypal-recovery/README.md) completed both recovery workflows with 12 passing checkpoints. The [October 7 preparation run](evidence/2026-10-07-paypal-recovery/README.md) was closed after its unapproved orders expired.
 
 These diagnostic runs supplement the existing [three-buyer group booking](evidence/2026-10-04-sandbox-booking/README.md). They do not establish a new multi-buyer trip run, merchant inventory integration, or live-money readiness.
+
+
+## Returned money and receipt references
+
+After a lost refund response, a provider-confirmed `REFUNDED` capture proves settlement even if the refund resource ID is not yet present. The app records `refundEvidence: capture-status` and `refundReferenceMissing: true`, keeps the money returned, and identifies the missing receipt separately. **Check receipt reference** performs reconciliation and can fill the original refund ID when the order exposes it; it never repeats a settled refund. The organizer can also look up the displayed capture reference in PayPal sandbox activity. Once the refund resource is verified, evidence becomes `refund-resource` and the pending-reference notice clears.

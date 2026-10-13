@@ -61,7 +61,8 @@ The amount-based briefs above mostly test code. To measure the model itself, ten
 
 | Run | Original scorer | Strict scorer | Questions to the person the brief names |
 | --- | --- | --- | --- |
-| [No-AI local planner](../eval/revision-noamount-strict-local.json) | 0/10 | 0/10 | — (asks nothing) |
+| [Current no-AI local planner with code clarification checks](../eval/revision-noamount-strict-local.json) | — | 2/10 | 2 of 6 required questions (code) |
+| [Transparent rules comparator](../eval/noamount-rules-baseline.json) | — | 10/10 | 6 of 6 required questions |
 | Model, first run (round-eight code; in git history at `593c567`) | 8/10 | — | — |
 | Model, round-nine code before the final summary-wording change (not committed) | 9/10 | — | — |
 | [Model, final round-nine code](../eval/revision-noamount-results-live.json), [strictly rescored](../eval/revision-noamount-strict-rescore.json) | 8/10 | 7/10 | 4 of 12 |
@@ -70,4 +71,13 @@ The amount-based briefs above mostly test code. To measure the model itself, ten
 
 **Strict scoring.** The [strict scorer](../scripts/evaluate-noamount-strict.mjs) checks that an objection cannot support the option it opposes and records how many questions reach the person named in each brief. It was committed before the strict run; the original scorer remains available for comparison. The verifier applies the objection check even when a source quote is also tagged as a limit.
 
-**Benchmark scope.** These ten developer-authored synthetic briefs measure interpretation of no-amount messages, source attribution and question targeting. The local planner extracts amounts, so it produces neither questions nor quoted reasons on this set. A keyword rule developed from these same briefs achieved 10/10; a broader unseen corpus would be needed for a comparative claim against that approach. After round eleven, a model question goes to the person whose message it cites (or whom a relayed line names), questions tied to nobody's message are dropped, and code itself asks “how far could Jordan go?” when someone offers to pay more without a number. The model then scored 8/10 with all 3 of its questions reaching the right person; code-raised questions are counted separately. That routing was added after seeing the earlier precision, so this set is no longer a clean test of it; a set written by someone else would be.
+**Benchmark scope.** These ten developer-authored synthetic briefs measure interpretation of no-amount messages, source attribution and question targeting. The local planner extracts amounts and now adds code-labelled questions for explicit refusals and relayed preferences; it supplies no model-authored reasons. The [committed transparent rules comparator](../scripts/noamount-rules-baseline.mjs), developed on these briefs, achieves 10/10 with all six required questions; a broader unseen corpus would be needed for a comparative claim against that approach. After round eleven, a model question goes to the person whose message it cites (or whom a relayed line names), questions tied to nobody's message are dropped, and code itself asks “how far could Jordan go?” when someone offers to pay more without a number. The model then scored 8/10 with all 3 of its questions reaching the right person; code-raised questions are counted separately. That routing was added after seeing the earlier precision, so this set is no longer a clean test of it; a set written by someone else would be.
+
+
+## Current checks and the next comparison
+
+The initial **Find the preferences** draft uses fixed summary text and each speaker's actual words. Mentioned expenses, deposits and repayment floors require clarification rather than becoming ceilings. The revision path adds a code-labelled question when a nonnumeric refusal or relayed preference lacks the person's own answer. These changes are covered by local regressions; the model rows above retain their original provider-run provenance.
+
+The strict scorer now reports both question precision and recall: how many necessary questions the model emits and how many the whole model-plus-code pipeline supplies. Precision alone excludes missing questions. Rescoring preserves the source identity of the original output.
+
+Run `node scripts/noamount-rules-baseline.mjs` for the transparent rule comparator, or pass `--cases path/to/briefs.json` for a compatible corpus. It uses speaker attribution, quoted cabin preferences and targeted clarification; it makes no model calls. The development result establishes a capable alternative for this corpus. [The comparison protocol](EVALUATION_PROTOCOL.md) freezes both approaches before independently authored briefs are supplied, and scores missed questions, recipients, reasons and effort separately.

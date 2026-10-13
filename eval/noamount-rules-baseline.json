@@ -1,0 +1,225 @@
+{
+  "source": {
+    "commit": "0ec823b1d529c7ea45b90b857ea8a9fd5761cd35",
+    "testedFilesModified": false,
+    "sha256": {
+      "scripts/noamount-rules-baseline.mjs": "22da134786b706a15a721676c9193acf4d9eaf01bd9d05eaea8fc314e8440a66",
+      "server/ai.mjs": "8c722b02f8d9d81b94c86f2510dab3a75dbb4e41269d7ac4ef67c6ed79119506"
+    }
+  },
+  "mode": "rules-baseline",
+  "corpus": "development no-amount briefs; rules authored after inspecting this corpus",
+  "casesSha256": "604bbfb4aad32b6d194ae6cf39d0faadb40622a9550f9b2dc12f92fa0268f9a7",
+  "passed": 10,
+  "total": 10,
+  "questionRecall": {
+    "required": 6,
+    "answered": 6
+  },
+  "results": [
+    {
+      "id": "na-stretch",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true,
+        "wordsBackTheirChoice": true
+      },
+      "observed": {
+        "questions": [
+          "jordan"
+        ],
+        "support": [
+          {
+            "participantId": "jordan",
+            "listingId": "pine"
+          }
+        ],
+        "objections": []
+      },
+      "requiredQuestion": "jordan"
+    },
+    {
+      "id": "na-maybe-out",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true
+      },
+      "observed": {
+        "questions": [
+          "alex"
+        ],
+        "support": [],
+        "objections": []
+      },
+      "requiredQuestion": "alex"
+    },
+    {
+      "id": "na-objection-pine",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true,
+        "objectionNeverAWhy": true
+      },
+      "observed": {
+        "questions": [],
+        "support": [
+          {
+            "participantId": "maya",
+            "listingId": "creek"
+          }
+        ],
+        "objections": [
+          {
+            "participantId": "maya",
+            "listingId": "pine"
+          }
+        ]
+      },
+      "requiredQuestion": null
+    },
+    {
+      "id": "na-higher-vague",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true
+      },
+      "observed": {
+        "questions": [
+          "jordan"
+        ],
+        "support": [],
+        "objections": []
+      },
+      "requiredQuestion": "jordan"
+    },
+    {
+      "id": "na-no-more",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true,
+        "refusalNeverAWhy": true
+      },
+      "observed": {
+        "questions": [
+          "alex"
+        ],
+        "support": [],
+        "objections": [
+          {
+            "participantId": "alex",
+            "listingId": "pine"
+          },
+          {
+            "participantId": "alex",
+            "listingId": "creek"
+          }
+        ]
+      },
+      "requiredQuestion": "alex"
+    },
+    {
+      "id": "na-prefer-cheaper",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true
+      },
+      "observed": {
+        "questions": [],
+        "support": [
+          {
+            "participantId": "maya",
+            "listingId": "creek"
+          }
+        ],
+        "objections": []
+      },
+      "requiredQuestion": null
+    },
+    {
+      "id": "na-keep-cabin",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true
+      },
+      "observed": {
+        "questions": [],
+        "support": [
+          {
+            "participantId": "alex",
+            "listingId": "pine"
+          }
+        ],
+        "objections": []
+      },
+      "requiredQuestion": null
+    },
+    {
+      "id": "na-relayed-preference",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true
+      },
+      "observed": {
+        "questions": [
+          "maya"
+        ],
+        "support": [],
+        "objections": []
+      },
+      "requiredQuestion": "maya"
+    },
+    {
+      "id": "na-two-voices",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "wordsBackTheirChoice": true
+      },
+      "observed": {
+        "questions": [],
+        "support": [
+          {
+            "participantId": "maya",
+            "listingId": "creek"
+          },
+          {
+            "participantId": "alex",
+            "listingId": "pine"
+          }
+        ],
+        "objections": []
+      },
+      "requiredQuestion": null
+    },
+    {
+      "id": "na-cover-friend",
+      "pass": true,
+      "checks": {
+        "noInventedLimit": true,
+        "asksRightPerson": true,
+        "wordsBackTheirChoice": true
+      },
+      "observed": {
+        "questions": [
+          "jordan"
+        ],
+        "support": [
+          {
+            "participantId": "jordan",
+            "listingId": "pine"
+          }
+        ],
+        "objections": []
+      },
+      "requiredQuestion": "jordan"
+    }
+  ]
+}

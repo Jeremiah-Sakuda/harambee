@@ -1,14 +1,30 @@
 {
+  "source": {
+    "commit": "0ec823b1d529c7ea45b90b857ea8a9fd5761cd35",
+    "testedFilesModified": false,
+    "sha256": {
+      "server/revision-options.mjs": "e7f7143cda5176d9a0823214d88c9c344200d1482ca6be77e1770695cc26e88e",
+      "server/ai.mjs": "8c722b02f8d9d81b94c86f2510dab3a75dbb4e41269d7ac4ef67c6ed79119506",
+      "server/domain.mjs": "a7da78bde4f0107df278db8142668106c740c40dd4e85e756d2a2a6ea985b8dc"
+    }
+  },
   "cases": "revision-cases-noamount",
+  "casesSha256": "604bbfb4aad32b6d194ae6cf39d0faadb40622a9550f9b2dc12f92fa0268f9a7",
   "scorer": "strict",
   "mode": "local-planner",
   "scored": "fresh run",
-  "passed": 0,
+  "passed": 2,
   "total": 10,
   "questionPrecision": {
     "toRightPerson": 0,
     "total": 0,
     "note": "Model questions in briefs that name who to ask; code-raised questions excluded."
+  },
+  "questionRecall": {
+    "required": 6,
+    "modelAnswered": 0,
+    "pipelineAnswered": 2,
+    "note": "Necessary questions answered, including misses; pipeline includes code-raised questions, model does not."
   },
   "results": [
     {
@@ -18,6 +34,11 @@
         "noInventedLimit": true,
         "asksRightPerson": false,
         "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
       },
       "questionPrecision": {
         "toRightPerson": 0,
@@ -30,6 +51,11 @@
       "checks": {
         "noInventedLimit": true,
         "asksRightPerson": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
       },
       "questionPrecision": {
         "toRightPerson": 0,
@@ -44,6 +70,7 @@
         "wordsBackTheirChoice": false,
         "objectionNeverAWhy": true
       },
+      "questionRecall": null,
       "questionPrecision": null
     },
     {
@@ -53,6 +80,11 @@
         "noInventedLimit": true,
         "asksRightPerson": false
       },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
+      },
       "questionPrecision": {
         "toRightPerson": 0,
         "total": 0
@@ -60,11 +92,16 @@
     },
     {
       "id": "na-no-more",
-      "pass": false,
+      "pass": true,
       "checks": {
         "noInventedLimit": true,
-        "asksRightPerson": false,
+        "asksRightPerson": true,
         "refusalNeverAWhy": true
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 1
       },
       "questionPrecision": {
         "toRightPerson": 0,
@@ -78,6 +115,7 @@
         "noInventedLimit": true,
         "wordsBackTheirChoice": false
       },
+      "questionRecall": null,
       "questionPrecision": null
     },
     {
@@ -87,14 +125,20 @@
         "noInventedLimit": true,
         "wordsBackTheirChoice": false
       },
+      "questionRecall": null,
       "questionPrecision": null
     },
     {
       "id": "na-relayed-preference",
-      "pass": false,
+      "pass": true,
       "checks": {
         "noInventedLimit": true,
-        "asksRightPerson": false
+        "asksRightPerson": true
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 1
       },
       "questionPrecision": {
         "toRightPerson": 0,
@@ -108,6 +152,7 @@
         "noInventedLimit": true,
         "wordsBackTheirChoice": false
       },
+      "questionRecall": null,
       "questionPrecision": null
     },
     {
@@ -117,6 +162,11 @@
         "noInventedLimit": true,
         "asksRightPerson": false,
         "wordsBackTheirChoice": false
+      },
+      "questionRecall": {
+        "required": 1,
+        "modelAnswered": 0,
+        "pipelineAnswered": 0
       },
       "questionPrecision": {
         "toRightPerson": 0,

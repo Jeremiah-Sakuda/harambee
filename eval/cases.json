@@ -57,7 +57,7 @@
   },
   {
     "id": "foreign",
-    "input": "Maya: €220 maximum",
+    "input": "Maya: \u20ac220 maximum",
     "person": "Maya",
     "budgetCents": null,
     "needsReview": true
@@ -140,7 +140,7 @@
   },
   {
     "id": "range",
-    "input": "Maya: $100–200",
+    "input": "Maya: $100\u2013200",
     "person": "Maya",
     "budgetCents": null,
     "needsReview": true
@@ -154,7 +154,49 @@
   },
   {
     "id": "curly-negation",
-    "input": "Maya: Honestly my rent went up, I can’t go above $170 now.",
+    "input": "Maya: Honestly my rent went up, I can\u2019t go above $170 now.",
+    "person": "Maya",
+    "budgetCents": null,
+    "needsReview": true
+  },
+  {
+    "id": "past-gas",
+    "input": "Maya: I already paid $50 for gas.",
+    "person": "Maya",
+    "budgetCents": null,
+    "needsReview": true
+  },
+  {
+    "id": "repayment-minimum",
+    "input": "Maya: I need at least $170 back.",
+    "person": "Maya",
+    "budgetCents": null,
+    "needsReview": true
+  },
+  {
+    "id": "past-deposit",
+    "input": "Maya: The deposit was $40.",
+    "person": "Maya",
+    "budgetCents": null,
+    "needsReview": true
+  },
+  {
+    "id": "deposit-in-budget",
+    "input": "Maya: My budget includes the $40 deposit.",
+    "person": "Maya",
+    "budgetCents": null,
+    "needsReview": true
+  },
+  {
+    "id": "room-price",
+    "input": "Maya: The room costs $170.",
+    "person": "Maya",
+    "budgetCents": null,
+    "needsReview": true
+  },
+  {
+    "id": "amount-acceptance",
+    "input": "Maya: $170 is fine for me.",
     "person": "Maya",
     "budgetCents": null,
     "needsReview": true

@@ -3,9 +3,9 @@
   "mode": "offline-parser-and-injected-validator",
   "liveProviderRequested": false,
   "liveProviderExecuted": false,
-  "passed": 22,
-  "total": 22,
-  "limitations": "Synthetic labeled cases; injected model errors test validation, not actual model accuracy. No user correction-effort experiment.",
+  "passed": 28,
+  "total": 28,
+  "limitations": "Synthetic labeled parser cases and injected model-output validation; provider accuracy and participant effort are separate benchmarks.",
   "results": [
     {
       "id": "integer",
@@ -227,11 +227,11 @@
         "person": "Maya",
         "budgetCents": 22000,
         "needsReview": true,
-        "preference": "Maya: $220 maximum",
+        "preference": "$220 maximum",
         "groundingWarning": "The extracted person or amount conflicted with the source. Use the source-grounded draft and confirm manually."
       },
       "model": "injected-evaluation-fixture",
-      "latencyMs": 0
+      "latencyMs": 1
     },
     {
       "id": "wrong-model-person",
@@ -243,7 +243,7 @@
         "person": "Maya",
         "budgetCents": 22000,
         "needsReview": true,
-        "preference": "Maya: $220 maximum",
+        "preference": "$220 maximum",
         "groundingWarning": "The extracted person or amount conflicted with the source. Use the source-grounded draft and confirm manually."
       },
       "model": "injected-evaluation-fixture",
@@ -259,7 +259,7 @@
         "person": "Sam",
         "budgetCents": null,
         "needsReview": true,
-        "preference": "Sam: $200 or $250",
+        "preference": "$200 or $250",
         "groundingWarning": "The extracted person or amount conflicted with the source. Use the source-grounded draft and confirm manually."
       },
       "model": "injected-evaluation-fixture",
@@ -336,6 +336,96 @@
         "budgetCents": null,
         "needsReview": true,
         "preference": "Honestly my rent went up, I can’t go above $170 now."
+      },
+      "model": null,
+      "latencyMs": 0
+    },
+    {
+      "id": "past-gas",
+      "pass": true,
+      "provider": "local-parser",
+      "observed": {
+        "source": "Maya: I already paid $50 for gas.",
+        "line": 1,
+        "person": "Maya",
+        "budgetCents": null,
+        "needsReview": true,
+        "preference": "I already paid $50 for gas."
+      },
+      "model": null,
+      "latencyMs": 0
+    },
+    {
+      "id": "repayment-minimum",
+      "pass": true,
+      "provider": "local-parser",
+      "observed": {
+        "source": "Maya: I need at least $170 back.",
+        "line": 1,
+        "person": "Maya",
+        "budgetCents": null,
+        "needsReview": true,
+        "preference": "I need at least $170 back."
+      },
+      "model": null,
+      "latencyMs": 0
+    },
+    {
+      "id": "past-deposit",
+      "pass": true,
+      "provider": "local-parser",
+      "observed": {
+        "source": "Maya: The deposit was $40.",
+        "line": 1,
+        "person": "Maya",
+        "budgetCents": null,
+        "needsReview": true,
+        "preference": "The deposit was $40."
+      },
+      "model": null,
+      "latencyMs": 0
+    },
+    {
+      "id": "deposit-in-budget",
+      "pass": true,
+      "provider": "local-parser",
+      "observed": {
+        "source": "Maya: My budget includes the $40 deposit.",
+        "line": 1,
+        "person": "Maya",
+        "budgetCents": null,
+        "needsReview": true,
+        "preference": "My budget includes the $40 deposit."
+      },
+      "model": null,
+      "latencyMs": 0
+    },
+    {
+      "id": "room-price",
+      "pass": true,
+      "provider": "local-parser",
+      "observed": {
+        "source": "Maya: The room costs $170.",
+        "line": 1,
+        "person": "Maya",
+        "budgetCents": null,
+        "needsReview": true,
+        "preference": "The room costs $170."
+      },
+      "model": null,
+      "latencyMs": 0
+    },
+    {
+      "id": "amount-acceptance",
+      "pass": true,
+      "provider": "local-parser",
+      "observed": {
+        "source": "Maya: $170 is fine for me.",
+        "line": 1,
+        "person": "Maya",
+        "budgetCents": null,
+        "needsReview": true,
+        "preference": "$170 is fine for me."
       },
       "model": null,
       "latencyMs": 0
