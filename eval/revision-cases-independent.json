@@ -1,0 +1,247 @@
+[
+  {
+    "id": "ind-flat-refusal",
+    "note": "Jordan refuses outright to pay more and that refusal must never appear as a reason for any option; Alex's deck line is a reason for Pine; Maya is indifferent, and no single person's answer is missing.",
+    "chat": [
+      "Sam: Sorry all, I have to drop out of the cabin trip.",
+      "Jordan: That's rough. I can't pay any more than I already agreed to, full stop.",
+      "Alex: I'd still keep Pine & Still, the big deck is the whole point.",
+      "Maya: I'm easy, either cabin works for me."
+    ],
+    "expect": {
+      "support": [{"participantId": "alex", "listingId": "pine"}],
+      "refusal": ["jordan"]
+    }
+  },
+  {
+    "id": "ind-negation-trailing",
+    "note": "The negation comes at the end of Jordan's sentence ('Pine & Still is not for me'), so it is an objection to Pine, not support for it; Maya and Alex both back Creekside, and nobody needs to be asked anything.",
+    "chat": [
+      "Sam: I'm out this time, sorry everyone.",
+      "Jordan: Pine & Still is not for me, it's way too far from the lake.",
+      "Maya: Creekside gets my vote, it's closer to everything.",
+      "Alex: I'm good going with Creekside too, happy to split it between us."
+    ],
+    "expect": {
+      "support": [
+        {"participantId": "maya", "listingId": "creek"},
+        {"participantId": "alex", "listingId": "creek"}
+      ],
+      "objection": [{"participantId": "jordan", "listingId": "pine"}]
+    }
+  },
+  {
+    "id": "ind-anything-but-creek",
+    "note": "Maya's 'Anything but Creekside' names Creekside but objects to it, so it must never be shown as a reason for Creekside; Alex genuinely supports Creekside; the disagreement is between two people, so no single person is the one to ask.",
+    "chat": [
+      "Maya: Anything but Creekside, honestly. That place looked damp in the photos.",
+      "Alex: Creekside looks cute to me and it's cheaper.",
+      "Jordan: Not fussed, I'll go with the majority."
+    ],
+    "expect": {
+      "support": [{"participantId": "alex", "listingId": "creek"}],
+      "objection": [{"participantId": "maya", "listingId": "creek"}]
+    }
+  },
+  {
+    "id": "ind-changed-mind",
+    "note": "Jordan first suggests Creekside, then retracts it ('scratch that') in favour of Pine, so his words support Pine and must not be shown as a reason for Creekside; everyone ends up agreeing on Pine, so no question is needed.",
+    "chat": [
+      "Sam: Dropping out, really sorry.",
+      "Jordan: Then let's just take Creekside.",
+      "Jordan: Actually scratch that. I'd rather stay at Pine & Still, the extra space matters more to me.",
+      "Maya: Works for me, Pine & Still it is.",
+      "Alex: Same, keep Pine & Still."
+    ],
+    "expect": {
+      "support": [
+        {"participantId": "jordan", "listingId": "pine"},
+        {"participantId": "maya", "listingId": "pine"},
+        {"participantId": "alex", "listingId": "pine"}
+      ],
+      "objection": [{"participantId": "jordan", "listingId": "creek"}]
+    }
+  },
+  {
+    "id": "ind-sarcastic-refusal",
+    "note": "Alex's 'Oh great... Love that for me. Yeah, no.' is a sarcastic refusal to pay more, not enthusiasm, and must not be shown as a reason on any option; Maya and Jordan both back Pine.",
+    "chat": [
+      "Sam: Gotta bail on the trip, sorry.",
+      "Alex: Oh great, so now I get to pay even more. Love that for me. Yeah, no.",
+      "Maya: I'd still pick Pine & Still if we can make it work.",
+      "Jordan: Pine & Still for me too."
+    ],
+    "expect": {
+      "support": [
+        {"participantId": "maya", "listingId": "pine"},
+        {"participantId": "jordan", "listingId": "pine"}
+      ],
+      "refusal": ["alex"]
+    }
+  },
+  {
+    "id": "ind-vague-stretch",
+    "note": "Maya wants Pine but only 'maybe' can stretch and has to check her budget, so only she can say whether she will pay more; Jordan and Alex have both clearly agreed to pay more.",
+    "chat": [
+      "Sam: I'm out, sorry guys.",
+      "Maya: I'd love to keep Pine & Still. I could maybe stretch a little, just need to check my budget first.",
+      "Jordan: I'm fine putting in more for Pine & Still.",
+      "Alex: Same here, happy to cover my bigger share."
+    ],
+    "expect": {
+      "askWho": "maya",
+      "support": [
+        {"participantId": "maya", "listingId": "pine"},
+        {"participantId": "jordan", "listingId": "pine"}
+      ]
+    }
+  },
+  {
+    "id": "ind-relayed-maya",
+    "note": "Jordan passes on Maya's view, but Maya has not said it herself, so she must be asked to confirm; Alex supports Pine, and Jordan's own position is settled.",
+    "chat": [
+      "Sam: Can't make it anymore, sorry.",
+      "Jordan: Maya told me she'd rather switch to Creekside to save money.",
+      "Jordan: Personally I'm fine either way and can chip in more.",
+      "Alex: I want to stay at Pine & Still, it's nicer."
+    ],
+    "expect": {
+      "askWho": "maya",
+      "support": [{"participantId": "alex", "listingId": "pine"}]
+    }
+  },
+  {
+    "id": "ind-attendance-alex",
+    "note": "Alex is unsure whether they can still come, which changes how the cost is split, so Alex must be asked; Maya supports Creekside and Jordan is flexible and willing to pay more.",
+    "chat": [
+      "Sam: I'm dropping out, sorry!",
+      "Alex: Not sure I can still come, work might need me that weekend.",
+      "Maya: Creekside works great for me.",
+      "Jordan: Either cabin is fine by me, and I can cover a bit more."
+    ],
+    "expect": {
+      "askWho": "alex",
+      "support": [{"participantId": "maya", "listingId": "creek"}]
+    }
+  },
+  {
+    "id": "ind-conditional-on-alex",
+    "note": "Jordan will pay more for Pine only if Alex is still coming, and Alex has not posted, so Alex is the one to ask; Maya clearly supports Pine.",
+    "chat": [
+      "Sam: Have to drop, sorry team.",
+      "Jordan: I'll pay more to keep Pine & Still, but only if Alex is still coming.",
+      "Maya: I'm in for Pine & Still too."
+    ],
+    "expect": {
+      "askWho": "alex",
+      "support": [{"participantId": "maya", "listingId": "pine"}]
+    }
+  },
+  {
+    "id": "ind-relayed-refusal",
+    "note": "Alex reports that Jordan is short on money, but Jordan never refused himself, so Jordan must be asked and must not be treated as having refused; Alex leans toward Creekside and Maya will pay more for either cabin.",
+    "chat": [
+      "Sam: I'm out for this one.",
+      "Alex: Jordan mentioned he's pretty tapped out this month, not sure he can do more.",
+      "Maya: I can put in more for either cabin, I just want us to go.",
+      "Alex: I can too. Leaning Creekside since it's cheaper."
+    ],
+    "expect": {
+      "askWho": "jordan",
+      "support": [{"participantId": "alex", "listingId": "creek"}]
+    }
+  },
+  {
+    "id": "ind-negation-not-no",
+    "note": "Maya's 'I'm not saying no to Pine & Still' is neither an objection to Pine nor a refusal, but she is unsure whether she can pay more, so she must be asked; Jordan and Alex both support Pine and will pay more.",
+    "chat": [
+      "Sam: Sorry, I need to drop out.",
+      "Maya: I'm not saying no to Pine & Still, I'm just not sure I can swing a bigger share right now.",
+      "Jordan: Pine & Still all the way, I'll pay what it takes.",
+      "Alex: Fine with Pine & Still, I can cover more too."
+    ],
+    "expect": {
+      "askWho": "maya",
+      "support": [
+        {"participantId": "jordan", "listingId": "pine"},
+        {"participantId": "alex", "listingId": "pine"}
+      ]
+    }
+  },
+  {
+    "id": "ind-torn-alex",
+    "note": "Maya picks Pine and Jordan picks Creekside ('I don't hate Pine & Still' is not support for Pine), so the undecided Alex decides it and must be asked.",
+    "chat": [
+      "Sam: Out for this trip, sorry.",
+      "Maya: Pine & Still for me, I'll pay the extra.",
+      "Jordan: I don't hate Pine & Still, but Creekside is my pick, it's cheaper.",
+      "Alex: Honestly I'm torn between the two."
+    ],
+    "expect": {
+      "askWho": "alex",
+      "support": [
+        {"participantId": "maya", "listingId": "pine"},
+        {"participantId": "jordan", "listingId": "creek"}
+      ]
+    }
+  },
+  {
+    "id": "ind-guests-alex",
+    "note": "Whether Alex is still bringing cousins decides whether the smaller Creekside is big enough, and only Alex can answer; Jordan supports Creekside, and Maya's Creekside support depends on that answer.",
+    "chat": [
+      "Sam: I have to drop out, sorry.",
+      "Maya: Creekside is fine with me if it's just us, and I can chip in more.",
+      "Jordan: Same, Creekside works and I can cover more.",
+      "Maya: Alex, are you still bringing your cousins? If so we'd need the bigger place."
+    ],
+    "expect": {
+      "askWho": "alex",
+      "support": [{"participantId": "jordan", "listingId": "creek"}]
+    }
+  },
+  {
+    "id": "ind-defer-to-maya",
+    "note": "Jordan and Alex both leave the choice to Maya, who has not posted, so Maya is the only person who can settle it; no one has stated a cabin preference in their own words.",
+    "chat": [
+      "Sam: Sorry, I'm out.",
+      "Jordan: I'll go with whatever Maya wants, she's the one watching her budget.",
+      "Alex: Same, Maya's call. I can pay more either way."
+    ],
+    "expect": {
+      "askWho": "maya"
+    }
+  },
+  {
+    "id": "ind-retracted-yes",
+    "note": "Alex agrees to pay more and then takes it back ('let me rethink that'), so Alex's position is unresolved and Alex must be asked; Maya and Jordan clearly support Pine and accept the higher share.",
+    "chat": [
+      "Sam: Dropping out, really sorry everyone.",
+      "Maya: Let's keep Pine & Still, I can cover my bigger share.",
+      "Alex: Ok, I'm in for paying more.",
+      "Alex: Hmm wait, let me rethink that, things are tight.",
+      "Jordan: I'm good with Pine & Still and the extra cost."
+    ],
+    "expect": {
+      "askWho": "alex",
+      "support": [
+        {"participantId": "maya", "listingId": "pine"},
+        {"participantId": "jordan", "listingId": "pine"}
+      ]
+    }
+  },
+  {
+    "id": "ind-refusal-plus-undecided",
+    "note": "Maya refuses to pay more and that refusal must never appear as a reason; Jordan supports Pine; Alex can't say yet whether they can afford more, so Alex is the one to ask.",
+    "chat": [
+      "Sam: Gotta drop out, sorry.",
+      "Maya: I'm not putting in anything more, that's my limit.",
+      "Jordan: I can cover extra if we keep Pine & Still.",
+      "Alex: No idea yet, I need to see what's left after rent."
+    ],
+    "expect": {
+      "askWho": "alex",
+      "support": [{"participantId": "jordan", "listingId": "pine"}],
+      "refusal": ["maya"]
+    }
+  }
+]
