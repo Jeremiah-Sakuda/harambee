@@ -10,3 +10,21 @@ Compare the hybrid model workflow, the transparent rules comparator and a partic
 6. For a participant-form comparison, ask each person directly for attendance, firm limit and cabin choice. Record the number of questions and organizer corrections needed to produce an approved plan. Measure participant task time in an observed session, separately from model latency.
 
 Keep a development corpus separate from the frozen comparison corpus. Report the original input, expected labels, source/model identity and each output alongside aggregate results. Report interpretation quality and participant effort as the comparison outcomes. A future operator pilot will measure adoption and booking conversion separately.
+
+## Comparison handoff and results template
+
+Give the independent brief author the audience (three remaining friends choosing between a $600 Pine & Still stay and a $480 Creekside stay), participant names Maya/Jordan/Alex, and the case schema. Keep development examples, model outputs and comparator implementation out of that handoff. Ask for 12–20 varied messages covering refusals, relayed preferences, uncertainty and conflicting cabin choices, with no dollar figures in the messages. Label the necessary question recipient and supported/opposed cabin before running any approach.
+
+Use unique case IDs and preserve the supplied `chat` and `expect` objects. Record author, creation date, case-file SHA-256, frozen source commit, model/version and scorer version. Decide the comparison criteria before inspecting results. Keep the original output for every case, including fallback or failure.
+
+| Measure | Model + verifier | Frozen rules | Participant form |
+| --- | --- | --- | --- |
+| Correct necessary questions / required questions | Measure model and full pipeline separately | Same expected recipients | Required fields answered |
+| Correct recipients / emitted questions | Include every emitted question | Include every emitted question | Directed prompts |
+| Supported reasons and usable options | Check attribution and opposing/replaced messages | Same labels | Participant-supplied preferences |
+| Corrections before a usable plan | Count clarification and correction steps | Same process | Same process |
+| Participant/organizer effort | Observed task time and question count | Same task | Same task |
+| Model latency, fallback and usage | Record per case | Local runtime | Record interaction time separately |
+| Budget and consent checks | Recomputed from confirmed budgets | Same allocator | Same allocator |
+
+Populate this table from the frozen comparison run; the existing development results remain in [Revision options](REVISION_OPTIONS.md). A participant-form session collects attendance, firm spending limit and cabin preference directly. Compare that observed interaction with the assistance workflows on the same task; successful fixture scoring alone does not supply participant effort measurements.

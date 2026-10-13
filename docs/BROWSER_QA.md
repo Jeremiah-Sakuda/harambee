@@ -34,3 +34,13 @@ Verified an isolated production build with synthetic state and no provider crede
 - Local regressions cover pending/unknown outcomes, misleading model prose and receipt-reference reconciliation after restart. The suite passes 134 tests.
 
 This verification used fixture state; no booking, capture or refund was performed through the browser.
+
+## October 13 panel follow-through
+
+Verified the updated production build with an isolated simulated recovery fixture.
+
+- The stopped banner offers **Review recovery actions** beside its explanation. Pointer and Enter activation scroll to the recovery controls and focus their labelled group; Tab then reaches the recovery button.
+- At 375 × 812, document width remains 375 px. Desktop layout was also checked.
+- Keyboard focus uses a 3 px forest outline with a 4 px white halo. Forest/white contrast is 9.56:1; forest/page-cream contrast is 9.13:1. The halo maintains a visible boundary on dark surfaces.
+- Cancellation, expiry and resumed recovery close an approval interrupted before its sandbox session is created. Existing holds release; the unstarted payment is abandoned. Restart and repeat recovery create no additional provider order or capture in the fixture.
+- All 137 tests, 28 notes cases, 26 revision cases and the production build pass. Browser checks used local fixtures and navigation only.
