@@ -9,6 +9,7 @@ import { interpret } from "./ai.mjs";
 import { PayPalSandbox } from "./paypal.mjs";
 import { GroupPayments } from "./group-payments.mjs";
 import { SandboxLab } from "./sandbox-lab.mjs";
+import { receiveWebhook, reconcileSession } from "./paypal-webhook.mjs";
 import {
   proposeRevisions,
   recheckRevisions,
@@ -59,11 +60,50 @@ const appUrl = (req) =>
   req.headers.origin ||
   process.env.APP_URL ||
   `http://127.0.0.1:${Number(process.env.PORT) || 3101}`;
+// A verified PayPal event only prompts the same reconcile that polling runs. Plan changes are
+// serialized, so a busy server tries again shortly; polling remains the authority.
+const reconcileLater = (sessionId, attempt = 0) => {
+  if (mutating) {
+    if (attempt < 5)
+      setTimeout(() => reconcileLater(sessionId, attempt + 1), 2000).unref();
+    return;
+  }
+  const session = lab.state.sessions.find((s) => s.id === sessionId);
+  if (!session) return;
+  mutating = true;
+  reconcileSession({ engine, lab, session })
+    .catch((error) =>
+      console.warn(`PayPal webhook reconcile failed: ${error.message}`),
+    )
+    .finally(() => {
+      mutating = false;
+    });
+};
+// PayPal calls this directly (no Origin, no demo role); it is answered as soon as it's verified.
+const paypalWebhook = async (req, res) => {
+  let rawBody = "";
+  for await (const chunk of req) {
+    rawBody += chunk;
+    if (rawBody.length > 100000)
+      throw new DomainError("Request too large.", 413);
+  }
+  const result = await receiveWebhook({
+    client: lab.client,
+    webhookId: process.env.PAYPAL_WEBHOOK_ID,
+    headers: req.headers,
+    rawBody,
+    sessions: lab.state.sessions,
+  });
+  json(res, result.status, result.body);
+  if (result.session) reconcileLater(result.session.id);
+};
 const server = http.createServer(async (req, res) => {
   let ownsMutation = false;
   try {
     const url = new URL(req.url, "http://localhost");
     if (url.pathname.startsWith("/api/")) {
+      if (req.method === "POST" && url.pathname === "/api/paypal/webhook")
+        return await paypalWebhook(req, res);
       engine.sweepExpiry();
       const origin = req.headers.origin;
       if (origin) {

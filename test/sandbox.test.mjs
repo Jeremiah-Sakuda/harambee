@@ -410,3 +410,24 @@ test("a stuck refund_unknown with a refund already on PayPal settles without ano
   assert.equal(s.status, "refunded");
   assert.equal(f.keys.length, 1);
 });
+
+test("createOrder names an operator payee only when PAYPAL_PAYEE_EMAIL is configured", async () => {
+  const bodies = async (payeeEmail) => {
+    const client = new PayPalSandbox({
+      clientId: "fixture",
+      secret: "fixture",
+      payeeEmail,
+    });
+    const calls = [];
+    client.request = async (...args) => {
+      calls.push(args);
+      return {};
+    };
+    await client.createOrder(100, "op1");
+    return calls[0][1].body.purchase_units[0];
+  };
+  assert.equal((await bodies("")).payee, undefined);
+  assert.deepEqual((await bodies("cabin-operator@example.com")).payee, {
+    email_address: "cabin-operator@example.com",
+  });
+});

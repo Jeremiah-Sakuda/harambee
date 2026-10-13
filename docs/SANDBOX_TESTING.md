@@ -66,3 +66,17 @@ The diagnostic runs exercise individual-payment recovery. The [three-buyer group
 ## Returned money and receipt references
 
 After a lost refund response, a provider-confirmed `REFUNDED` capture proves settlement even if the refund resource ID is not yet present. The app records `refundEvidence: capture-status` and `refundReferenceMissing: true`, keeps the money returned, and identifies the missing receipt separately. **Check receipt reference** performs reconciliation and can fill the original refund ID when the order exposes it; it never repeats a settled refund. The organizer can also look up the displayed capture reference in PayPal sandbox activity. Once the refund resource is verified, evidence becomes `refund-resource` and the pending-reference notice clears.
+
+## Sandbox webhooks (optional)
+
+`POST /api/paypal/webhook` lets PayPal prompt a reconcile instead of waiting for someone to press **Reconcile** or for recovery to run. It never trusts the event: each delivery is checked with PayPal's `/v1/notifications/verify-webhook-signature`, and a verified `CHECKOUT.ORDER.*`, `PAYMENT.AUTHORIZATION.*` or `PAYMENT.CAPTURE.*` event only selects the matching session (by order, authorization, capture or refund ID, or the order's `custom_id`). That session then runs the same reconcile that polling uses, reading the status from PayPal's own records. The route answers as soon as the delivery is verified. Unverified deliveries get 400 and change nothing. Other event types are acknowledged and ignored. Polling and manual reconcile remain the authority.
+
+Setup, sandbox only:
+
+1. Expose the API server (port 3101 by default) on a public HTTPS URL, for example `ngrok http 3101`.
+2. In the PayPal Developer Dashboard, open the sandbox app and add a webhook for `https://<tunnel>/api/paypal/webhook`. Subscribe to Checkout order approved, Payment authorization created and voided, and Payment capture completed, denied, pending, refunded and reversed.
+3. Put the webhook's ID in `.env` as `PAYPAL_WEBHOOK_ID` and restart. Without it the route answers 503 and does nothing.
+
+The handler is covered by unit tests with a mocked PayPal client (`test/paypal-webhook.test.mjs`). **No live sandbox webhook delivery has been recorded yet**, so treat this path as untested against PayPal until an event ID is captured in `docs/evidence`.
+
+`PAYPAL_PAYEE_EMAIL` (optional) adds `purchase_units[0].payee.email_address` to each order. It is untested in sandbox, and PayPal may refuse a payee on an `AUTHORIZE` order without partner approval.
