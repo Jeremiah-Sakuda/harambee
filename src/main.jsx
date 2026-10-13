@@ -199,6 +199,92 @@ function NextStep({
     </section>
   );
 }
+// One person's money for this trip, as a receipt: what they paid, to whom, for what, and the
+// provider's reference for each capture. Participants see only their own; shares are public.
+const receiptLines = (state, personId) =>
+  state.payments
+    .filter(
+      (p) =>
+        p.participantId === personId &&
+        [
+          "captured",
+          "refunded",
+          "refund_pending",
+          "refund_failed",
+          "refund_unknown",
+        ].includes(p.status),
+    )
+    .map((p, i) => {
+      const op = state.operations.findLast(
+        (o) => o.paymentId === p.id && o.type === "capture",
+      );
+      return {
+        id: p.id,
+        amount: p.amount,
+        what: i === 0 ? `Share approved on v${p.version}` : `Top-up approved on v${p.version}`,
+        status: p.status,
+        ref:
+          p.captureId ||
+          op?.providerId ||
+          (op && state.provider !== "paypal-sandbox"
+            ? `SIM-OP-${op.id.slice(0, 8)}`
+            : "reference pending"),
+        at: op?.updatedAt ?? op?.at ?? op?.createdAt ?? null,
+      };
+    });
+function Receipt({ state, person, listing, compact = false }) {
+  const first = person.name.split(" ")[0];
+  const sandbox = state.provider === "paypal-sandbox";
+  const lines = receiptLines(state, person.id);
+  if (!lines.length) return null;
+  const paid = lines
+    .filter((l) => l.status === "captured")
+    .reduce((n, l) => n + l.amount, 0);
+  const returned = lines
+    .filter((l) => l.status === "refunded")
+    .reduce((n, l) => n + l.amount, 0);
+  const when = (at) =>
+    at
+      ? new Date(at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "";
+  return (
+    <article className={`receipt${compact ? " compact" : ""}`}>
+      <header>
+        <ReceiptText size={18} />
+        <div>
+          <strong>
+            {compact ? first : "Your receipt"} ·{" "}
+            {paid ? `${usd(paid)} paid` : `${usd(returned)} returned`}
+          </strong>
+          <span>
+            To {listing.name} (sample listing;{" "}
+            {sandbox ? "PayPal sandbox merchant" : "simulated merchant"}) · 2
+            nights, {state.dates}
+          </span>
+        </div>
+      </header>
+      <ul>
+        {lines.map((l) => (
+          <li key={l.id}>
+            <span>
+              {l.what}
+              {l.status !== "captured" && ` · ${l.status.replaceAll("_", " ")}`}
+            </span>
+            <strong>{usd(l.amount)}</strong>
+            <small>
+              {sandbox ? "PayPal capture" : "Simulated capture"} {l.ref}
+              {l.at && ` · ${when(l.at)}`}
+            </small>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
 function App() {
   const [state, setState] = useState(null),
     [actor, setActor] = useState(
@@ -637,7 +723,8 @@ function App() {
               className="text-button"
               onClick={() => {
                 setActor("organizer");
-                setModal({ kind: "create" });
+                // With money held or moving, say so before the form, not under it.
+                setModal({ kind: locked ? "newTripBlocked" : "create" });
               }}
             >
               <Plus size={15} /> New trip
@@ -1291,6 +1378,28 @@ function App() {
                     Export
                   </button>
                 </div>
+                {(() => {
+                  const people = state.participants.filter(
+                    (p) =>
+                      (isOrganizer || p.id === actor) &&
+                      receiptLines(state, p.id).length,
+                  );
+                  return (
+                    people.length > 0 && (
+                      <div className="receipts" aria-label="Receipts">
+                        {people.map((p) => (
+                          <Receipt
+                            key={p.id}
+                            state={state}
+                            person={p}
+                            listing={listing}
+                            compact={isOrganizer}
+                          />
+                        ))}
+                      </div>
+                    )
+                  );
+                })()}
                 {state.reservation && (
                   <div className="reservation">
                     <Mountain size={22} />
@@ -1321,8 +1430,8 @@ function App() {
                 </div>
                 <h3>
                   {state.provider === "paypal-sandbox"
-                    ? "PayPal sandbox payment operations"
-                    : "Simulated payment operations"}
+                    ? "All PayPal sandbox payment operations"
+                    : "All simulated payment operations"}
                 </h3>
                 {state.operations.length === 0 ? (
                   <p className="empty">
@@ -1577,7 +1686,7 @@ function App() {
                             state.participants.map((p) => p.name).join(", "),
                           );
                           setListingId(state.listingId);
-                          setModal({ kind: "create" });
+                          setModal({ kind: "create", refilled: active.length });
                           return;
                         }
                         if (
@@ -2169,6 +2278,30 @@ function App() {
           >
             <span className="eyebrow">MAKE ROOM FOR A GOOD IDEA</span>
             <h2>Your next shared escape.</h2>
+            {modal.refilled !== undefined ? (
+              <p className="change-why">
+                Only {modal.refilled}{" "}
+                {modal.refilled === 1 ? "person remains" : "people remain"}, and
+                a trip needs at least 3. We’ve re-added everyone from the
+                original group, including {departedNames || "those who left"};
+                remove anyone who isn’t coming, or add new friends.
+              </p>
+            ) : state.status === "confirmed" ? (
+              <p className="change-why">
+                “{state.title}” is booked. A new trip replaces this board; its
+                receipts leave with it, so export them first if you want a copy.
+                The new trip’s Activity starts with a note that this one was
+                booked and paid.{" "}
+                <button type="button" className="text-button" onClick={download}>
+                  <Download size={13} /> Export this trip’s receipts
+                </button>
+              </p>
+            ) : state.status === "cancelled" ? (
+              <p className="change-why">
+                A new trip replaces this closed board. Its Activity starts with
+                how “{state.title}” ended.
+              </p>
+            ) : null}
             <label className="field">
               Trip name
               <input
@@ -2203,8 +2336,9 @@ function App() {
             </label>
             <p className="terms">
               Fixed dates: November 6–8, 2026. Each person confirms a private
-              budget before approval. Starting a new trip replaces the current
-              uncommitted demo plan.
+              budget before approval.
+              {state.status === "collecting" &&
+                " Starting a new trip replaces the current plan; nothing is held for it."}
             </p>
             {locked && (
               <p className="inline-error" role="status">
@@ -2222,6 +2356,52 @@ function App() {
               Create our trip <Plus size={16} />
             </button>
           </form>
+        )}
+        {modal?.kind === "newTripBlocked" && (
+          <>
+            <span className="eyebrow">ONE TRIP AT A TIME</span>
+            <h2>
+              {isOpen ? "Finish or cancel this trip first." : "Finish recovery first."}
+            </h2>
+            <p>
+              {held > 0
+                ? `${usd(held)} is held for “${state.title}”.`
+                : `Money for “${state.title}” is still being confirmed or returned.`}{" "}
+              {isOpen
+                ? "A new trip can’t replace it while anyone’s money is held. Cancelling releases every hold and charges nobody; then you can start a new trip with the same friends or new ones."
+                : "A new trip can start once every payment is settled. Recovery checks each payment with the provider first and never charges twice."}
+            </p>
+            {isOpen ? (
+              <button
+                className="danger full"
+                disabled={busy}
+                onClick={() => setModal({ kind: "cancel" })}
+              >
+                Cancel trip & release holds
+              </button>
+            ) : (
+              <button
+                className="primary full"
+                onClick={() => {
+                  setModal(null);
+                  setTab("board");
+                  requestAnimationFrame(() =>
+                    document
+                      .getElementById("recovery-controls")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  );
+                }}
+              >
+                Review recovery actions <ArrowRight size={16} />
+              </button>
+            )}
+            <button
+              className="secondary full"
+              onClick={() => setModal(null)}
+            >
+              Keep this trip
+            </button>
+          </>
         )}
         {modal?.kind === "reset" && (
           <>

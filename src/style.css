@@ -2397,3 +2397,49 @@ dialog .text-button {
   padding: 0 16px;
   text-decoration: none;
 }
+/* Per-person receipts at the top of Activity */
+.receipts {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.receipt {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: #fff;
+}
+.receipt header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.receipt header div {
+  display: grid;
+  gap: 2px;
+}
+.receipt header span,
+.receipt small {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.receipt ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.receipt li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  font-size: var(--fs-sm);
+}
+.receipt li small {
+  grid-column: 1/-1;
+  overflow-wrap: anywhere;
+}
+.receipt.compact {
+  padding: 12px 14px;
+}
