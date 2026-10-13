@@ -4,6 +4,8 @@ import {
   participantCheckouts,
   recoveryMessage,
   recoveryLabel,
+  fundingRows,
+  RELEASED,
 } from "./payment-summary.mjs";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -197,6 +199,92 @@ function NextStep({
     </section>
   );
 }
+// One person's money for this trip, as a receipt: what they paid, to whom, for what, and the
+// provider's reference for each capture. Participants see only their own; shares are public.
+const receiptLines = (state, personId) =>
+  state.payments
+    .filter(
+      (p) =>
+        p.participantId === personId &&
+        [
+          "captured",
+          "refunded",
+          "refund_pending",
+          "refund_failed",
+          "refund_unknown",
+        ].includes(p.status),
+    )
+    .map((p, i) => {
+      const op = state.operations.findLast(
+        (o) => o.paymentId === p.id && o.type === "capture",
+      );
+      return {
+        id: p.id,
+        amount: p.amount,
+        what: i === 0 ? `Share approved on v${p.version}` : `Top-up approved on v${p.version}`,
+        status: p.status,
+        ref:
+          p.captureId ||
+          op?.providerId ||
+          (op && state.provider !== "paypal-sandbox"
+            ? `SIM-OP-${op.id.slice(0, 8)}`
+            : "reference pending"),
+        at: op?.updatedAt ?? op?.at ?? op?.createdAt ?? null,
+      };
+    });
+function Receipt({ state, person, listing, compact = false }) {
+  const first = person.name.split(" ")[0];
+  const sandbox = state.provider === "paypal-sandbox";
+  const lines = receiptLines(state, person.id);
+  if (!lines.length) return null;
+  const paid = lines
+    .filter((l) => l.status === "captured")
+    .reduce((n, l) => n + l.amount, 0);
+  const returned = lines
+    .filter((l) => l.status === "refunded")
+    .reduce((n, l) => n + l.amount, 0);
+  const when = (at) =>
+    at
+      ? new Date(at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "";
+  return (
+    <article className={`receipt${compact ? " compact" : ""}`}>
+      <header>
+        <ReceiptText size={18} />
+        <div>
+          <strong>
+            {compact ? first : "Your receipt"} ·{" "}
+            {paid ? `${usd(paid)} paid` : `${usd(returned)} returned`}
+          </strong>
+          <span>
+            To {listing.name} (sample listing;{" "}
+            {sandbox ? "PayPal sandbox merchant" : "simulated merchant"}) · 2
+            nights, {state.dates}
+          </span>
+        </div>
+      </header>
+      <ul>
+        {lines.map((l) => (
+          <li key={l.id}>
+            <span>
+              {l.what}
+              {l.status !== "captured" && ` · ${l.status.replaceAll("_", " ")}`}
+            </span>
+            <strong>{usd(l.amount)}</strong>
+            <small>
+              {sandbox ? "PayPal capture" : "Simulated capture"} {l.ref}
+              {l.at && ` · ${when(l.at)}`}
+            </small>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
 function App() {
   const [state, setState] = useState(null),
     [actor, setActor] = useState(
@@ -229,7 +317,8 @@ function App() {
       "Maya Chen, Jordan Ellis, Alex Rivera, Sam Taylor",
     ),
     [listingId, setListingId] = useState("pine"),
-    [budget, setBudget] = useState("220");
+    [budget, setBudget] = useState("220"),
+    [roster, setRoster] = useState(null);
   const dialog = useRef(null);
   const dialogTrigger = useRef(null);
   // PayPal sends buyers back with ?paypal=return|cancel|lab&payment=<id>.
@@ -245,8 +334,22 @@ function App() {
     }
   }
   useEffect(() => {
+    // A confirmation meant for one person never carries into another view.
+    setNotice("");
     load();
   }, [actor]);
+  // A new question from the organizer replaces any earlier "Not now" or "Saved" message.
+  const openRequests = (state?.limitRequests ?? [])
+    .filter((r) => r.participantId === actor && r.status === "pending")
+    .map((r) => r.id)
+    .join();
+  const seenRequests = useRef("");
+  useEffect(() => {
+    const seen = seenRequests.current.split(",");
+    if (openRequests.split(",").some((id) => id && !seen.includes(id)))
+      setNotice("");
+    seenRequests.current = openRequests;
+  }, [openRequests]);
   // Other people act in their own windows; keep this one current while it's visible.
   useEffect(() => {
     const refresh = () =>
@@ -303,6 +406,21 @@ function App() {
       dialog.current?.showModal();
     } else if (!modal) dialog.current?.close();
   }, [modal]);
+  // An unrecognised friend link offers the current names; it never falls back to the organizer.
+  const unknownLink = !state && /unknown demo role/i.test(error);
+  useEffect(() => {
+    if (!unknownLink || roster) return;
+    fetch("/api/state", { headers: { "x-demo-actor": "organizer" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) =>
+        setRoster(
+          (s?.participants ?? [])
+            .filter((p) => p.active)
+            .map((p) => ({ id: p.id, name: p.name })),
+        ),
+      )
+      .catch(() => setRoster([]));
+  }, [unknownLink]);
   async function act(endpoint, input = {}, who = actor) {
     setBusy(true);
     setError("");
@@ -409,7 +527,7 @@ function App() {
       await load();
     }
   }
-  async function review(p, suggestion = null, kind = "approve") {
+  async function review(p, suggestion = null, kind = "approve", extra = {}) {
     // Loading disables Review; capture its focus before the browser moves it away.
     dialogTrigger.current = document.activeElement;
     setBusy(true);
@@ -424,8 +542,15 @@ function App() {
       const person = own.participants.find((x) => x.id === p.id);
       setActor(p.id);
       setState(own);
-      setBudget(person.budget === null ? "" : String(person.budget / 100));
-      setModal({ kind, id: p.id, suggestion });
+      // Raising a budget for a request starts from the amount the organizer asked about.
+      setBudget(
+        extra.request?.amountCents
+          ? String(extra.request.amountCents / 100)
+          : person.budget === null
+            ? ""
+            : String(person.budget / 100),
+      );
+      setModal({ kind, id: p.id, suggestion, ...extra });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -463,20 +588,24 @@ function App() {
         <Leaf size={32} />
         <h1>Getting everyone together.</h1>
         <p>
-          {/unknown demo role/i.test(error)
-            ? "This link doesn’t match anyone on the current trip. It may be from an earlier round."
+          {unknownLink
+            ? "This link doesn’t match anyone on the current trip. It may be from an earlier round. Ask your organizer for a new link, or choose your name if you’re on this trip."
             : error || "Opening your trip…"}
         </p>
-        {/unknown demo role/i.test(error) ? (
-          <button
-            onClick={() => {
-              history.replaceState(null, "", "/");
-              setError("");
-              setActor("organizer");
-            }}
-          >
-            Open the current trip
-          </button>
+        {unknownLink ? (
+          roster?.length > 0 && (
+            <nav className="role-chooser" aria-label="Who are you?">
+              {roster.map((p) => (
+                <a
+                  key={p.id}
+                  className="secondary"
+                  href={`/?participant=${encodeURIComponent(p.id)}`}
+                >
+                  I’m {p.name.split(" ")[0]}
+                </a>
+              ))}
+            </nav>
+          )
         ) : (
           error && <button onClick={() => load()}>Try again</button>
         )}
@@ -594,7 +723,8 @@ function App() {
               className="text-button"
               onClick={() => {
                 setActor("organizer");
-                setModal({ kind: "create" });
+                // With money held or moving, say so before the form, not under it.
+                setModal({ kind: locked ? "newTripBlocked" : "create" });
               }}
             >
               <Plus size={15} /> New trip
@@ -712,7 +842,9 @@ function App() {
                   busy={busy}
                   onConfirm={(cents) => answerLimit(r, cents)}
                   onDecline={() => declineLimit(r)}
-                  onUpdateBudget={() => review(currentPerson, null, "budget")}
+                  onUpdateBudget={() =>
+                    review(currentPerson, null, "budget", { request: r })
+                  }
                 />
               ))}
             {!isOrganizer && currentPerson && !myRequests.length && (
@@ -795,7 +927,11 @@ function App() {
               <>
                 <div className="section-heading">
                   <div>
-                    <h2>Everyone has a place.</h2>
+                    <h2>
+                      {state.status === "revision_required"
+                        ? `A new plan for ${active.length}.`
+                        : "Everyone has a place."}
+                    </h2>
                     <p>Clear shares. Individual approvals. One shared plan.</p>
                   </div>
                   <span className="version">PLAN V{state.version}</span>
@@ -908,7 +1044,7 @@ function App() {
                         </div>
                         <div className="commitment">
                           {!p.active ? (
-                            <span className="status neutral">Hold voided</span>
+                            <span className="status neutral">{RELEASED}</span>
                           ) : state.status === "confirmed" ? (
                             <span className="status green">
                               <CheckCheck size={13} />
@@ -925,7 +1061,7 @@ function App() {
                                       .reduce((n, x) => n + x.amount, 0),
                                   )}`
                                 : payment.some((x) => x.status === "voided")
-                                  ? "Hold released · not charged"
+                                  ? RELEASED
                                   : "Nothing held"}
                             </span>
                           ) : state.status === "recovery_pending" ? (
@@ -987,8 +1123,13 @@ function App() {
                   <div className="table-foot">
                     <ShieldCheck size={16} />
                     <span>
-                      Nothing is charged until everyone agrees and the booking
-                      begins.
+                      {state.status === "confirmed"
+                        ? "Charged at booking; the cabin’s cancellation terms apply."
+                        : state.status === "cancelled"
+                          ? "Collection is closed; nothing more will be charged."
+                          : state.status === "recovery_pending"
+                            ? "Nothing more will be collected; what was taken is being returned."
+                            : "Nothing is charged until everyone agrees and the booking begins."}
                     </span>
                   </div>
                 </section>
@@ -1237,6 +1378,28 @@ function App() {
                     Export
                   </button>
                 </div>
+                {(() => {
+                  const people = state.participants.filter(
+                    (p) =>
+                      (isOrganizer || p.id === actor) &&
+                      receiptLines(state, p.id).length,
+                  );
+                  return (
+                    people.length > 0 && (
+                      <div className="receipts" aria-label="Receipts">
+                        {people.map((p) => (
+                          <Receipt
+                            key={p.id}
+                            state={state}
+                            person={p}
+                            listing={listing}
+                            compact={isOrganizer}
+                          />
+                        ))}
+                      </div>
+                    )
+                  );
+                })()}
                 {state.reservation && (
                   <div className="reservation">
                     <Mountain size={22} />
@@ -1267,8 +1430,8 @@ function App() {
                 </div>
                 <h3>
                   {state.provider === "paypal-sandbox"
-                    ? "PayPal sandbox payment operations"
-                    : "Simulated payment operations"}
+                    ? "All PayPal sandbox payment operations"
+                    : "All simulated payment operations"}
                 </h3>
                 {state.operations.length === 0 ? (
                   <p className="empty">
@@ -1416,7 +1579,7 @@ function App() {
                         ? "charged in sandbox"
                         : "charged in simulation"
                       : state.status === "recovery_pending" && captured > 0
-                        ? "captured, return not confirmed"
+                        ? "captured, not yet returned"
                         : state.status === "recovery_pending" &&
                             balances.checkingCapture > 0
                           ? "payment outcome being checked"
@@ -1424,31 +1587,12 @@ function App() {
                   </span>
                 </div>
                 <dl className="funding-breakdown">
-                  <div>
-                    <dt>Held, not charged</dt>
-                    <dd>{usd(held)}</dd>
-                  </div>
-                  <div>
-                    <dt>Captured, return not confirmed</dt>
-                    <dd>{usd(captured)}</dd>
-                  </div>
-                  <div>
-                    <dt>Refund pending (of captured)</dt>
-                    <dd>{usd(balances.refundPending)}</dd>
-                  </div>
-                  {(balances.checkingCapture > 0 ||
-                    balances.checkingHold > 0) && (
-                    <div>
-                      <dt>Outcome being checked</dt>
-                      <dd>
-                        {usd(balances.checkingCapture + balances.checkingHold)}
-                      </dd>
+                  {fundingRows(state).map((row) => (
+                    <div key={row.key}>
+                      <dt>{row.label}</dt>
+                      <dd>{usd(row.amount)}</dd>
                     </div>
-                  )}
-                  <div>
-                    <dt>Returned</dt>
-                    <dd>{usd(balances.returned)}</dd>
-                  </div>
+                  ))}
                 </dl>
               </div>
               <div
@@ -1469,7 +1613,7 @@ function App() {
                     {state.status === "ready"
                       ? "All shares are approved and held. The organizer can now book."
                       : state.status === "confirmed"
-                        ? "Your local fixture reservation is confirmed. View each person’s receipt below."
+                        ? `Your local fixture reservation is confirmed. ${isOrganizer ? "Each person’s receipt is" : "Your receipt is"} under Activity & receipts.`
                         : state.status === "recovery_pending"
                           ? stopped.guidance
                           : state.status === "cancelled"
@@ -1542,7 +1686,7 @@ function App() {
                             state.participants.map((p) => p.name).join(", "),
                           );
                           setListingId(state.listingId);
-                          setModal({ kind: "create" });
+                          setModal({ kind: "create", refilled: active.length });
                           return;
                         }
                         if (
@@ -1798,9 +1942,18 @@ function App() {
               />
             </label>
             <p className="terms">
-              <ShieldCheck size={17} />I approve this exact version and personal
-              share. Booking starts only after everyone approves. Fixture
-              cancellation: full refund before check-in.
+              <ShieldCheck size={17} />
+              <span>
+                I approve this exact version and personal share.{" "}
+                <strong>Paid to: {listing.name}</strong> (sample listing; in
+                this demo the{" "}
+                {state.provider === "paypal-sandbox"
+                  ? "PayPal sandbox merchant account"
+                  : "payment simulator"}{" "}
+                stands in for the cabin), never to the organizer or a friend.
+                Booking starts only after everyone approves. Fixture
+                cancellation: full refund before check-in.
+              </span>
             </p>
             {error && (
               <p className="inline-error" role="alert">
@@ -1833,78 +1986,104 @@ function App() {
               follow roster order. Shares may reveal something about ceilings
               even though raw budgets are private.
             </p>
-            <button
-              className="secondary full"
-              disabled={busy || !isOpen || !budget || actor !== modalPerson.id}
-              onClick={async () => {
+            {(() => {
+              const share = shareFor(modalPerson.id);
+              const typed = Math.round(Number(budget) * 100);
+              const valid = Boolean(budget) && Number.isFinite(typed) && typed > 0;
+              // An edited ceiling is saved by the same tap that approves, never as a hidden step.
+              const edited = valid && typed !== modalPerson.budget;
+              const extra = Math.max(0, share - heldFor(modalPerson.id)) || share;
+              const canEdit = isOpen && actor === modalPerson.id;
+              const saveOnly = async () => {
                 if (
-                  await act(
-                    "budget",
-                    { amount: Math.round(Number(budget) * 100) },
-                    modalPerson.id,
-                  )
+                  await act("budget", { amount: typed }, modalPerson.id)
                 )
                   setNotice(
                     "Budget saved. No share was approved and no payment was authorized.",
                   );
-              }}
-            >
-              Save budget only
-            </button>
-            {notice && <p role="status">{notice}</p>}
-            <p className="secure-note">
-              Saved ceiling:{" "}
-              {modalPerson.budget == null
-                ? "not yet set"
-                : usd(modalPerson.budget)}
-              . Save edits before approving. A lower ceiling may require a
-              revised plan.
-            </p>
-            {state.status !== "revision_required" && (
-              <button
-                className="primary full"
-                disabled={
-                  busy ||
-                  !isOpen ||
-                  actor !== modalPerson.id ||
-                  modalPerson.budget == null ||
-                  Math.round(Number(budget) * 100) !== modalPerson.budget ||
-                  modalPerson.budget < shareFor(modalPerson.id) ||
-                  state.status === "revision_required"
-                }
-                onClick={async () => {
-                  const next = await act(
-                    "approve",
-                    { version: state.version },
-                    modalPerson.id,
-                  );
-                  if (next) {
-                    const checkout = next.payments?.findLast(
-                      (p) =>
-                        p.participantId === modalPerson.id && p.approvalUrl,
-                    );
-                    if (
-                      next.provider === "paypal-sandbox" &&
-                      checkout?.status === "approval_required"
-                    )
-                      return location.assign(checkout.approvalUrl);
-                    setModal(null);
-                    setNotice(
-                      state.provider === "paypal-sandbox"
-                        ? "Consent recorded. Complete your PayPal sandbox checkout below, then confirm the authorization."
-                        : "Your agreement and simulated hold are recorded. Nothing has been charged.",
-                    );
-                  }
-                }}
-              >
-                {busy
-                  ? "Recording your approval…"
-                  : state.provider === "paypal-sandbox"
-                    ? `Agree & open sandbox checkout for ${usd(Math.max(0, shareFor(modalPerson.id) - heldFor(modalPerson.id)) || shareFor(modalPerson.id))}`
-                    : "Agree & authorize simulated hold"}
-                <Check size={17} />
-              </button>
-            )}
+              };
+              return (
+                <>
+                  {notice && <p role="status">{notice}</p>}
+                  <p className="secure-note">
+                    Saved ceiling:{" "}
+                    {modalPerson.budget == null
+                      ? "not yet set"
+                      : usd(modalPerson.budget)}
+                    .{" "}
+                    {valid && typed < share
+                      ? `That’s below your ${usd(share)} share, so approving needs a higher ceiling. Saving it asks your organizer for a revised plan.`
+                      : edited && state.status !== "revision_required"
+                        ? `Approving saves ${usd(typed)} as your ceiling first.`
+                        : "A lower ceiling may require a revised plan."}
+                  </p>
+                  {state.status !== "revision_required" && (
+                    <div className="dialog-sticky">
+                      <button
+                        className="primary full"
+                        disabled={
+                          busy || !canEdit || !valid || typed < share
+                        }
+                        onClick={async () => {
+                          if (
+                            edited &&
+                            !(await act(
+                              "budget",
+                              { amount: typed },
+                              modalPerson.id,
+                            ))
+                          )
+                            return;
+                          const next = await act(
+                            "approve",
+                            { version: state.version },
+                            modalPerson.id,
+                          );
+                          if (next) {
+                            const checkout = next.payments?.findLast(
+                              (p) =>
+                                p.participantId === modalPerson.id &&
+                                p.approvalUrl,
+                            );
+                            if (
+                              next.provider === "paypal-sandbox" &&
+                              checkout?.status === "approval_required"
+                            )
+                              return location.assign(checkout.approvalUrl);
+                            setModal(null);
+                            setNotice(
+                              state.provider === "paypal-sandbox"
+                                ? "Consent recorded. Complete your PayPal sandbox checkout below, then confirm the authorization."
+                                : "Your agreement and simulated hold are recorded. Nothing has been charged.",
+                            );
+                          }
+                        }}
+                      >
+                        {busy
+                          ? "Recording your approval…"
+                          : `${edited ? `Save ${usd(typed)}, agree` : "Agree"} & ${
+                              state.provider === "paypal-sandbox"
+                                ? `open sandbox checkout for ${usd(extra)}`
+                                : "authorize simulated hold"
+                            }`}
+                        <Check size={17} />
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    className={
+                      state.status === "revision_required"
+                        ? "secondary full"
+                        : "text-button"
+                    }
+                    disabled={busy || !canEdit || !valid || !edited}
+                    onClick={saveOnly}
+                  >
+                    Save budget only, don’t approve yet
+                  </button>
+                </>
+              );
+            })()}
             <p className="secure-note">
               {state.provider === "paypal-sandbox"
                 ? "Sandbox buyers approve their own exact additional amount in PayPal. No real money."
@@ -1916,6 +2095,13 @@ function App() {
           <>
             <span className="eyebrow">YOUR PRIVATE BUDGET</span>
             <h2>Change your budget, {modalPerson.name.split(" ")[0]}?</h2>
+            {modal.request?.kind === "confirm" && (
+              <p className="change-why">
+                Your organizer asked whether {usd(modal.request.amountCents)} is
+                your limit. Saving exactly {usd(modal.request.amountCents)}{" "}
+                answers yes.
+              </p>
+            )}
             <p>
               Only you and the planner use this number. The organizer doesn’t
               see it, though if it caps your share, your share will equal it.
@@ -1945,24 +2131,40 @@ function App() {
               className="primary full"
               disabled={busy || !isOpen || !budget || actor !== modalPerson.id}
               onClick={async () => {
-                if (
-                  await act(
-                    "budget",
-                    { amount: Math.round(Number(budget) * 100) },
-                    modalPerson.id,
+                const cents = Math.round(Number(budget) * 100);
+                if (!(await act("budget", { amount: cents }, modalPerson.id)))
+                  return;
+                // A saved budget answers an open question about it, so nobody confirms twice.
+                const open =
+                  myRequests.find((r) => r.id === modal.request?.id) ??
+                  myRequests.find((r) => r.kind === "confirm") ??
+                  myRequests.find((r) => r.kind === "ask");
+                let saved =
+                  "Saved. Your organizer will publish new shares that fit. You can change it again until then.";
+                if (open && (open.kind === "ask" || open.amountCents === cents)) {
+                  if (
+                    !(await act(
+                      "confirm-limit",
+                      { amountCents: cents, requestId: open.id },
+                      modalPerson.id,
+                    ))
                   )
-                )
-                  setModal({ ...modal, saved: true });
+                    return;
+                  saved =
+                    open.kind === "ask"
+                      ? "Saved. That answers your organizer’s question; they see that you answered, not the number."
+                      : `Saved. Your organizer can now use ${usd(cents)}.`;
+                } else if (open?.kind === "confirm")
+                  saved =
+                    cents > open.amountCents
+                      ? `Saved ${usd(cents)}. Your organizer asked whether ${usd(open.amountCents)} is your limit, so that question is still open: confirm ${usd(open.amountCents)} on your card if it is, or choose Not now.`
+                      : `Saved ${usd(cents)}. That’s below the ${usd(open.amountCents)} your organizer asked about, so their question is still open; choose Not now on it if ${usd(open.amountCents)} doesn’t work.`;
+                setModal({ ...modal, saved });
               }}
             >
               Save my budget
             </button>
-            {modal.saved && (
-              <p role="status">
-                Saved. Your organizer will publish new shares that fit. You can
-                change it again until then.
-              </p>
-            )}
+            {modal.saved && <p role="status">{modal.saved}</p>}
             <p className="secure-note">
               Saved ceiling:{" "}
               {modalPerson.budget == null
@@ -2076,6 +2278,30 @@ function App() {
           >
             <span className="eyebrow">MAKE ROOM FOR A GOOD IDEA</span>
             <h2>Your next shared escape.</h2>
+            {modal.refilled !== undefined ? (
+              <p className="change-why">
+                Only {modal.refilled}{" "}
+                {modal.refilled === 1 ? "person remains" : "people remain"}, and
+                a trip needs at least 3. We’ve re-added everyone from the
+                original group, including {departedNames || "those who left"};
+                remove anyone who isn’t coming, or add new friends.
+              </p>
+            ) : state.status === "confirmed" ? (
+              <p className="change-why">
+                “{state.title}” is booked. A new trip replaces this board; its
+                receipts leave with it, so export them first if you want a copy.
+                The new trip’s Activity starts with a note that this one was
+                booked and paid.{" "}
+                <button type="button" className="text-button" onClick={download}>
+                  <Download size={13} /> Export this trip’s receipts
+                </button>
+              </p>
+            ) : state.status === "cancelled" ? (
+              <p className="change-why">
+                A new trip replaces this closed board. Its Activity starts with
+                how “{state.title}” ended.
+              </p>
+            ) : null}
             <label className="field">
               Trip name
               <input
@@ -2110,8 +2336,9 @@ function App() {
             </label>
             <p className="terms">
               Fixed dates: November 6–8, 2026. Each person confirms a private
-              budget before approval. Starting a new trip replaces the current
-              uncommitted demo plan.
+              budget before approval.
+              {state.status === "collecting" &&
+                " Starting a new trip replaces the current plan; nothing is held for it."}
             </p>
             {locked && (
               <p className="inline-error" role="status">
@@ -2129,6 +2356,52 @@ function App() {
               Create our trip <Plus size={16} />
             </button>
           </form>
+        )}
+        {modal?.kind === "newTripBlocked" && (
+          <>
+            <span className="eyebrow">ONE TRIP AT A TIME</span>
+            <h2>
+              {isOpen ? "Finish or cancel this trip first." : "Finish recovery first."}
+            </h2>
+            <p>
+              {held > 0
+                ? `${usd(held)} is held for “${state.title}”.`
+                : `Money for “${state.title}” is still being confirmed or returned.`}{" "}
+              {isOpen
+                ? "A new trip can’t replace it while anyone’s money is held. Cancelling releases every hold and charges nobody; then you can start a new trip with the same friends or new ones."
+                : "A new trip can start once every payment is settled. Recovery checks each payment with the provider first and never charges twice."}
+            </p>
+            {isOpen ? (
+              <button
+                className="danger full"
+                disabled={busy}
+                onClick={() => setModal({ kind: "cancel" })}
+              >
+                Cancel trip & release holds
+              </button>
+            ) : (
+              <button
+                className="primary full"
+                onClick={() => {
+                  setModal(null);
+                  setTab("board");
+                  requestAnimationFrame(() =>
+                    document
+                      .getElementById("recovery-controls")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  );
+                }}
+              >
+                Review recovery actions <ArrowRight size={16} />
+              </button>
+            )}
+            <button
+              className="secondary full"
+              onClick={() => setModal(null)}
+            >
+              Keep this trip
+            </button>
+          </>
         )}
         {modal?.kind === "reset" && (
           <>

@@ -44,7 +44,9 @@ export default function LimitRequest({
       {request.kind === "confirm" ? (
         <>
           <h2>
-            Use {usd(request.amountCents)} as your limit, {first}?
+            {raises
+              ? `Your chat says ${usd(request.amountCents)}; your saved budget is ${usd(person.budget)}`
+              : `Use ${usd(request.amountCents)} as your limit, ${first}?`}
           </h2>
           <p>
             {departed || "Someone"} left, so the group is choosing a new plan.
@@ -56,9 +58,9 @@ export default function LimitRequest({
           {raises ? (
             <>
               <p>
-                That’s above your saved budget of {usd(person.budget)}, so it
-                can’t be confirmed in one click. If you really can go higher,
-                update your budget yourself.
+                That’s above your saved budget, so it can’t be confirmed in one
+                click. If you really can go up to {usd(request.amountCents)},
+                raise your budget yourself; saving it answers this question.
               </p>
               {onUpdateBudget && (
                 <button
@@ -66,7 +68,7 @@ export default function LimitRequest({
                   disabled={busy}
                   onClick={onUpdateBudget}
                 >
-                  Update my budget
+                  Raise my budget to {usd(request.amountCents)}
                 </button>
               )}
             </>

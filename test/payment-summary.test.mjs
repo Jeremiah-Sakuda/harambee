@@ -6,6 +6,7 @@ import {
   participantCheckouts,
   recoveryMessage,
   recoveryLabel,
+  fundingRows,
 } from "../src/payment-summary.mjs";
 test("failed refunds retain the captured balance in both group and participant projections", () => {
   const payments = [
@@ -198,6 +199,80 @@ function trip(payments) {
   };
 }
 
+test("the funding breakdown follows the plan's state", () => {
+  const rows = (status, payments, provider = "simulated") =>
+    fundingRows({ status, provider, payments }).map((r) => [
+      r.label,
+      r.amount,
+    ]);
+  const paid = [
+    { amount: 15000, status: "captured" },
+    { amount: 45000, status: "captured" },
+  ];
+  // A finished booking reads as paid, never as money waiting to come back.
+  assert.deepEqual(rows("confirmed", paid), [
+    ["Charged in simulation · paid to the booking", 60000],
+  ]);
+  assert.deepEqual(rows("confirmed", paid, "paypal-sandbox"), [
+    ["Charged in sandbox · paid to the booking", 60000],
+  ]);
+  for (const [label] of rows("confirmed", paid))
+    assert.doesNotMatch(label, /return/i);
+  // Before any capture only the hold row shows, even at $0.
+  assert.deepEqual(rows("collecting", []), [["Held, not charged", 0]]);
+  assert.deepEqual(
+    rows("ready", [
+      { amount: 15000, status: "authorized" },
+      { amount: 15000, status: "voided" },
+    ]),
+    [["Held, not charged", 15000]],
+  );
+  // In recovery each captured dollar sits in one row, so the rows add up.
+  const stopped = rows("recovery_pending", [
+    { amount: 15000, status: "refund_pending" },
+    { amount: 15000, status: "refunded" },
+    { amount: 15000, status: "voided" },
+  ]);
+  assert.deepEqual(stopped, [
+    ["Refund pending", 15000],
+    ["Returned", 15000],
+  ]);
+  assert.deepEqual(
+    rows("recovery_pending", [
+      { amount: 15000, status: "captured" },
+      { amount: 15000, status: "authorized" },
+    ]),
+    [
+      ["Held, not charged", 15000],
+      ["Captured, to be returned", 15000],
+    ],
+  );
+  // A closed trip keeps its Returned row so refunds stay visible.
+  assert.deepEqual(rows("cancelled", [{ amount: 15000, status: "voided" }]), [
+    ["Returned", 0],
+  ]);
+});
+test("a released hold has one name, and a recovery waiting on refunds says so", () => {
+  assert.equal(
+    recoveryLabel([{ amount: 15000, status: "voided" }]),
+    "Hold released · not charged",
+  );
+  assert.equal(
+    recoveryLabel([{ amount: 15000, status: "refunded" }]),
+    "Returned $150",
+  );
+  const stopped = organizerRecovery({
+    status: "recovery_pending",
+    provider: "simulated",
+    stop: { reason: "reservation_failed" },
+    participants: [{ id: "maya", name: "Maya Chen" }],
+    payments: [
+      { participantId: "maya", amount: 15000, status: "refund_pending" },
+    ],
+  });
+  assert.equal(stopped.onlyRefunds, true);
+  assert.match(stopped.guidance, /^Holds released\. Waiting for .*Maya’s \$150 refund/);
+});
 test("participant checkout actions require the current open plan and never reappear during recovery", () => {
   const state = trip([
     {

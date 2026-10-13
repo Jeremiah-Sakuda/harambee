@@ -2363,3 +2363,83 @@ button.danger {
   font-weight: 500;
   margin-bottom: 8px;
 }
+/* The approve button stays on screen on phones; an edited ceiling saves with the same tap. */
+dialog .text-button {
+  display: block;
+  margin: 10px auto 0;
+}
+@media (max-width: 480px) {
+  .dialog-sticky {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -25px;
+    padding: 4px 25px 14px;
+    background: #fcfcf7;
+    box-shadow: 0 -10px 16px -12px #17332440;
+    z-index: 1;
+  }
+}
+.rev-gaps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+}
+.role-chooser {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.role-chooser a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  text-decoration: none;
+}
+/* Per-person receipts at the top of Activity */
+.receipts {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.receipt {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: #fff;
+}
+.receipt header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.receipt header div {
+  display: grid;
+  gap: 2px;
+}
+.receipt header span,
+.receipt small {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.receipt ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.receipt li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  font-size: var(--fs-sm);
+}
+.receipt li small {
+  grid-column: 1/-1;
+  overflow-wrap: anywhere;
+}
+.receipt.compact {
+  padding: 12px 14px;
+}

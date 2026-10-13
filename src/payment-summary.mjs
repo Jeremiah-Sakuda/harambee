@@ -148,7 +148,7 @@ export function organizerRecovery(state) {
     guidance: settled
       ? "All payments are settled. The organizer can finish closing the trip."
       : onlyRefunds
-        ? "Refunds are processing. Check their status for provider confirmation."
+        ? `Holds released. Waiting for ${provider} to confirm ${names(p.refundPending)}’s ${total(p.refundPending)} refund; checking never repeats it.`
         : "Return what was taken and release every hold. Harambee checks each payment with the provider first.",
   };
 }
@@ -207,7 +207,48 @@ export function recoveryLabel(payments) {
   if (p.captured) return `${usd(p.captured)} to return`;
   if (p.checkingHold) return "Checking hold release";
   if (p.held) return "Hold to release";
-  return "Settled · nothing owed";
+  if (p.returned) return `Returned ${usd(p.returned)}`;
+  return RELEASED;
+}
+// One name for a hold that ended without a charge, wherever it appears.
+export const RELEASED = "Hold released · not charged";
+
+// The sidebar's money breakdown. Labels follow the plan's state, so a finished booking reads as
+// paid and only a stopped booking talks about returns. Rows that can't apply are left out.
+export function fundingRows(state) {
+  const b = paymentSummary(state.payments);
+  const where = state.provider === "paypal-sandbox" ? "sandbox" : "simulation";
+  const rows = [];
+  const add = (key, label, amount, always = false) =>
+    (always || amount > 0) && rows.push({ key, label, amount });
+  const checking = b.checkingCapture + b.checkingHold;
+  if (state.status === "confirmed") {
+    add("charged", `Charged in ${where} · paid to the booking`, b.captured, true);
+    add("held", "Held, not charged", b.held);
+    add("checking", "Outcome being checked", checking);
+    add("returned", "Returned", b.returned);
+    return rows;
+  }
+  if (state.status === "recovery_pending" || state.status === "cancelled") {
+    // Each captured dollar appears in exactly one row, so the rows add up to what was taken.
+    const toReturn =
+      b.captured - b.refundPending - b.refundFailed - b.refundUnknown;
+    add("held", "Held, not charged", b.held);
+    add("toReturn", "Captured, to be returned", toReturn);
+    add("refundPending", "Refund pending", b.refundPending);
+    add("refundUnknown", "Refund being checked", b.refundUnknown);
+    add("refundFailed", "Refund failed · still charged", b.refundFailed);
+    add("checking", "Outcome being checked", checking);
+    add("returned", "Returned", b.returned, state.status === "cancelled");
+    if (!rows.length) add("held", "Held, not charged", 0, true);
+    return rows;
+  }
+  // Collecting, revising or mid-booking: holds lead; anything else appears only once it exists.
+  add("held", "Held, not charged", b.held, true);
+  add("charged", `Charged in ${where} for this booking`, b.captured);
+  add("checking", "Outcome being checked", checking);
+  add("returned", "Returned", b.returned);
+  return rows;
 }
 
 // Checkout actions are only meaningful for an active participant's current

@@ -345,3 +345,43 @@ test("a typed private limit can't be probed through option confirmations", () =>
   e.confirmLimit("maya", 17000, confirm.id);
   assert.equal(e.limitConfirmed("maya", 17000), true);
 });
+
+test("a budget raised to the amount asked about answers that request in one pass", () => {
+  const { engine: e } = fixture();
+  for (const p of e.active) e.approve(p.id, 1);
+  e.withdraw("organizer", "sam");
+  e.budget("maya", 16000);
+  const request = e.requestLimit("organizer", {
+    participantId: "maya",
+    kind: "confirm",
+    amountCents: 17000,
+  });
+  // One click can't raise a budget; the deliberate raise is followed by the confirmation.
+  assert.throws(() => e.confirmLimit("maya", 17000, request.id), /raise/);
+  e.budget("maya", 17000);
+  e.confirmLimit("maya", 17000, request.id);
+  assert.equal(e.state.limitRequests[0].status, "confirmed");
+  assert.equal(e.limitConfirmed("maya", 17000), true);
+});
+
+test("questions a re-read chat no longer raises are withdrawn, others stay open", () => {
+  const { engine: e } = fixture();
+  for (const p of e.active) e.approve(p.id, 1);
+  e.withdraw("organizer", "sam");
+  e.requestLimit("organizer", { participantId: "maya", kind: "ask" });
+  e.requestLimit("organizer", {
+    participantId: "alex",
+    kind: "confirm",
+    amountCents: 18000,
+  });
+  const closed = e.retireLimitRequests((r) => r.participantId === "alex");
+  assert.equal(closed, 1);
+  assert.deepEqual(
+    e.state.limitRequests.map((r) => [r.participantId, r.status]),
+    [
+      ["maya", "withdrawn"],
+      ["alex", "pending"],
+    ],
+  );
+  assert.match(e.state.audit.at(-1).text, /no longer applies/);
+});
