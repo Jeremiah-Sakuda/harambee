@@ -824,9 +824,18 @@ test("a reason is shown as Why only on an option it supports", async () => {
   assert.deepEqual(why(creek).sort(), ["alex", "maya"]);
   const even = out.options.find((o) => o.rows.every((r) => r.share === 20000));
   assert.equal(even.basis.length, 0);
+  // Alex's Creekside wish wasn't attached to this card by the model; code shows it here too.
   assert.deepEqual(
-    even.considered.map((b) => b.participantId),
-    ["maya"],
+    even.considered.map((b) => [b.participantId, b.relation, b.attachedBy]),
+    [
+      ["maya", "elsewhere", undefined],
+      ["alex", "elsewhere", "code"],
+    ],
+  );
+  // Reasons are shown as the full sentence they come from.
+  assert.equal(
+    pine.considered[0].quote,
+    "If it gets pricey I’d rather do the cheaper Creekside place.",
   );
   assert.ok(
     out.options.every((o) => !o.basis.some((b) => b.quote.length < 12)),
@@ -859,7 +868,12 @@ test("bare numbers in model prose, summaries and questions are checked too", asy
   });
   const titles = out.options.map((o) => o.title).join(" | ");
   assert.doesNotMatch(titles, /300/);
-  assert.ok(out.options.some((o) => o.title.includes("sleeps 6")));
+  // Any digit in model prose is replaced, even a small count: code can't tell it isn't an amount.
+  assert.ok(
+    out.options.some(
+      (o) => o.listingId === "creek" && /option$/.test(o.title),
+    ),
+  );
   assert.equal(out.summary, "");
   assert.doesNotMatch(
     out.clarifications.map((c) => c.question).join(" "),
@@ -1526,4 +1540,121 @@ test("malformed proposals fall back before any option can be issued", async () =
     assert.equal(out.provider, "local-planner");
     assert.match(out.fallbackReason, /verified response/);
   }
+});
+
+test("a split that needs someone above their saved budget asks them instead of dead-ending", async () => {
+  const e = afterDropout();
+  const notes = [
+    "Maya: I can spend up to $220.",
+    "Jordan: My budget is $220.",
+    "Alex: Up to $220 works for me.",
+    "Alex: I can't go above $140 now.",
+    "Maya: Good news, my bonus came through, I can go up to $260 now.",
+  ].join("\n");
+  const out = await proposeRevisions(e, { source: null, notes });
+  const pine = () =>
+    recheckRevisions(e, out.batchId).options.find(
+      (o) => o.listingId === "pine" && o.source === "local-planner",
+    );
+  const needed = () =>
+    pine()
+      .confirmations.filter((c) => c.needed)
+      .map((c) => c.participantId);
+  assert.deepEqual(
+    pine().rows.map((r) => r.share),
+    [24000, 22000, 14000],
+  );
+  assert.deepEqual(needed(), ["jordan", "alex"]);
+  e.confirmLimit("jordan", 22000);
+  e.confirmLimit("alex", 14000);
+  // Saved budgets can't cover it, so Maya, who wrote $260, is asked rather than a dead end.
+  assert.equal(pine().feasible, true);
+  assert.deepEqual(needed(), ["maya"]);
+  assert.throws(() => e.confirmLimit("maya", 26000), /Update my budget/);
+  e.budget("maya", 26000);
+  e.confirmLimit("maya", 26000);
+  assert.equal(pine().ready, true);
+  assert.deepEqual(
+    pine().rows.map((r) => r.share),
+    [24000, 22000, 14000],
+  );
+});
+
+test("a fragment of a sentence can't turn a refusal into a reason", async () => {
+  const e = afterDropout();
+  const notes = [
+    ...CHAT.split("\n"),
+    "Alex: I really don't want to pay more for Pine & Still.",
+    "Jordan: Please not Pine & Still again, it was freezing.",
+    "Maya: Pine & Still is not for me this time.",
+  ].join("\n");
+  const { out } = await withProposals(
+    e,
+    {
+      options: [
+        option({
+          title: "Keep the cabin",
+          explanation: "Keeps everyone together.",
+          tradeoff: "",
+          basis: [
+            { participantId: "alex", line: 7, quote: "want to pay more for Pine & Still", kind: "willing_more" },
+            { participantId: "jordan", line: 8, quote: "Pine & Still again, it was freezing", kind: "prefers_listing" },
+            { participantId: "maya", line: 9, quote: "Pine & Still is not for me this time", kind: "prefers_listing" },
+          ],
+        }),
+      ],
+      clarifications: [],
+    },
+    notes,
+  );
+  const card = out.options.find((o) => o.title === "Keep the cabin");
+  assert.deepEqual(card.basis, []);
+  // Each is shown as its full sentence, labelled as arguing against this option.
+  assert.deepEqual(
+    card.considered.map((b) => [b.relation, b.quote]),
+    [
+      ["opposes", "I really don't want to pay more for Pine & Still."],
+      ["opposes", "Please not Pine & Still again, it was freezing."],
+      ["opposes", "Pine & Still is not for me this time."],
+    ],
+  );
+  // A refusal is never treated as an offer to pay more.
+  assert.ok(
+    !out.clarifications.some((q) => /How far could Alex go/.test(q.question)),
+  );
+});
+
+test("lone number words and figure-free comparisons of people in model prose are rewritten", async () => {
+  const { out } = await withProposals(afterDropout(), {
+    options: [
+      option({
+        title: "Jordan chips in an extra twenty",
+        explanation: "Maya pays 5 less and Alex covers forty more than before.",
+        tradeoff: "Keeps everyone in one cabin.",
+      }),
+      option({
+        listingId: "creek",
+        title: "Maya covers the biggest share",
+        explanation: "Maya pays the most so Jordan and Alex save money.",
+        tradeoff: "A different cabin for the group.",
+      }),
+    ],
+    clarifications: [],
+  });
+  const prose = out.options
+    .flatMap((o) => [o.title, o.explanation, o.tradeoff])
+    .join(" | ");
+  assert.doesNotMatch(prose, /twenty|forty|\b5 less|pays the most|biggest share/);
+  // A field with no figure and no comparison keeps the model's words.
+  assert.match(prose, /Keeps everyone in one cabin\./);
+  assert.match(prose, /A different cabin for the group\./);
+});
+
+test("a split the local planner shares with the standard rule is never labelled AI", async () => {
+  const e = afterDropout();
+  e.budget("maya", 17000);
+  const out = await proposeRevisions(e, { source: null, notes: CHAT });
+  const merged = out.options.filter((o) => o.matchesRule);
+  assert.ok(merged.length > 0);
+  for (const o of merged) assert.equal(o.alsoSuggestedBy, "local-planner");
 });

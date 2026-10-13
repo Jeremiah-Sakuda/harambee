@@ -2,19 +2,22 @@ import { openAIProposalSource } from "./proposal-source.mjs";
 import { DomainError } from "./domain.mjs";
 // Who wrote a chat line, and what they wrote. Accepts plain "Name: text" and the common export
 // formats that put a timestamp first ("[10/7/26, 9:41 PM] Maya: …", "10/7/26, 21:41 - Maya: …")
-// or after the name ("Maya 9:41 PM: …", "Maya (21:41): …").
+// or after the name ("Maya 9:41 PM: …", "Maya, 9:41 PM: …", "Maya (21:41): …"). WhatsApp on iPhone
+// starts lines with an invisible direction mark and shows unsaved contacts as "~ Maya".
 const STAMP =
   /^\s*\[?\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AaPp]\.?\s?[Mm]\.?)?\]?\s*(?:[-–]\s*)?/;
 export function splitSpeaker(line) {
-  const text = String(line ?? "").replace(STAMP, "");
+  const text = String(line ?? "")
+    .replace(/^[\u200e\u200f\ufeff]+/, "")
+    .replace(STAMP, "");
   const timed =
-    /^\s*([^:\d][^:]{0,58}?)\s+\(?\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AaPp]\.?\s?[Mm]\.?)?\)?\s*:(.*)$/s.exec(
+    /^\s*([^:\d][^:]{0,58}?),?\s+\(?\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AaPp]\.?\s?[Mm]\.?)?\)?\s*:(.*)$/s.exec(
       text,
     );
   const plain = /^\s*([^:]{1,60}):(.*)$/s.exec(text);
   const m = timed ?? plain;
   return m
-    ? { person: m[1].trim(), body: m[2] }
+    ? { person: m[1].replace(/^[\s\u200e\u200f]*~[\s\u202f]*/, "").trim(), body: m[2] }
     : { person: "Unassigned", body: text };
 }
 // Conservative USD source grounding. This rejects ambiguous values instead of guessing.

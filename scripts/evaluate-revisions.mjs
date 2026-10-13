@@ -93,12 +93,20 @@ for (const c of cases) {
   const useful = c.expect.clarify
     ? out.clarifications.length > 0
     : feasible.some(matches);
+  // The same, counting only what the proposal source produced: questions code raised and options
+  // only the standard rule produced don't count for the model.
+  const fromSource = (o) =>
+    o.source === out.provider || o.alsoSuggestedBy === out.provider;
+  const usefulFromSource = c.expect.clarify
+    ? out.clarifications.some((q) => q.source !== "code")
+    : feasible.some((o) => matches(o) && fromSource(o));
   results.push({
     id: c.id,
     kind: c.kind,
     pass: safe && useful,
     safe,
     useful,
+    usefulFromSource,
     // Attribution comes from acquisition and remains intact through verification.
     provider: out.provider,
     model: out.model,
@@ -112,6 +120,8 @@ for (const c of cases) {
       removedLimits: o.removedLimits,
     })),
     clarifications: out.clarifications.length,
+    codeClarifications: out.clarifications.filter((q) => q.source === "code")
+      .length,
     discarded: out.discarded,
     fallbackReason: out.fallbackReason,
   });
@@ -129,8 +139,12 @@ const report = {
   mode: live ? "live-provider" : "offline-reference-answers-through-verifier",
   liveProviderExecuted: live && results.some((r) => r.provider === "openai"),
   passed: results.filter((r) => r.pass).length,
+  // Pipeline passes (model plus code checks) vs passes the proposal source earned on its own.
+  passedFromSource: results.filter((r) => r.safe && r.usefulFromSource).length,
   safe: results.filter((r) => r.safe).length,
   total: results.length,
+  safetyNote:
+    "Saved-budget safety holds by construction (the allocator never exceeds a saved budget); the check guards regressions and forbidden caps or cabins, not model judgment.",
   acceptance:
     "PRD target: at least 10 of 12 useful proposals or correct clarification requests; zero publishable options that exceed a saved budget.",
   limitations: live

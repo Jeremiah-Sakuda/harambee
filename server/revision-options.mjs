@@ -116,8 +116,31 @@ const NUMBER_WORDS = new RegExp(
 const spokenFigure = (t) =>
   NUMBER_WORDS.test(String(t)) ||
   /\d\s*(?:%|percent\b|[kK]\b)/i.test(String(t));
+// Single number words ("an extra twenty"), any digit, and multiples count too. "One" is left out:
+// "one cabin" and "no one" carry no amount.
+const LONE_FIGURE = new RegExp(
+  String.raw`\b(?!one\b)${NUMBER_WORD}\b|\d|\b(?:half|double|twice|triple|quarter)\b`,
+  "i",
+);
 const hasFigure = (t) =>
-  amountsIn(t).length > 0 || /\$/.test(String(t)) || spokenFigure(t);
+  amountsIn(t).length > 0 ||
+  /\$/.test(String(t)) ||
+  spokenFigure(t) ||
+  LONE_FIGURE.test(String(t));
+// "Maya pays the most" can be false without any figure. A sentence that compares what a named
+// person pays is rewritten too, since only code knows the shares.
+const COMPARES =
+  /\b(?:most|least|more|less|fewer|biggest|smallest|largest|lowest|highest|cheapest|priciest|bigger|smaller|larger|lower|higher|extra|same as)\b/i;
+const comparesPeople = (t, people) =>
+  String(t)
+    .split(/(?<=[.!?;])\s+/)
+    .some(
+      (s) =>
+        COMPARES.test(s) &&
+        people.some((p) =>
+          new RegExp(`\\b${escapeRe(firstName(p))}\\b`, "i").test(s),
+        ),
+    );
 
 // Deterministic backstop: some messages are too uncertain to use as a limit no matter what the
 // model says. Code turns them into a question for that person instead. It is a floor for common
@@ -159,6 +182,23 @@ const notALimit = (text, amount) =>
     (s) => NOT_A_LIMIT.test(s) || (ACCEPTS.test(s) && !CEILING.test(s)),
   );
 const body = (line) => splitSpeaker(line).body;
+// The whole sentence (or sentences) of a message that a quote comes from. Reasons are judged and
+// shown as full sentences, so a fragment can't drop the "don't" in "I don't want to pay more".
+function sentenceOf(text, quote) {
+  const start = text.indexOf(quote);
+  if (start < 0) return quote.trim();
+  const end = start + quote.length;
+  const breaks = [...text.slice(0, start).matchAll(/[.!?…]+\s+/g)].pop();
+  const from = breaks ? breaks.index + breaks[0].length : 0;
+  const after = text.slice(end).search(/[.!?…](?=\s|$)/);
+  // A quote that already ends a sentence keeps its own punctuation.
+  const to = /[.!?…]$/.test(quote.trim())
+    ? end
+    : after < 0
+      ? text.length
+      : end + after + 1;
+  return text.slice(from, to).trim();
+}
 // “Quoted message.” without a doubled full stop after it.
 const said = (text) => `“${text}”${/[.!?…]$/.test(text.trim()) ? "" : "."}`;
 const firstName = (p) => p.name.split(" ")[0];
@@ -230,12 +270,17 @@ function ambiguousLimit(lines, index, person, amount, active = []) {
 // with how it relates: it argues for another option, argues against this one, or was replaced by
 // the same person's later message. Nothing verified is silently dropped.
 const cabinWord = (l) => l.name.split(/\s/)[0].toLowerCase();
-// "Please not Pine & Still" objects to Pine; "I don't want to leave Pine & Still" supports it.
+// "Please not Pine & Still" and "Pine & Still is not for me" object to Pine; "I don't want to
+// leave Pine & Still" supports it.
 const negates = (text, word) =>
-  new RegExp(
+  (new RegExp(
     String.raw`\b(?:not|no|never|avoid|skip|rather not|don['’]?t want)\b[^.!?]{0,20}\b${word}`,
     "i",
-  ).test(text) &&
+  ).test(text) ||
+    new RegExp(
+      String.raw`\b${word}\b[^.!?]{0,25}\b(?:(?:is|was)\s+(?:not|a no|out)\b|isn['’]?t\b|not for (?:me|us)|no thanks|no way)`,
+      "i",
+    ).test(text)) &&
   !new RegExp(
     String.raw`\b(?:leav\w*|giv\w* up|los[et]\w*|miss\w*|without|quit\w*|switch\w* from)\b[^.!?]{0,15}\b${word}`,
     "i",
@@ -277,6 +322,18 @@ function relation(b, listing, shares, previous, lines, latestLine) {
     return "opposes";
   return null;
 }
+// Each person's latest message with an amount that could be a limit, 1-based.
+const latestLines = (ctx, lines) =>
+  new Map(
+    ctx.active.map((p) => [
+      p.id,
+      lines.findLastIndex(
+        (l) =>
+          speakerMatches(l, p) &&
+          literalAmounts(body(l)).some((a) => !notALimit(body(l), a)),
+      ) + 1,
+    ]),
+  );
 // People who answered the organizer's question for this version; their limit is settled.
 const answered = (engine) =>
   new Set(
@@ -416,22 +473,19 @@ function evaluate(engine, ctx, lines, option) {
       line.includes(b.quote) &&
       speakerMatches(line, person)
     ) {
-      // The same quote listed twice is one reason.
-      if (
-        basis.some(
-          (x) => x.line === b.line && x.quote === b.quote.slice(0, 160),
-        )
-      )
-        continue;
+      // "Maya: I can…" is judged as "I can…"; the name is already on the reason. What is judged
+      // and shown is the full sentence the quote comes from, never the model's fragment alone.
+      const span = speakerMatches(b.quote, person)
+        ? body(b.quote).trim()
+        : b.quote.trim();
+      const quote = sentenceOf(body(line), span).slice(0, 240);
+      // The same sentence cited twice is one reason.
+      if (basis.some((x) => x.line === b.line && x.quote === quote)) continue;
       basis.push({
         participantId: person.id,
         name: person.name,
         line: b.line,
-        // "Maya: I can…" is shown as "I can…"; the name is already on the reason.
-        quote: (speakerMatches(b.quote, person)
-          ? body(b.quote).trim()
-          : b.quote
-        ).slice(0, 160),
+        quote,
         kind: b.kind,
       });
     } else
@@ -483,10 +537,26 @@ function evaluate(engine, ctx, lines, option) {
     c.needed =
       !c.confirmed &&
       preview.find((s) => s.id === c.participantId).share === c.amountCents;
-  const waiting = confirmations.some((c) => c.needed);
+  let waiting = confirmations.some((c) => c.needed);
   // With nothing left to confirm, show exactly what publishing produces from saved budgets.
   // That split is fixed for each cabin, so no chat input can probe it.
-  const shares = waiting ? preview : tryAllocate(ctx.active);
+  let shares = waiting ? preview : tryAllocate(ctx.active);
+  if (!shares) {
+    // Saved budgets can't cover the split the chat describes. Rather than a dead end, ask whoever
+    // wrote a higher limit than this split needs and would take on more than before: their saved
+    // budget may be lower than what they wrote. Checked only once the other confirmations are in,
+    // like the infeasible result it replaces, so editing the chat alone can't probe a budget.
+    const absorbing = confirmations.filter((c) => {
+      const share = preview.find((s) => s.id === c.participantId).share;
+      const before = ctx.shares.find((s) => s.id === c.participantId)?.share;
+      return !c.confirmed && share < c.amountCents && share > (before ?? 0);
+    });
+    for (const c of absorbing) c.needed = true;
+    if (absorbing.length) {
+      waiting = true;
+      shares = preview;
+    }
+  }
   if (!shares)
     return {
       listing,
@@ -517,17 +587,7 @@ function evaluate(engine, ctx, lines, option) {
     removed: notes,
     clarify,
     ...(() => {
-      // Each person's latest message with an amount that could be a limit, 1-based.
-      const latestLine = new Map(
-        ctx.active.map((p) => [
-          p.id,
-          lines.findLastIndex(
-            (l) =>
-              speakerMatches(l, p) &&
-              literalAmounts(body(l)).some((a) => !notALimit(body(l), a)),
-          ) + 1,
-        ]),
-      );
+      const latestLine = latestLines(ctx, lines);
       const related = basis.map((b) => ({
         ...b,
         relation: relation(b, listing, shares, ctx.shares, lines, latestLine),
@@ -601,10 +661,12 @@ function finish(engine, ctx, lines, proposed, meta) {
     // code can't tell whose amount a figure is ("Maya pays $215 while Jordan pays $170" uses real
     // amounts on the wrong people), so a field with any figure is replaced by code's own text.
     const all = result.removed.length > 0;
+    const unchecked = (t) =>
+      all || hasFigure(t) || comparesPeople(t, ctx.active);
     const replace = {
-      title: all || hasFigure(p.title),
-      explanation: all || hasFigure(p.explanation),
-      tradeoff: all || hasFigure(p.tradeoff ?? ""),
+      title: unchecked(p.title),
+      explanation: unchecked(p.explanation),
+      tradeoff: unchecked(p.tradeoff ?? ""),
     };
     const option = {
       index,
@@ -650,6 +712,8 @@ function finish(engine, ctx, lines, proposed, meta) {
       merged.combinedAfter = suggested.confirmations
         .filter((c) => c.confirmed)
         .map((c) => firstName(c));
+      // Who else suggested it: the model, the local planner (not AI) or reference proposals.
+      merged.alsoSuggestedBy = suggested.source;
       if (merged.source === "rule") {
         // The plain rule already gives this split with nothing to confirm. Keep the model's
         // verified reasons and stated limits visible, but nothing waits on them.
@@ -665,6 +729,33 @@ function finish(engine, ctx, lines, proposed, meta) {
         merged.source = "rule";
         merged.alsoSuggested = true;
       }
+    }
+  }
+  // A verified message about a cabin is shown on every card it bears on, not only the card the
+  // model attached it to: "I'd rather do Creekside" points away from Pine & Still whichever card
+  // the model put it on. Code attaches it; the card says so.
+  const latestLine = latestLines(ctx, lines);
+  const verified = options
+    .flatMap((o) => [...o.basis, ...o.considered])
+    .filter(
+      (b, i, all) =>
+        all.findIndex((x) => x.line === b.line && x.quote === b.quote) === i,
+    );
+  for (const o of options) {
+    if (!o.feasible) continue;
+    const listing = catalog.find((l) => l.id === o.listingId);
+    for (const b of verified) {
+      if (
+        [...o.basis, ...o.considered].some(
+          (x) => x.line === b.line && x.quote === b.quote,
+        ) ||
+        !catalog.some((l) => b.quote.toLowerCase().includes(cabinWord(l)))
+      )
+        continue;
+      const shares = o.rows.map((r) => ({ id: r.participantId, share: r.share }));
+      const rel = relation(b, listing, shares, ctx.shares, lines, latestLine);
+      if (rel === "elsewhere" || rel === "opposes")
+        o.considered.push({ ...b, relation: rel, attachedBy: "code" });
     }
   }
   let unusedFirm = false;
@@ -726,6 +817,8 @@ function finish(engine, ctx, lines, proposed, meta) {
       if (
         b.kind === "willing_more" &&
         !literalAmounts(body(lines[b.line - 1])).length &&
+        // "I don't want to pay more" is a refusal whatever the model labelled it.
+        !(PUSHBACK.test(b.quote) && !FINE.test(b.quote)) &&
         ![...(meta.clarifications ?? []), ...codeQuestions].some(
           (q) => q.participantId === b.participantId,
         )

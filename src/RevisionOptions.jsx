@@ -213,7 +213,11 @@ export default function RevisionOptions({
                       ? "Local planner · same split as the standard rule"
                       : "Local planner"
                     : o.alsoSuggested
-                      ? "Standard rule · also suggested by AI"
+                      ? o.alsoSuggestedBy === "openai"
+                        ? "Standard rule · also suggested by AI"
+                        : o.alsoSuggestedBy === "local-planner"
+                          ? "Standard rule · same as the local planner"
+                          : "Standard rule · also in the proposals"
                       : "Standard rule"}
               </span>
             </header>
@@ -242,7 +246,10 @@ export default function RevisionOptions({
                   <p key={relation} className="rev-considered">
                     {label}:{" "}
                     {quotes
-                      .map((b) => `“${b.quote}” — ${first(b.name)}`)
+                      .map(
+                        (b) =>
+                          `“${b.quote}” — ${first(b.name)}${b.attachedBy === "code" ? " (matched by code)" : ""}`,
+                      )
                       .join("; ")}
                   </p>
                 )
@@ -372,9 +379,10 @@ export default function RevisionOptions({
                   .filter((c) => c.needed)
                   .map((c) => first(c.name))
                   .join(" and ")}{" "}
-                to confirm that limit. Until then these shares use only limits
-                stated in the chat; everyone’s saved budgets apply once it’s
-                confirmed.
+                to confirm{" "}
+                {o.confirmations.filter((c) => c.needed).length > 1
+                  ? "their limits. Until then these shares use only limits stated in the chat; everyone’s saved budgets apply once they’re confirmed."
+                  : "that limit. Until then these shares use only limits stated in the chat; everyone’s saved budgets apply once it’s confirmed."}
               </small>
             )}
           </article>
