@@ -117,6 +117,8 @@ For the additional 16-scenario payment matrix, strict checks of known failures, 
 
 For filming-day preparation, see [the three-run rehearsal command](docs/FILMING_PREFLIGHT.md).
 
+For module ownership, test seams and proposal adapters, see the [implementation map](docs/ARCHITECTURE.md).
+
 ## Demo walkthrough
 
 1. Start with four friends and the $600 Pine & Still cabin. Click **Review** beside each person, review their saved private $220 ceiling (use **Save budget only** for edits), and select **Agree & authorize simulated hold**. The demo role switch intentionally lets one judge act as each participant.
