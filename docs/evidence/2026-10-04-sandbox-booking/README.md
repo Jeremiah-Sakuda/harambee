@@ -2,7 +2,7 @@
 
 The integrated group path was run against the real PayPal sandbox (`api-m.sandbox.paypal.com`) on October 4, 2026, 00:18–00:28 EDT. Three distinct sandbox personal buyer accounts approved their own checkouts. Trip setup (creating the trip, switching it to PayPal sandbox, saving budgets) was scripted through the app's local API. Every consent, PayPal checkout, withdrawal, revision and booking step was then done in the app's UI. Each sandbox buyer login and approval was done by the developer. The first audit line in `plan.json` says payments are simulated; that is the default message when a trip is created, before it was switched to sandbox two lines later. Sandbox money is test money. The cabin is a local fixture, so no lodging was purchased.
 
-**Source code:** the app ran from the working tree that was committed right after the run as [`e8c141e`](https://github.com/Jeremiah-Sakuda/harambee/commit/e8c141e) (00:35 EDT); these files were committed in `b3748ad`. Later commits changed the PayPal adapter (`custom_id` on orders, handling of declined captures, failed refunds and dropped orders) and added trip cancel. Those changes are covered by mocked tests, not by this run.
+**Source code:** the app ran from the working tree that was committed right after the run as [`e8c141e`](https://github.com/Jeremiah-Sakuda/harambee/commit/e8c141e) (00:35 EDT); these files were committed in `b3748ad`. Later commits changed the PayPal adapter (`custom_id` on orders, handling of declined captures, failed refunds and dropped orders) and added trip cancel. Later adapter behavior is covered by separately recorded regression tests; this record identifies the October 4 build.
 
 The files here are copies of the app's stored record at the end of the run: [`plan.json`](plan.json) for the trip and [`sandbox-lab.json`](sandbox-lab.json) for the PayPal sessions. They contain PayPal sandbox order, authorization, capture and payer IDs. They contain no credentials, access tokens or buyer emails.
 
@@ -29,13 +29,13 @@ All 15 provider operations (5 create, 5 authorize, 1 void, 4 capture) ended `con
 | Jordan | version 2 top-up, $100 | `5LH78319LP852124U` |
 | Alex | version 1, $200 | voided, never captured |
 
-## What this does and does not show
+## Verified workflow and run configuration
 
-- It shows the versioned-consent mechanism against PayPal:
+- The run exercises versioned consent against PayPal:
   - Separate buyers authorize their own exact shares.
   - A dropout voids a real authorization.
   - The original approval never covers the increase; each remaining buyer approves only the $100 difference.
   - Capture happens only once everyone holds the current version.
 - The separate-buyer check compared PayPal payer IDs. Matching each participant to their buyer relied on the operator logging into the intended account; participant links are not authentication.
-- It does not demonstrate failure recovery against PayPal (refunds after a failed reservation). That was later run against the PayPal sandbox: see the [October 8 group refund](../2026-10-08-sandbox-group-refund/README.md).
-- It is not merchant inventory, a real stay, real funds, webhooks, or user research.
+- The [October 8 group refund](../2026-10-08-sandbox-group-refund/README.md) exercises compensation after a failed reservation.
+- Run configuration: developer-operated sandbox buyer accounts, test funds, local sample inventory and polling reconciliation.

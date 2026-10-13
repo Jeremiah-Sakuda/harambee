@@ -2,16 +2,14 @@
 
 **A little agreement. A great escape.** *Harambee* means “all pull together” in Swahili.
 
-![Left: revision options from a live gpt-4.1-mini run after Sam drops out. Right: the board after the recorded PayPal sandbox booking](docs/preview.png)
-
-*Left: options from a live gpt-4.1-mini run after Sam drops out, with each person's words as the reasons and a question for Jordan (this run used simulated payments). Right: the [recorded PayPal sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md), where Alex left, his authorization was voided, Maya and Jordan each authorized a $100 top-up, and $600 was captured. They are two separate runs.*
-
-> **Judging in 3 minutes?** `npm ci && npm run dev`, open http://127.0.0.1:5171, and follow the [demo walkthrough](#demo-walkthrough) (no credentials needed). Without keys, payments are simulated and revision options come from the labelled no-AI local planner: the same $170 / $215 / $215 table, without the model's quoted reasons and questions. What's real vs simulated is in the table below; the PayPal evidence is in [`docs/evidence/`](docs/evidence/2026-10-04-sandbox-booking/README.md); the AI's live results and their benchmark details are under [Revision options](#revision-options-after-a-dropout).
-
 **The problem:** one friend puts the $600 cabin on their card, then spends weeks chasing everyone for their share. Their card carries the whole group's risk: if someone drops out or never pays, the organizer eats it.
 **Why it matters:** in 2017 Airbnb reported that an estimated 38% of guests hadn’t received all the money owed to them from group trips ([VentureBeat](https://venturebeat.com/ai/airbnb-now-lets-groups-of-guests-split-the-cost-of-their-stay)), and in 2024 PayPal relaunched money pools for group trips and gifts, citing customer demand ([TechCrunch](https://techcrunch.com/2024/11/19/paypal-revives-its-money-pooling-feature/)).
 **Who it’s for:** groups of 3–8 friends booking a shared stay, and the cabin operators who take their direct bookings.
 **What changes:** nobody fronts the money. Each friend's own share is held in PayPal for the stay, so the organizer's card is never the one on the line. If someone drops out before booking, their hold is released and the rest of the group re-approves a new split, each authorizing only the difference; nobody pays more without saying yes again. After booking, the cabin's own cancellation policy applies to each person's own share.
+
+> **Try the full journey in 3 minutes:** `npm ci && npm run dev`, open http://127.0.0.1:5171, and follow the [demo walkthrough](#demo-walkthrough). The default demo runs immediately with simulated payments and a labelled local planner. Connect PayPal sandbox and model credentials to exercise the provider integrations.
+
+**Built and demonstrated:** separate-buyer PayPal sandbox approvals, dropout voids, exact-difference top-ups, a $600 booking capture, and a separate $600 group refund. AI proposes revised plans from chat; code verifies the details and each person approves their own share.
 
 **How it works:**
 
@@ -21,29 +19,37 @@
 
 Holds are collected within a 48-hour window and captured as soon as the group books, inside PayPal’s 3-day honor period for authorizations (an authorization stays valid for 29 days and can be reauthorized; see [PayPal: authorization](https://developer.paypal.com/docs/checkout/standard/customize/authorization/)).
 
-| Real | Simulated or pending |
+## Demonstrated end to end
+
+| Capability | Evidence |
 | --- | --- |
-| PayPal sandbox orders, authorizations, voids and captures from three separate buyers. See the [recorded sandbox group booking](docs/evidence/2026-10-04-sandbox-booking/README.md). | The cabin and its reservation (local sample listing; no lodging is purchased) |
-| Real sandbox group compensation: [three $200 captures refunded after fixture commit failure](docs/evidence/2026-10-08-sandbox-group-refund/README.md), independently checked with PayPal; $600 returned, no booking | The narrated demo video (link added here once published) |
-| Versioned consent, the exact-difference top-ups, and recovery that never charges twice (134 tests, including declined captures, failed refunds, orders PayPal dropped, and a 16-scenario offline PayPal matrix) | Default no-credentials mode simulates payments |
-| AI revision options against a live model (gpt-4.1-mini), with code checks and an ambiguity backstop: in no live run could a publishable option exceed a saved budget; 24–26/26 synthetic briefs useful over the last five live runs, versus 23/26 for the no-AI local planner; on 10 pre-registered briefs with no dollar amount, 8/10 under the strict scorer ([benchmark details](#revision-options-after-a-dropout)) | Benchmark corpus: synthetic group-trip briefs |
+| Separate buyers approve their shares, a dropout releases a hold, and the group books with exact-difference top-ups | [Recorded PayPal sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md): three buyers, two $100 top-ups, $600 captured |
+| Booking failure returns each person's money | [Recorded group refund](docs/evidence/2026-10-08-sandbox-group-refund/README.md): three $200 captures refunded, independently confirmed through PayPal |
+| Versioned consent, payment recovery and source-grounded planning | 134 automated tests, a 28-case notes benchmark, 26 revision fixtures and a 16-scenario offline PayPal matrix |
+| AI turns chat into options, source-linked reasons and questions | Recorded gpt-4.1-mini runs: 24–26/26 synthetic briefs useful across the last five rounds; 8/10 no-amount briefs under the strict scorer. [Results, comparators and methodology](docs/REVISION_OPTIONS.md) |
+
+**Demo setup:** PayPal sandbox uses test funds; cabin availability and reservations use local sample inventory. The default credential-free mode uses simulated payments and a local planner. Provider evidence identifies the source and configuration used in each run.
+
+![Left: revision options from a recorded model run. Right: the board after the recorded PayPal sandbox booking](docs/preview.png)
+
+*Two recorded examples: live gpt-4.1-mini revision options with simulated payments (left), and the PayPal sandbox booking with $600 captured (right).*
 
 ## How this differs
 
-As of October 2026, in what we found:
+Harambee focuses on the moment a committed group changes: a revised plan, fresh consent and an exact-difference approval. The October 2026 comparison below places that workflow alongside published group-payment approaches.
 
 | What exists | What it does | Harambee’s implementation |
 | --- | --- | --- |
-| “Nobody pays until everyone pays” group checkout ([PayByGroup, 2012](https://techcrunch.com/2012/09/25/no-more-awkward-you-owe-me-money-reminders-paybygroup-lets-friends-split-group-purchases)) and tipping-point collection ([Crowdtilt/Tilt](https://en.wikipedia.org/wiki/Tilt.com), acquired by Airbnb in 2017) | Each person commits a share; nobody is charged unless the whole amount is reached. PayByGroup also let percentages change as more people joined | The all-or-nothing idea is theirs. Harambee adds what happens when the group *changes* after people have committed: a new version, fresh consent from everyone, and only the difference authorized |
+| “Nobody pays until everyone pays” group checkout ([PayByGroup, 2012](https://techcrunch.com/2012/09/25/no-more-awkward-you-owe-me-money-reminders-paybygroup-lets-friends-split-group-purchases)) and tipping-point collection ([Crowdtilt/Tilt](https://en.wikipedia.org/wiki/Tilt.com), acquired by Airbnb in 2017) | Each person commits a share; nobody is charged unless the whole amount is reached. PayByGroup also let percentages change as more people joined | Harambee carries the commitment workflow through a group change: a new version, fresh consent from everyone, and only the difference authorized |
 | Commit-now, pay-later group funds ([TableCash, September 2026](https://www.wboc.com/online_features/press_releases/tablecash-launches-commit-now-pay-later-for-group-plans-friends-put-a-card-down-up/article_8bd46577-9275-532c-b7ae-25630e5e5648.html), company press release) | Each person saves a card behind their share for a house or cabin; cards are charged together when the goal fills, and promises can be withdrawn before then. Money goes to the organizer through Stripe | The closest current product. Harambee's holds go to the merchant rather than an organizer, and after a dropout nobody's earlier promise stretches to a higher share |
 | Split payment at booking ([Airbnb, 2017](https://thepointsguy.com/news/airbnb-launches-split-payments/), reportedly withdrawn later; [Wander “Split with Friends”, 2025](https://wander.com/article/introducing-split-with-friends-an-industry-first)) | The organizer pays their part; the booking is held while others pay within a window (72 hours at Airbnb, after which it was forfeited and refunded; 48 hours at Wander) | Holds instead of charges for everyone, including the organizer, and a plan that can change after someone leaves |
 | Group split for direct-booking rentals ([StretchBill GroupPay](https://www.ownerrez.com/blog/integration-with-stretchbill), listed in the OwnerRez and Hostaway marketplaces; [Guesty](https://help.guesty.com/hc/en-gb/articles/20548335510173-Splitting-a-payment) multi-guest payments) | The property manager splits one reservation's payment among the group's guests | Each share is an authorization rather than a charge, and when someone leaves, everyone re-approves and authorizes only the difference |
 | Merchant group checkout ([Hands In](https://www.handsin.com/blog-posts/split-payment-as-a-group-at-checkout-with-hands-in), 2024, vendor post) | A lead booker invites the group and each member pays a share; members are alerted when someone drops out and can cover the missing share; funds go to the merchant | When someone drops out, nobody's earlier payment silently grows: everyone remaining re-approves a new version and authorizes only the difference |
 | Group collection ([PayPal pools](https://techcrunch.com/2024/11/19/paypal-revives-its-money-pooling-feature/), [Venmo Groups](https://techcrunch.com/2023/11/14/venmo-gets-a-new-way-to-split-expenses-among-groups-like-clubs-teams-trip-buddies-and-more), Splitwise) | Collects or tracks money owed to one person | Each friend’s authorization goes to the merchant; nobody acts as the group’s bank |
 | AI trip planners with group chat ([Mindtrip](https://globetrender.com/2024/09/24/mindtrip-launches-group-chat-feature/)) | Turn shared preferences into an itinerary | Turn a dropout into price options that are checked by code and re-approved by each person |
-| **The new part** | | When the group changes, a new version needs fresh consent from everyone remaining, and each person authorizes only the difference. Earlier approval never covers an increase. |
+| **Harambee’s focus** | | When the group changes, a new version needs fresh consent from everyone remaining, and each person authorizes only the difference. Earlier approval never covers an increase. |
 
-Each building block exists elsewhere: all-or-nothing group commitment, authorizations, split checkout, and extracting details from chat with a model. The narrower contribution is consent after a dropout: when the group changes after commitment, nobody's earlier approval stretches to a higher share. Each person re-approves and authorizes only the difference, and limits read from chat count only once their owner confirms them. Sending each share to the merchant isn't new on its own (StretchBill and Hands In do it); the versioned re-consent is.
+Harambee brings versioned agreement into the payment flow. When a group changes after commitment, each remaining person approves the revised plan and authorizes only the difference. Limits read from chat count once their owner confirms them. This connects planning, personal consent and payment recovery in one journey.
 
 That is deliberately stricter than PayPal's own rules. PayPal lets a merchant capture more than was authorized, up to 115% of the authorization or $75 more, whichever is less ([PayPal: authorize and capture](https://developer.paypal.com/docs/multiparty/checkout/standard/customize/auth-capture/)). Harambee never does: a larger share is always a new checkout for the difference, approved by that person.
 
@@ -61,7 +67,7 @@ Rollout model:
 
 **Hypothetical operator example:** a direct-booking cabin quotes $600 for four friends and permits a 48-hour collection window. Each approves a $150 hold. One leaves before booking, so that hold is released; the remaining friends choose $170 / $215 / $215, and approve only $20 / $65 / $65 more. The operator commits the dates only when the current agreement can be funded; an unavailable stay leads to release/refund rather than a completed reservation. The demo exercises this with sample inventory.
 
-For an initial operator agreement, the proposed responsibilities are: the operator owns availability and cancellation terms and covers its payment-processing costs; Harambee supplies agreement tracking and reconciliation; any platform fee is disclosed in the quote before approvals. Refund/support costs and the inventory hold window are agreed before onboarding. The adoption test is whether the operator completes more direct group bookings without greater support cost—not a forecast or a promised saving.
+For an initial operator agreement, the proposed responsibilities are: the operator owns availability and cancellation terms and covers its payment-processing costs; Harambee supplies agreement tracking and reconciliation; any platform fee is disclosed in the quote before approvals. Refund/support costs and the inventory hold window are agreed before onboarding. The operator pilot will measure completed direct group bookings, support effort and recovery costs.
 
 
 **Lessons from earlier group-payment products:**
@@ -70,7 +76,7 @@ For an initial operator agreement, the proposed responsibilities are: the operat
 - Tilt was acquired by Airbnb and shut down in 2017 ([Wikipedia](https://en.wikipedia.org/wiki/Tilt.com)), so its end says little about demand.
 - Collection apps (pools, TableCash) route money to the organizer, which makes the organizer the group's bank again. Harambee's authorizations go to the merchant.
 
-These comparisons describe published product features. Harambee’s contribution here is the implemented guarantee of version-bound agreement and exact-difference approval; public descriptions alone do not establish that another product lacks it.
+The comparison describes published workflows; Harambee’s column documents its implemented version-bound agreement and exact-difference approval.
 
 ## Run locally
 
@@ -100,7 +106,7 @@ The native Node test suite covers exact allocations, private budget projection, 
 
 For the additional 16-scenario payment matrix, strict checks of known failures, and isolated $1 PayPal sandbox recovery tests, see [Sandbox testing](docs/SANDBOX_TESTING.md). The [October 8 run](docs/evidence/2026-10-08-offline-sandbox-matrix/README.md) passes all sixteen scenarios; the two amount/currency failures recorded on October 7 are fixed.
 
-For filming-day preparation, see [the three-run rehearsal command](docs/FILMING_PREFLIGHT.md). The demo video link goes at the top of this README once it's published.
+For filming-day preparation, see [the three-run rehearsal command](docs/FILMING_PREFLIGHT.md).
 
 ## Demo walkthrough
 
@@ -133,11 +139,11 @@ Reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/gu
 
 When someone leaves, the organizer chooses **Suggest options**. A model (gpt-4.1-mini) reads the group chat and proposes up to three options, each with its reasons quoted from people's own messages. Code checks every quote, amount and speaker, computes every share, and shows the plain rebalance alongside. A limit read from chat counts only after its owner confirms it in their own view, and the model never sees anyone's saved budget. Without a key, a labelled **local planner (not AI)** keeps the flow working.
 
-| | Model | No-AI local planner |
+| | Recorded model results | Local planner and rules |
 | --- | --- | --- |
-| Sample chat, 3 live runs | Only Maya confirms, $170 / $215 / $215; that card's **Why** is Maya's limit and Jordan's “I can stretch a bit…”; Alex's Creekside wish is shown as pointing to another option; every run asks Jordan how much more he could pay | Same table and confirmation, no reasons, no questions |
+| Sample chat, 3 live runs | Only Maya confirms, $170 / $215 / $215; that card's **Why** is Maya's limit and Jordan's “I can stretch a bit…”; Alex's Creekside wish is shown as pointing to another option; every run asks Jordan how much more he could pay | Same table and confirmation; code supplies clarification checks |
 | 26 synthetic briefs with amounts | 24–26/26 useful across the last five rounds, 26/26 budget-safe | 23/26 useful, 26/26 safe |
-| 10 briefs with no amount, pre-registered | 8/10 under the strict scorer; all 3 of its questions went to the person the brief names (earlier runs: 7/10, with 3–4 of 12–15) | 0/10 (it can't ask or quote reasons by design). A keyword rule written after reading these briefs scored 10/10, so this set shows the model can do the work, not that only a model can |
+| 10 briefs with no amount, pre-registered | 8/10 under the strict scorer; all 3 of its questions went to the person the brief names (earlier runs: 7/10, with 3–4 of 12–15) | Current local planner: 2/10, with 2 of 6 required questions. Development rules comparator: 10/10, with 6 of 6. [Comparison design](docs/EVALUATION_PROTOCOL.md) |
 
 Publishing always recomputes from participant-confirmed budgets. The benchmark uses fixed synthetic briefs, with each provider run recorded separately.
 
@@ -152,7 +158,7 @@ Publishing always recomputes from participant-confirmed budgets. The benchmark u
 5. Book once every exact current share is authorized. Provider captures run sequentially against persisted authorization IDs, followed by a **local fixture** reservation commit. Export the provider-labeled receipt evidence.
 6. In a separate prepared trip select **Merchant commit fails** before booking to exercise compensating refunds. Reconcile until every refund/void is confirmed. An unknown operation remains blocked with investigation guidance; never create a replacement charge. If PayPal declines a capture, nothing was taken and the open hold is voided. If PayPal reports a refund as failed or cancelled, the board says so with PayPal's reason, and the refund is retried only when the organizer chooses **Retry the failed refund**, with a new request ID. An order nobody approved that PayPal no longer has is closed as abandoned. **Cancel trip** voids every hold the same way. Inspect sandbox activity if the provider cannot supply a recoverable ID.
 
-`test/group-payments.test.mjs` verifies this integrated journey with mocked buyers/providers, restart between provider and coordinator saves, partial capture, unresolved capture, stale checkout, distinct buyers, and fixture-commit failure. The booking journey has also run against the real PayPal sandbox; see the [recorded evidence](docs/evidence/2026-10-04-sandbox-booking/README.md). The separate [October 8 group refund run](docs/evidence/2026-10-08-sandbox-group-refund/README.md) also verified three distinct buyers, $600 captured then fully refunded after a fixture reservation failure. This is a single-process local prototype with polling reconciliation and no webhooks. The diagnostic lab cannot operate on group-linked sessions. Reset refuses unresolved sandbox money. After a confirmed booking it first archives the trip's provider evidence to `data/archive/`.
+`test/group-payments.test.mjs` verifies this integrated journey with mocked buyers/providers, restart between provider and coordinator saves, partial capture, unresolved capture, stale checkout, distinct buyers, and fixture-commit failure. The booking journey has also run against the real PayPal sandbox; see the [recorded evidence](docs/evidence/2026-10-04-sandbox-booking/README.md). The separate [October 8 group refund run](docs/evidence/2026-10-08-sandbox-group-refund/README.md) also verified three distinct buyers, $600 captured then fully refunded after a fixture reservation failure. The local demo uses a single backend process and polling reconciliation. The diagnostic lab cannot operate on group-linked sessions. Reset refuses unresolved sandbox money. After a confirmed booking it first archives the trip's provider evidence to `data/archive/`.
 
 ## Optional PayPal sandbox lab
 
@@ -166,7 +172,7 @@ Set `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` to a **sandbox** merchant appl
 
 The adapter is pinned to `https://api-m.sandbox.paypal.com`; there is no live profile. It persists operation IDs before dispatch, uses `PayPal-Request-Id`, separates authorization/capture/refund statuses, and serializes each lab session. Timeouts become unknown. Reconciliation queries PayPal; an unknown order or capture without a recoverable provider ID requires inspection in the sandbox dashboard and is never automatically recharged. The default demo reset does not delete sandbox operation evidence.
 
-This diagnostic lab is a **single-payment workflow**, separate from the integrated group path above. Its real sandbox [October 8 recovery run](docs/evidence/2026-10-08-paypal-recovery/README.md) captured and refunded $1, voided a separate $1 hold, and recovered both after successful responses were deliberately discarded. All 12 checkpoints passed. The lab reconstructed its state from disk; recovery sent no duplicate refund or void. Authenticated webhook verification remains a release gate.
+This diagnostic lab is a **single-payment workflow**, separate from the integrated group path above. Its real sandbox [October 8 recovery run](docs/evidence/2026-10-08-paypal-recovery/README.md) captured and refunded $1, voided a separate $1 hold, and recovered both after successful responses were deliberately discarded. All 12 checkpoints passed. The lab reconstructed its state from disk; recovery sent no duplicate refund or void. Production webhook verification is part of the rollout described below.
 
 References: [PayPal delayed capture](https://developer.paypal.com/checkout/delay-capture/), [Payments v2](https://developer.paypal.com/docs/api/payments/v2/), [Orders v2](https://developer.paypal.com/docs/api/orders/v2/).
 
@@ -175,10 +181,10 @@ References: [PayPal delayed capture](https://developer.paypal.com/checkout/delay
 - React + Vite frontend with responsive desktop/mobile layouts, keyboard-operable native dialogs, labeled inputs, visible focus, and reduced-motion support.
 - Node HTTP backend; integer-cent deterministic capped allocation; versioned consent and independent agreement/payment states.
 - Atomic JSON snapshots in `data/plan.json`; a separate `data/sandbox-lab.json` retains sandbox evidence. Each simulator operation has a unique stable key and is stored before its confirmed result.
-- A single backend process serializes all mutation requests, including asynchronous provider calls. This is not a distributed database or multi-process locking scheme.
+- A single backend process serializes all mutation requests, including asynchronous provider calls; production scaling adds transactional storage and cross-process coordination.
 - The booking coordinator stops after a failed/unknown capture. It reconciles uncertainty before refunding captures and voiding unused holds. A merchant commit timeout can reconcile to confirmed without repeating captures.
 - Deadlines sweep on startup, on API access, and every 30 seconds while the process runs. Expired simulated holds are voided and late approvals rejected. Sandbox expiry runs the asynchronous provider recovery path; uncertainty keeps recovery open.
-- Demo roles are checked at API actions; budgets are projected only to their participant identity. **The role switch is not authentication.** Keep this local until real identity/session authorization is implemented.
+- Demo roles are checked at API actions; budgets are projected only to their participant identity. **Run the participant selector locally:** it is a demo control. Deployment requires authenticated identities and session authorization.
 
 ## Demo environment and roadmap
 

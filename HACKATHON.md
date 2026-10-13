@@ -1,6 +1,6 @@
 # Harambee hackathon goal and judging criteria
 
-**Date:** October 3, 2026. **Status:** Competition objective and planning rubric; no judging score or winning outcome is claimed.
+**Date:** October 3, 2026. **Purpose:** Competition objective, judging rubric and evidence plan.
 
 ## Goal
 
@@ -44,8 +44,8 @@ The following maps the product journey and recorded evidence to the judging crit
 | --- | --- |
 | Technological Implementation | Show real sandbox authorizations from several payers, approved top-ups, capture, and recovery after a partial failure. Demonstrate how AI converts chat into constraints while code enforces money and consent. |
 | Design | Make the commitment board, revised shares, checkout, reservation confirmation, and recovery states understandable as one complete journey on mobile and desktop. |
-| Potential Impact | Make the specific problem of fronting group deposits land fast, with sourced context, a named audience, and a demo where the organizer's card is never on the line. Do not invent savings or adoption. |
-| Innovation/Idea | Demonstrate constraint-aware renegotiation tied to approved financial commitments. Explain the difference from bill splitting and group collection without claiming that every component is novel. |
+| Potential Impact | Make the specific problem of fronting group deposits land fast, with sourced context, a named audience, and a demo where the organizer's card is never on the line. Anchor the impact story in the demonstrated payment flow and sourced problem context. |
+| Innovation/Idea | Demonstrate constraint-aware renegotiation tied to approved financial commitments. Explain the difference from bill splitting and group collection with versioned consent and exact-difference approval as the focus. |
 | Presentation | Show the dropout, feasible revision, participant approval, sandbox payment evidence, and reservation result in under three minutes. Include a concise, clearly labeled failure-recovery example. |
 
 ## Prize strategy

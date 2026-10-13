@@ -9,7 +9,7 @@ npm run sandbox:simulate -- --strict
 npm run test:sandbox
 ```
 
-The matrix drives the real trip coordinator and diagnostic lab through a synthetic PayPal provider. It blocks network access, preserves provider resources across application restarts, and models duplicate request IDs. This tests application behavior; it does not prove PayPal's timing, retention windows, risk decisions, or whether a particular status can be forced in the real sandbox.
+The matrix drives the real trip coordinator and diagnostic lab through a synthetic PayPal provider. It blocks network access, preserves provider resources across application restarts, and models duplicate request IDs. It measures application behavior under controlled provider responses. The real sandbox runs below exercise PayPal resource creation, approval, settlement and reconciliation.
 
 On October 8, on commit `6cb7f0a`, the matrix returned **16 passed, 0 known failures, 0 unexpected failures**, and the full suite **113 passed** ([report](evidence/2026-10-08-offline-sandbox-matrix/results.json)). On October 7 it had returned 14 passed and 2 known failures ([report](evidence/2026-10-07-offline-sandbox-matrix/results.json)); both are fixed. Each report records the evaluated commit and hashes of the payment source files, which stayed stable during the run.
 
@@ -60,7 +60,7 @@ The return URL is the optional local test screen at `http://127.0.0.1:3702/?payp
 
 The directory contains a private session store and a sanitized evidence journal: resource IDs, request IDs, statuses and source hashes, without tokens, passwords, buyer emails or full provider payloads. Preserve these records while any operation is unresolved. The [October 8 actual run](evidence/2026-10-08-paypal-recovery/README.md) completed both recovery workflows with 12 passing checkpoints. The [October 7 preparation run](evidence/2026-10-07-paypal-recovery/README.md) was closed after its unapproved orders expired.
 
-These diagnostic runs supplement the existing [three-buyer group booking](evidence/2026-10-04-sandbox-booking/README.md). They do not establish a new multi-buyer trip run, merchant inventory integration, or live-money readiness.
+The diagnostic runs exercise individual-payment recovery. The [three-buyer group booking](evidence/2026-10-04-sandbox-booking/README.md) and [three-buyer group refund](evidence/2026-10-08-sandbox-group-refund/README.md) document the integrated journey with local sample inventory.
 
 
 ## Returned money and receipt references

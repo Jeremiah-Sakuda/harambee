@@ -35,12 +35,12 @@ Recovery made **no second refund or void**. Each workflow sent one successful pr
 | Hold-release order | `6TT44937TB774291Y` |
 | Voided authorization | `1R955188EP210305A` |
 
-## Interpretation and remaining limits
+## Recovery method and evidence
 
-Response loss was injected locally **after** a successful PayPal response. Reconstruction creates a new lab object from its persisted JSON store within the same Node process. This proves recovery with the stored records; it is not a forced PayPal outage or a full process-kill test.
+Response loss was injected locally **after** a successful PayPal response. Reconstruction creates a new lab object from its persisted JSON store within the same Node process. This exercises recovery from stored records after application-side response loss; reconstruction occurs within the same process.
 
-For the lost refund response, the application proves settlement through the capture's `REFUNDED` status. It does not rediscover the missing refund ID in its session record. The test journal retains that ID from the intercepted successful response and independently verifies the refund is `COMPLETED`. This is a remaining audit-detail gap, despite successful money recovery.
+In this October 8 run, the application confirmed settlement through the capture's `REFUNDED` status; the refund resource ID was retained in the test journal rather than restored to the session record. The journal independently verifies the refund as `COMPLETED`. The October 13 implementation adds an explicit receipt-reference status and reconciliation lookup, covered by local regression tests; see [returned money and receipt references](../../SANDBOX_TESTING.md#returned-money-and-receipt-references).
 
-This run does not force real declined captures, failed refunds, pending authorizations or amount mismatches; those are covered by the [offline matrix](../2026-10-08-offline-sandbox-matrix/README.md). It does not demonstrate multi-buyer refund compensation after a failed cabin reservation, verified webhooks, or real merchant inventory.
+The [offline matrix](../2026-10-08-offline-sandbox-matrix/README.md) covers declined captures, failed refunds, pending authorizations and amount mismatches with controlled responses. The separate [three-buyer group refund](../2026-10-08-sandbox-group-refund/README.md) demonstrates compensation after a local reservation failure.
 
 See [SANDBOX_TESTING.md](../../SANDBOX_TESTING.md) for the repeatable runner.

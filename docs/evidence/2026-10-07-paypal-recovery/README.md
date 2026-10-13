@@ -18,4 +18,4 @@ The [sanitized journal](preparation-results.json) records the seven resource API
 
 The private stores in `/private/tmp/harambee-paypal-tests-20261007/` preserve this closed run. Do not resume its expired checkouts; use a fresh test directory.
 
-For a fresh run and the meaning of local response-loss injection, see [SANDBOX_TESTING.md](../../SANDBOX_TESTING.md). These preparation checks are not successful refund evidence; the completed diagnostic recovery evidence is recorded separately on October 8.
+For a fresh run and the meaning of local response-loss injection, see [SANDBOX_TESTING.md](../../SANDBOX_TESTING.md). The [October 8 record](../2026-10-08-paypal-recovery/README.md) contains the completed refund and void recovery workflows.

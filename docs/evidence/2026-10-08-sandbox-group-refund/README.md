@@ -10,7 +10,7 @@ A separate three-person Pine & Still trip was created through the local API on a
 
 All three captures succeeded. The intentionally failed local reservation stopped booking with `reservation_failed`. Before recovery, the saved state was `recovery_pending`, with $600 captured. **Return money & release holds** then refunded each capture. The final plan is `cancelled`, the fixture reservation is cancelled, every payment is `refunded`, $600 is returned, and nothing remains captured or held.
 
-Read-only authenticated PayPal GET requests independently checked each order, authorization, capture and refund: 12 resource reads. Each amount is USD 200.00, all captures are `REFUNDED`, and all refunds are `COMPLETED`. Payer IDs are distinct. The persisted log has exactly one confirmed capture and refund per payment. There was no restart or intentionally lost response in this run; those are tested separately in the [diagnostic recovery evidence](../2026-10-08-paypal-recovery/README.md).
+Read-only authenticated PayPal GET requests independently checked each order, authorization, capture and refund: 12 resource reads. Each amount is USD 200.00, all captures are `REFUNDED`, and all refunds are `COMPLETED`. Payer IDs are distinct. The persisted log has exactly one confirmed capture and refund per payment. State reconstruction and response-loss recovery are exercised separately in the [diagnostic recovery evidence](../2026-10-08-paypal-recovery/README.md).
 
 | Participant | Amount | Capture ID | Refund ID | PayPal capture / refund |
 | --- | --- | --- | --- | --- |
@@ -34,4 +34,4 @@ Public plan snapshots rename the operation field `key` to `paypalRequestId` to i
 
 ![Three confirmed refund receipts](settled-receipts.png)
 
-The receipt heading was found to say “Simulated payment operations” even in sandbox mode and corrected after the run. The receipts screenshot uses that display-only correction; payment code and stored transactions are unchanged. This run is separate from the four-person filming story and its AI rehearsal. The recorded video is still to come.
+The receipt heading was found to say “Simulated payment operations” even in sandbox mode and corrected after the run. The receipts screenshot uses that display-only correction; payment code and stored transactions are unchanged. This evidence records the three-buyer refund workflow; the filming script uses a separate four-person booking story.

@@ -1,6 +1,6 @@
 # Harambee product requirements
 
-**Version:** 0.1. **Date:** October 3, 2026. **Status:** Proposed MVP; no implementation or validation. See the [shared requirements](SHARED_REQUIREMENTS.md) for shared requirements, timeline, and payment sources.
+**Version:** 0.1 product specification, October 3, 2026; framing and status refreshed October 13. **Working build and recorded evidence:** [README](README.md). This specification defines the product requirements and rollout targets; the README documents the implemented demo. See [shared requirements](SHARED_REQUIREMENTS.md) for submission planning.
 
 Harambee helps a group agree on a purchase, approve individual payment holds, and complete a reservation once the final group is committed. Its primary benefit is removing the organizer's need to front the whole cost. AI turns informal preferences into reviewable constraints and proposes feasible revisions when someone leaves.
 
@@ -12,7 +12,7 @@ The goal is to win first place overall in the PayPal AI Hackathon. Prioritize a 
 
 The primary user organizes a cabin trip for three to eight friends. Participants have different budgets, attendance, and room preferences. Today the organizer must negotiate shares and decide whether to commit money before everyone pays. A participating cabin operator is the merchant and controls reservation inventory.
 
-The hypothesis is that visible commitments and explicit revision approval reduce the organizer's financial exposure and coordination effort. No adoption, conversion, or time-saving result is established. After the hackathon, the first validation step would be talking to recent trip organizers about how often deposits, late payment, or dropouts caused problems.
+The product replaces organizer-funded deposits with individual commitments and explicit revision approval. An operator pilot will measure coordination effort, completed group bookings and support costs; organizer conversations will guide which dropout and payment situations to prioritize.
 
 ## Product decisions
 
@@ -85,7 +85,7 @@ Deferred: arbitrary booking sites, travel search, currency conversion, organizer
 
 ## Validation and release gates
 
-All targets below are proposed acceptance thresholds, not measured results.
+The table defines acceptance targets. Recorded payment and AI results are linked from the [README](README.md); participant usability targets guide the operator pilot.
 
 | Area | Required evidence |
 | --- | --- |
@@ -95,7 +95,7 @@ All targets below are proposed acceptance thresholds, not measured results.
 | Usability | At least four of five target users can distinguish held, charged, and returning money and approve a revision without facilitator intervention. Report all failures and assistance. |
 | Responsiveness | Proposed target: a draft proposal within 15 seconds on the named model and hosting configuration. Show progress and a manual fallback on timeout. |
 
-Gate by October 9: prove the merchant money flow and recovery before building a polished board. If inventory integration fails, reduce to one working local merchant reservation service and label it clearly. If payment recovery cannot be demonstrated, do not claim that Harambee safely completes group bookings.
+Payment evidence now includes a [multi-buyer sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md) and [full group refund after reservation failure](docs/evidence/2026-10-08-sandbox-group-refund/README.md). The demo uses a local merchant reservation service; operator onboarding connects this flow to live inventory.
 
 ## Demo and judging plan
 
@@ -103,6 +103,6 @@ The 2:45 video spends 20 seconds on the organizer's problem, 35 on interpreting 
 
 Implementation evidence is payment coordination and recovery. Design evidence is the understandable commitment board. Impact is the case for the problem (one friend fronting the cost and absorbing dropouts), the audience, and a demo that visibly removes that risk. Innovation is agreement revision tied to explicit financial consent. Presentation must show the actual booking state and payment evidence, not only animated totals. The most relevant optional award is AG Grid when the comparison board materially benefits from it.
 
-## Unresolved decisions
+## Operator rollout
 
-Select the merchant or fixture operator; validate reservation cancellation behavior; agree on allocation fairness; test replacement versus partial-capture behavior; measure fees and recovery exposure; and choose a model based on the frozen briefs. These decisions gate real-money launch, not creation of the sandbox prototype.
+The demo uses fixed sample cabins, capped allocation, exact-difference top-ups and recorded gpt-4.1-mini evaluations. Operator onboarding defines inventory and cancellation terms, platform fees, processing and recovery costs, and production account access. The [README operator example](README.md#who-is-the-merchant-and-who-pays) describes the initial deployment model.

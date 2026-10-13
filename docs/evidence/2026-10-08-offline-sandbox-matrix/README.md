@@ -4,4 +4,4 @@
 
 The two October 7 known failures (a capture with the wrong currency or amount could be labelled captured during reconciliation) are fixed: the capture is verified before the authorization's status is trusted, so it stays `capture_unknown` and is never refunded or captured again automatically. The declined-capture and failed-refund scenarios, legacy findings from the October 7 panel, also pass.
 
-These are synthetic provider responses, not PayPal. See [SANDBOX_TESTING.md](../../SANDBOX_TESTING.md) for commands and interpretation.
+Provider responses in this matrix are synthetic fixtures. See [SANDBOX_TESTING.md](../../SANDBOX_TESTING.md) for commands and interpretation.
