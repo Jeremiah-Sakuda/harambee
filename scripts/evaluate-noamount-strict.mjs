@@ -98,6 +98,7 @@ const report = {
       : sourceFingerprint([
           "server/revision-options.mjs",
           "server/ai.mjs",
+          "server/proposal-source.mjs",
           "server/domain.mjs",
         ])),
   cases: source.cases ?? "revision-cases-noamount",

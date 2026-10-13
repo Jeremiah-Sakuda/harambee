@@ -9,6 +9,7 @@ export function sourceFingerprint(
     "server/paypal.mjs",
     "server/sandbox-lab.mjs",
     "server/group-payments.mjs",
+    "server/payment-lifecycle.mjs",
     "server/store.mjs",
   ],
 ) {

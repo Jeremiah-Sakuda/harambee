@@ -1,5 +1,5 @@
 // No-AI baseline: runs every revision brief through the local planner (no model) with the same
-// verifier and backstop the model's options go through. No network: fetch is stubbed to throw.
+// verifier and backstop the model's options go through. Local proposals are selected explicitly, with no network adapter.
 // Usage: node scripts/local-planner-baseline.mjs > eval/local-planner-baseline.txt
 import { readFileSync } from "node:fs";
 const SNAP = decodeURIComponent(
@@ -9,10 +9,6 @@ const { Engine, allocate, seed } = await import(SNAP + "/server/domain.mjs");
 const { proposeRevisions } = await import(
   SNAP + "/server/revision-options.mjs"
 );
-delete process.env.OPENAI_API_KEY;
-globalThis.fetch = async () => {
-  throw new Error("network disabled");
-};
 const memory = () => {
   let d;
   return {
@@ -53,7 +49,10 @@ for (const set of [
   const rows = [];
   for (const c of cases) {
     const e = engineFor(c);
-    const out = await proposeRevisions(e, { notes: c.chat.join("\n") });
+    const out = await proposeRevisions(e, {
+      notes: c.chat.join("\n"),
+      source: null,
+    });
     const budgets = Object.fromEntries(e.active.map((p) => [p.id, p.budget]));
     const feasible = out.options.filter((o) => o.feasible);
     const capsOf = (o) =>

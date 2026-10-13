@@ -1,3 +1,4 @@
+import { referenceProposalSource } from "../server/proposal-source.mjs";
 // Frozen evaluation of revision options (PRD: 12 briefs — clear, ambiguous, infeasible/adversarial).
 // Offline mode feeds hand-written reference answers through the real verifier; it measures the
 // verifier, not a model. --live calls the configured model and records its actual results.
@@ -50,103 +51,77 @@ function engineFor(c) {
   e.withdraw("organizer", "sam");
   return e;
 }
-const originalFetch = globalThis.fetch,
-  key = process.env.OPENAI_API_KEY;
 const results = [];
-try {
-  for (const c of cases) {
-    const e = engineFor(c);
-    if (!live) {
-      process.env.OPENAI_API_KEY = "offline-fixture";
-      globalThis.fetch = async () => ({
-        ok: true,
-        json: async () => ({
-          status: "completed",
-          model: "reference-fixture",
-          output: [
-            {
-              content: [
-                {
-                  type: "output_text",
-                  text: JSON.stringify({
-                    summary: "",
-                    options: c.reference.map((r) => ({
-                      title: `Reference ${r.listingId}`,
-                      explanation: "Reference answer.",
-                      tradeoff: "",
-                      ...r,
-                    })),
-                    clarifications: c.referenceClarifications ?? [],
-                  }),
-                },
-              ],
-            },
-          ],
-        }),
+for (const c of cases) {
+  const e = engineFor(c);
+  const source = live
+    ? undefined
+    : referenceProposalSource({
+        summary: "",
+        options: c.reference.map((r) => ({
+          title: `Reference ${r.listingId}`,
+          explanation: "Reference answer.",
+          tradeoff: "",
+          ...r,
+        })),
+        clarifications: c.referenceClarifications ?? [],
       });
-    }
-    const out = await proposeRevisions(e, { notes: c.chat.join("\n") });
-    const budgets = Object.fromEntries(e.active.map((p) => [p.id, p.budget]));
-    const feasible = out.options.filter((o) => o.feasible);
-    const capsOf = (o) =>
-      Object.fromEntries(
-        o.confirmations.map((c) => [c.participantId, c.amountCents]),
-      );
-    // Safety: nothing publishable exceeds a saved budget; forbidden caps/cabins never appear.
-    const safe =
-      out.options
-        .filter((o) => o.ready)
-        .every((o) =>
-          o.rows.every((r) => r.share <= budgets[r.participantId]),
-        ) &&
-      out.options.every(
-        (o) =>
-          o.listingId !== c.expect.forbidListing &&
-          Object.entries(c.expect.forbidCap ?? {}).every(
-            ([id, cents]) => capsOf(o)[id] !== cents,
-          ),
-      );
-    const matches = (o) =>
-      (!c.expect.listing || o.listingId === c.expect.listing) &&
-      Object.entries(c.expect.cap ?? {}).every(
-        ([id, cents]) => capsOf(o)[id] === cents,
-      );
-    const useful = c.expect.clarify
-      ? out.clarifications.length > 0
-      : feasible.some(matches);
-    results.push({
-      id: c.id,
-      kind: c.kind,
-      pass: safe && useful,
-      safe,
-      useful,
-      // Offline answers are hand-written references routed through the model path, not model output.
-      provider: live || out.provider !== "openai" ? out.provider : "reference",
-      model: live ? out.model : null,
-      latencyMs: out.latencyMs,
-      options: out.options.map((o) => ({
-        listingId: o.listingId,
-        feasible: o.feasible,
-        caps: capsOf(o),
-        shares: o.rows.map((r) => r.share),
-        source: live || o.source !== "openai" ? o.source : "reference",
-        removedLimits: o.removedLimits,
-      })),
-      clarifications: out.clarifications.length,
-      discarded: out.discarded,
-      fallbackReason: out.fallbackReason,
-    });
-  }
-} finally {
-  globalThis.fetch = originalFetch;
-  if (key) process.env.OPENAI_API_KEY = key;
-  else delete process.env.OPENAI_API_KEY;
+  const out = await proposeRevisions(e, { notes: c.chat.join("\n"), source });
+  const budgets = Object.fromEntries(e.active.map((p) => [p.id, p.budget]));
+  const feasible = out.options.filter((o) => o.feasible);
+  const capsOf = (o) =>
+    Object.fromEntries(
+      o.confirmations.map((c) => [c.participantId, c.amountCents]),
+    );
+  // Safety: nothing publishable exceeds a saved budget; forbidden caps/cabins never appear.
+  const safe =
+    out.options
+      .filter((o) => o.ready)
+      .every((o) => o.rows.every((r) => r.share <= budgets[r.participantId])) &&
+    out.options.every(
+      (o) =>
+        o.listingId !== c.expect.forbidListing &&
+        Object.entries(c.expect.forbidCap ?? {}).every(
+          ([id, cents]) => capsOf(o)[id] !== cents,
+        ),
+    );
+  const matches = (o) =>
+    (!c.expect.listing || o.listingId === c.expect.listing) &&
+    Object.entries(c.expect.cap ?? {}).every(
+      ([id, cents]) => capsOf(o)[id] === cents,
+    );
+  const useful = c.expect.clarify
+    ? out.clarifications.length > 0
+    : feasible.some(matches);
+  results.push({
+    id: c.id,
+    kind: c.kind,
+    pass: safe && useful,
+    safe,
+    useful,
+    // Attribution comes from acquisition and remains intact through verification.
+    provider: out.provider,
+    model: out.model,
+    latencyMs: out.latencyMs,
+    options: out.options.map((o) => ({
+      listingId: o.listingId,
+      feasible: o.feasible,
+      caps: capsOf(o),
+      shares: o.rows.map((r) => r.share),
+      source: o.source,
+      removedLimits: o.removedLimits,
+    })),
+    clarifications: out.clarifications.length,
+    discarded: out.discarded,
+    fallbackReason: out.fallbackReason,
+  });
 }
 const report = {
   // Which code produced these results: commit, uncommitted changes, file hashes.
   source: sourceFingerprint([
     "server/revision-options.mjs",
     "server/ai.mjs",
+    "server/proposal-source.mjs",
     "server/domain.mjs",
   ]),
   fixtureVersion: 1,

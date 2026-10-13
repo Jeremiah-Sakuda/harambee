@@ -55,7 +55,9 @@ const provenance = (proposal) =>
   proposal && typeof proposal.title === "string"
     ? {
         title: proposal.title.slice(0, 120),
-        source: ["openai", "local-planner", "rule"].includes(proposal.source)
+        source: ["openai", "local-planner", "reference", "rule"].includes(
+          proposal.source,
+        )
           ? proposal.source
           : "rule",
         model:
@@ -414,9 +416,11 @@ export class Engine {
           ? ` from the option “${origin.title}” (${
               origin.source === "openai"
                 ? `suggested by ${origin.model || "the model"}, verified by code`
-                : origin.source === "local-planner"
-                  ? "local planner"
-                  : "standard rebalance"
+                : origin.source === "reference"
+                  ? "reference proposals, verified by code"
+                  : origin.source === "local-planner"
+                    ? "local planner"
+                    : "standard rebalance"
             })`
           : ""
       }. Everyone must approve the new allocation before booking.`,

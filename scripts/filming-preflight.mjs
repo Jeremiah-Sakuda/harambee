@@ -30,8 +30,10 @@ const fingerprint = () => ({
   filmingFiles: Object.fromEntries(
     [
       "src/main.jsx",
+      "src/payment-summary.mjs",
       "server/revision-options.mjs",
       "server/ai.mjs",
+      "server/proposal-source.mjs",
       "scripts/demo-chat-live.mjs",
     ].map((file) => [
       file,

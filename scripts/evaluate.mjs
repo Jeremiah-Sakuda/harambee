@@ -1,3 +1,4 @@
+import { referenceProposalSource } from "../server/proposal-source.mjs";
 import { readFileSync, writeFileSync } from "node:fs";
 import { interpret } from "../server/ai.mjs";
 const cases = JSON.parse(
@@ -8,64 +9,37 @@ if (live && !process.env.OPENAI_API_KEY)
   throw Error(
     "A configured OPENAI_API_KEY is required for --live. No live run occurred.",
   );
-const originalFetch = globalThis.fetch,
-  key = process.env.OPENAI_API_KEY;
 const results = [];
-try {
-  for (const c of cases.filter((c) => !live || !("modelAmount" in c))) {
-    if (!live) {
-      delete process.env.OPENAI_API_KEY;
-      if ("modelAmount" in c) {
-        process.env.OPENAI_API_KEY = "offline-fixture";
-        globalThis.fetch = async () => ({
-          ok: true,
-          json: async () => ({
-            status: "completed",
-            model: "injected-evaluation-fixture",
-            output: [
-              {
-                content: [
-                  {
-                    type: "output_text",
-                    text: JSON.stringify({
-                      summary: "Fixture",
-                      constraints: [
-                        {
-                          source: c.input,
-                          line: 1,
-                          person: c.modelPerson,
-                          budgetCents: c.modelAmount,
-                          needsReview: false,
-                          preference: "Fixture interpretation",
-                        },
-                      ],
-                    }),
-                  },
-                ],
-              },
-            ],
-          }),
-        });
-      }
-    }
-    const output = await interpret(c.input);
-    const observed = output.constraints[0];
-    const pass = ["person", "budgetCents", "needsReview"].every(
-      (k) => observed[k] === c[k],
-    );
-    results.push({
-      id: c.id,
-      pass,
-      provider: output.provider,
-      observed,
-      model: output.model,
-      latencyMs: output.latencyMs,
-    });
-  }
-} finally {
-  globalThis.fetch = originalFetch;
-  if (key) process.env.OPENAI_API_KEY = key;
-  else delete process.env.OPENAI_API_KEY;
+for (const c of cases.filter((c) => !live || !("modelAmount" in c))) {
+  const source = live
+    ? undefined
+    : "modelAmount" in c
+      ? referenceProposalSource({
+          constraints: [
+            {
+              source: c.input,
+              line: 1,
+              person: c.modelPerson,
+              budgetCents: c.modelAmount,
+              needsReview: false,
+              preference: "Fixture interpretation",
+            },
+          ],
+        })
+      : null;
+  const output = await interpret(c.input, { source });
+  const observed = output.constraints[0];
+  const pass = ["person", "budgetCents", "needsReview"].every(
+    (k) => observed[k] === c[k],
+  );
+  results.push({
+    id: c.id,
+    pass,
+    provider: output.provider,
+    observed,
+    model: output.model,
+    latencyMs: output.latencyMs,
+  });
 }
 const report = {
   fixtureVersion: 1,

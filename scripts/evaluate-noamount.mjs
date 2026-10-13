@@ -13,12 +13,6 @@ import { proposeRevisions } from "../server/revision-options.mjs";
 const live = process.argv.includes("--live");
 if (live && !process.env.OPENAI_API_KEY)
   throw Error("OPENAI_API_KEY is required for --live. No live run occurred.");
-if (!live) {
-  delete process.env.OPENAI_API_KEY;
-  globalThis.fetch = async () => {
-    throw Error("Network disabled for the local planner run");
-  };
-}
 const casesFlag = process.argv.indexOf("--cases");
 const casesPath =
   casesFlag > 0
@@ -39,7 +33,10 @@ for (const c of cases) {
   const e = new Engine(memory());
   for (const p of e.active) e.approve(p.id, 1);
   e.withdraw("organizer", "sam");
-  const out = await proposeRevisions(e, { notes: c.chat.join("\n") });
+  const out = await proposeRevisions(e, {
+    notes: c.chat.join("\n"),
+    source: live ? undefined : null,
+  });
   const whyOn = (listingId, participantId) =>
     out.options.some(
       (o) =>
@@ -96,6 +93,7 @@ const report = {
   source: sourceFingerprint([
     "server/revision-options.mjs",
     "server/ai.mjs",
+    "server/proposal-source.mjs",
     "server/domain.mjs",
   ]),
   cases:

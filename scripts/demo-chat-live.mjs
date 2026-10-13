@@ -67,6 +67,7 @@ const report = {
   source: sourceFingerprint([
     "server/revision-options.mjs",
     "server/ai.mjs",
+    "server/proposal-source.mjs",
     "server/domain.mjs",
   ]),
   chat: notes.split("\n"),

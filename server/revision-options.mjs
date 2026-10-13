@@ -1,3 +1,4 @@
+import { openAIProposalSource } from "./proposal-source.mjs";
 // Revision options after the group changes. A model may interpret the chat and propose options;
 // code verifies every quote and amount, computes every share, and nothing applies without consent.
 import { randomUUID } from "node:crypto";
@@ -1058,7 +1059,7 @@ export function resolveLimitRequest(
 
 export async function proposeRevisions(
   engine,
-  { notes = "", isCurrent = () => true } = {},
+  { notes = "", isCurrent = () => true, source = openAIProposalSource() } = {},
 ) {
   if (typeof notes !== "string" || notes.length > 8000)
     throw new DomainError(
@@ -1080,7 +1081,7 @@ export async function proposeRevisions(
   // Bind the batch to the plan as it was when the chat was read; if it changed meanwhile, the
   // suggestions describe an old group and must not be published against the new one.
   const before = `${engine.state.id}|${engine.state.version}|${engine.active.map((p) => p.id)}`;
-  const result = await suggest(engine, ctx, notes, lines);
+  const result = await suggest(ctx, notes, lines, source);
   // isCurrent also catches a reset or new trip that replaced this engine during the model call.
   if (
     !isCurrent() ||
@@ -1105,14 +1106,18 @@ export async function proposeRevisions(
     .map((c) => `${c.name.split(" ")[0]} ${usd(c.amountCents)}`);
   engine.log(
     `The organizer asked for revision options (${
-      out.provider === "openai" ? out.model : "local planner"
+      out.provider === "openai"
+        ? out.model
+        : out.provider === "reference"
+          ? "reference proposals"
+          : "local planner"
     }).${read.length ? ` Amounts read from the chat: ${read.join(", ")}.` : ""}`,
     "revision",
   );
   return out;
 }
 
-async function suggest(engine, ctx, notes, lines) {
+async function suggest(ctx, notes, lines, source) {
   const local = (extra = {}) => ({
     proposals: localOptions(ctx, lines),
     meta: {
@@ -1125,52 +1130,28 @@ async function suggest(engine, ctx, notes, lines) {
       ...extra,
     },
   });
-  if (!process.env.OPENAI_API_KEY || !notes.trim()) return local();
+  if (!source || !notes.trim()) return local();
   const start = Date.now();
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      signal: AbortSignal.timeout(20000),
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-        store: false,
-        instructions: INSTRUCTIONS,
-        input: JSON.stringify({
-          remaining: ctx.active.map((p) => ({ id: p.id, name: p.name })),
-          departed: ctx.departed,
-          currentListingId: ctx.listingId,
-          listings: ctx.listings.map((l) => ({
-            id: l.id,
-            name: l.name,
-            totalUsd: l.total / 100,
-            sleeps: l.guests,
-          })),
-          chat: lines.map((text, i) => ({ line: i + 1, text })),
-        }),
-        text: {
-          format: {
-            type: "json_schema",
-            name: "revision_options",
-            strict: true,
-            schema: schemaFor(ctx),
-          },
-        },
-        max_output_tokens: 2000,
+    const { value: result, ...provenance } = await source({
+      instructions: INSTRUCTIONS,
+      input: JSON.stringify({
+        remaining: ctx.active.map((p) => ({ id: p.id, name: p.name })),
+        departed: ctx.departed,
+        currentListingId: ctx.listingId,
+        listings: ctx.listings.map((l) => ({
+          id: l.id,
+          name: l.name,
+          totalUsd: l.total / 100,
+          sleeps: l.guests,
+        })),
+        chat: lines.map((text, i) => ({ line: i + 1, text })),
       }),
+      schema: schemaFor(ctx),
+      name: "revision_options",
+      maxOutputTokens: 2000,
+      timeoutMs: 20000,
     });
-    if (!response.ok) throw new Error("Model provider unavailable");
-    const raw = await response.json();
-    if (raw.status !== "completed")
-      throw new Error("Incomplete model response");
-    const result = JSON.parse(
-      raw.output
-        ?.flatMap((o) => o.content ?? [])
-        .find((c) => c.type === "output_text")?.text,
-    );
     if (!Array.isArray(result.options) || result.options.length > 6)
       throw new Error("Invalid model response");
     const clarifications = (result.clarifications ?? [])
@@ -1262,12 +1243,15 @@ async function suggest(engine, ctx, notes, lines) {
             };
       });
     return {
-      proposals: result.options.map((o) => ({ ...o, source: "openai" })),
+      proposals: result.options.map((o) => ({
+        ...o,
+        source: provenance.provider,
+      })),
       meta: {
-        provider: "openai",
-        model: raw.model,
-        latencyMs: Date.now() - start,
-        usage: raw.usage ?? null,
+        provider: provenance.provider,
+        model: provenance.model,
+        latencyMs: provenance.latencyMs,
+        usage: provenance.usage,
         // Only checked source quotes explain a person's financial willingness.
         summary: "",
         clarifications,
