@@ -3,6 +3,8 @@ import {
   organizerRecovery,
   recoveryMessage,
   recoveryLabel,
+  fundingRows,
+  RELEASED,
 } from "./payment-summary.mjs";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -917,7 +919,7 @@ function App() {
                         </div>
                         <div className="commitment">
                           {!p.active ? (
-                            <span className="status neutral">Hold voided</span>
+                            <span className="status neutral">{RELEASED}</span>
                           ) : state.status === "confirmed" ? (
                             <span className="status green">
                               <CheckCheck size={13} />
@@ -934,7 +936,7 @@ function App() {
                                       .reduce((n, x) => n + x.amount, 0),
                                   )}`
                                 : payment.some((x) => x.status === "voided")
-                                  ? "Hold released · not charged"
+                                  ? RELEASED
                                   : "Nothing held"}
                             </span>
                           ) : state.status === "recovery_pending" ? (
@@ -1425,7 +1427,7 @@ function App() {
                         ? "charged in sandbox"
                         : "charged in simulation"
                       : state.status === "recovery_pending" && captured > 0
-                        ? "captured, return not confirmed"
+                        ? "captured, not yet returned"
                         : state.status === "recovery_pending" &&
                             balances.checkingCapture > 0
                           ? "payment outcome being checked"
@@ -1433,31 +1435,12 @@ function App() {
                   </span>
                 </div>
                 <dl className="funding-breakdown">
-                  <div>
-                    <dt>Held, not charged</dt>
-                    <dd>{usd(held)}</dd>
-                  </div>
-                  <div>
-                    <dt>Captured, return not confirmed</dt>
-                    <dd>{usd(captured)}</dd>
-                  </div>
-                  <div>
-                    <dt>Refund pending (of captured)</dt>
-                    <dd>{usd(balances.refundPending)}</dd>
-                  </div>
-                  {(balances.checkingCapture > 0 ||
-                    balances.checkingHold > 0) && (
-                    <div>
-                      <dt>Outcome being checked</dt>
-                      <dd>
-                        {usd(balances.checkingCapture + balances.checkingHold)}
-                      </dd>
+                  {fundingRows(state).map((row) => (
+                    <div key={row.key}>
+                      <dt>{row.label}</dt>
+                      <dd>{usd(row.amount)}</dd>
                     </div>
-                  )}
-                  <div>
-                    <dt>Returned</dt>
-                    <dd>{usd(balances.returned)}</dd>
-                  </div>
+                  ))}
                 </dl>
               </div>
               <div
@@ -1480,7 +1463,7 @@ function App() {
                       : state.status === "confirmed"
                         ? "Your local fixture reservation is confirmed. View each person’s receipt below."
                         : state.status === "recovery_pending"
-                          ? "Return what was taken and release every hold. Harambee checks each payment with the provider first."
+                          ? stopped.next
                           : state.status === "cancelled"
                             ? "Collection is closed. Released holds and refunds are recorded in activity."
                             : state.status === "revision_required"
