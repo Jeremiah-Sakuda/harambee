@@ -127,16 +127,29 @@ export function organizerRecovery(state) {
   )
     parts.push("Nothing remains charged or held.");
   parts.push("Nobody is charged twice.");
+  const settled =
+    p.returned.length + p.released.length === state.payments.length;
+  const onlyRefunds =
+    p.refundPending.length > 0 &&
+    p.refundPending.length + p.returned.length + p.released.length ===
+      state.payments.length;
   return {
     title: ["cancelled", "expired"].includes(stop.reason)
       ? "Closing the trip."
       : "Booking stopped.",
     text: parts.join(" "),
     refundFailed: p.refundFailed.length > 0,
-    onlyRefunds:
-      p.refundPending.length > 0 &&
-      p.refundPending.length + p.returned.length + p.released.length ===
-        state.payments.length,
+    onlyRefunds,
+    actionLabel: settled
+      ? "Finish closing the trip"
+      : onlyRefunds
+        ? "Check refund status"
+        : "Return money & release holds",
+    guidance: settled
+      ? "All payments are settled. The organizer can finish closing the trip."
+      : onlyRefunds
+        ? "Refunds are processing. Check their status for provider confirmation."
+        : "Return what was taken and release every hold. Harambee checks each payment with the provider first.",
   };
 }
 
@@ -195,4 +208,37 @@ export function recoveryLabel(payments) {
   if (p.checkingHold) return "Checking hold release";
   if (p.held) return "Hold to release";
   return "Settled · nothing owed";
+}
+
+// Checkout actions are only meaningful for an active participant's current
+// open-plan payment. Recovery outcomes must never resurrect an approval link.
+export function participantCheckouts(state, actor) {
+  if (
+    state.provider !== "paypal-sandbox" ||
+    !["collecting", "ready"].includes(state.status) ||
+    !state.participants.some((p) => p.id === actor && p.active)
+  )
+    return [];
+  const checkoutStates = [
+    "created",
+    "create_unknown",
+    "approval_required",
+    "buyer_approved",
+    "authorization_unknown",
+    "authorization_pending",
+    "authorize_unknown",
+  ];
+  return state.payments
+    .filter(
+      (p) =>
+        p.participantId === actor &&
+        p.version === state.version &&
+        p.sandboxSessionId &&
+        checkoutStates.includes(p.status),
+    )
+    .map((p) => ({
+      ...p,
+      approvalUrl: p.status === "approval_required" ? p.approvalUrl : null,
+      canConfirm: ["approval_required", "buyer_approved"].includes(p.status),
+    }));
 }
