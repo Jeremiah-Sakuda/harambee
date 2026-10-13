@@ -85,11 +85,18 @@ const report = {
   // Which code produced these results: commit, uncommitted changes, file hashes.
   source:
     source.source ??
-    sourceFingerprint([
-      "server/revision-options.mjs",
-      "server/ai.mjs",
-      "server/domain.mjs",
-    ]),
+    (rescore > 0
+      ? {
+          commit: null,
+          testedFilesModified: null,
+          sha256: {},
+          note: "Original output has no source fingerprint; rescoring does not establish its source identity.",
+        }
+      : sourceFingerprint([
+          "server/revision-options.mjs",
+          "server/ai.mjs",
+          "server/domain.mjs",
+        ])),
   cases: "revision-cases-noamount",
   scorer: "strict",
   mode: source.mode,

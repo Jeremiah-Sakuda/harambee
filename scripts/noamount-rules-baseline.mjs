@@ -111,7 +111,12 @@ const report = {
   ]),
   mode: "rules-baseline",
   corpus:
-    "development no-amount briefs; rules authored after inspecting this corpus",
+    casesFlag > 0
+      ? "supplied corpus; author provenance recorded separately"
+      : "development no-amount briefs; rules authored after inspecting this corpus",
+  casesSha256: createHash("sha256")
+    .update(readFileSync(casesPath))
+    .digest("hex"),
   passed: results.filter((r) => r.pass).length,
   total: results.length,
   questionRecall: {
