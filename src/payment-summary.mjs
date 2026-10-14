@@ -53,6 +53,24 @@ export function paymentSummary(payments) {
   };
 }
 
+// A receipt can contain both settled and unsettled money (including top-ups).
+export function receiptSummary(payments) {
+  const p = paymentSummary(payments);
+  const paid = p.captured - p.refundPending - p.refundFailed - p.refundUnknown;
+  const parts = [
+    [paid, "paid"],
+    [p.refundPending, "refund pending"],
+    [p.refundFailed, "refund failed · still charged"],
+    [p.refundUnknown, "refund unconfirmed"],
+    [p.checkingCapture, "payment unconfirmed"],
+    [p.returned, "returned"],
+  ];
+  return parts
+    .filter(([amount]) => amount > 0)
+    .map(([amount, label]) => `${usd(amount)} ${label}`)
+    .join(" · ");
+}
+
 export function organizerRecovery(state) {
   if (state.status !== "recovery_pending") return null;
   const p = classify(state.payments);
@@ -223,7 +241,12 @@ export function fundingRows(state) {
     (always || amount > 0) && rows.push({ key, label, amount });
   const checking = b.checkingCapture + b.checkingHold;
   if (state.status === "confirmed") {
-    add("charged", `Charged in ${where} · paid to the booking`, b.captured, true);
+    add(
+      "charged",
+      `Charged in ${where} · paid to the booking`,
+      b.captured,
+      true,
+    );
     add("held", "Held, not charged", b.held);
     add("checking", "Outcome being checked", checking);
     add("returned", "Returned", b.returned);

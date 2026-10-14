@@ -141,3 +141,30 @@ test("a created checkout whose plan moved on is not resumed by reconcile", async
   assert.equal(orders, 1);
   assert.equal(p.status, "approval_required");
 });
+
+test("a capture read outage preserves the pending outcome through persistence and restart", async () => {
+  const f = fixture();
+  for (const person of f.e.active) await f.approve(person.id);
+  const capture = f.client.capture;
+  f.client.capture = async (...args) => {
+    const c = await capture(...args);
+    c.status = "PENDING";
+    return c;
+  };
+  await assert.rejects(f.g.book("organizer", { version: 1 }), /not confirmed/);
+  const getCapture = f.client.getCapture;
+  f.client.getCapture = async () => {
+    throw Error("Synthetic read outage");
+  };
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.payments[0].status, "capture_pending");
+  assert.equal(f.store.load().payments[0].status, "capture_pending");
+  assert.equal(f.e.state.status, "recovery_pending");
+  assert.equal(f.refunds.size, 0);
+  const { Engine } = await import("../server/domain.mjs");
+  assert.equal(new Engine(f.store).state.payments[0].status, "capture_pending");
+  f.client.getCapture = getCapture;
+  await f.g.recover("organizer");
+  assert.equal(f.e.state.payments[0].status, "capture_pending");
+  assert.equal(f.refunds.size, 0);
+});

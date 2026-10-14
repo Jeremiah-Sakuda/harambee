@@ -159,6 +159,9 @@ export class SandboxLab {
           .findLast((r) => !REFUND_NOT_MADE.includes(r.status));
         if (orderRefund?.id && !session.refundId)
           session.refundId = orderRefund.id;
+        // Publish a status only after every dependent provider read and amount check succeeds.
+        // Lifecycle sync also runs on errors, so intermediate states must stay local.
+        let reconciledStatus = previousStatus;
         if (auth) {
           session.authorizationId = auth.id;
           const detail = await this.client.getAuthorization(auth.id);
@@ -177,12 +180,14 @@ export class SandboxLab {
           session.authorizationStatus = detail.status;
           // An expired or denied authorization holds no funds, like a voided one.
           if (["VOIDED", "EXPIRED", "DENIED"].includes(detail.status))
-            session.status = "voided";
+            reconciledStatus = "voided";
           else if (detail.status === "PENDING")
-            session.status = "authorization_pending";
-          else if (detail.status === "CREATED") session.status = "authorized";
+            reconciledStatus = "authorization_pending";
+          else if (detail.status === "CREATED") reconciledStatus = "authorized";
           else if (detail.status === "CAPTURED")
-            session.status = session.captureId ? "captured" : "capture_unknown";
+            reconciledStatus = session.captureId
+              ? "captured"
+              : "capture_unknown";
         }
         const capture = session.captureId
           ? await this.client.getCapture(session.captureId)
@@ -203,7 +208,7 @@ export class SandboxLab {
         if (capture && CAPTURE_NOT_TAKEN.includes(capture.status))
           captureNotTaken(session, capture);
         if (session.captureId) {
-          session.status =
+          reconciledStatus =
             capture.status === "REFUNDED"
               ? "refunded"
               : capture.status === "COMPLETED"
@@ -212,22 +217,24 @@ export class SandboxLab {
           if (session.refundId) {
             const refund = await this.client.getRefund(session.refundId);
             verifyAmount(refund.amount, session.amount);
-            if (REFUND_NOT_MADE.includes(refund.status))
+            if (REFUND_NOT_MADE.includes(refund.status)) {
               refundNotMade(session, refund);
-            else
-              session.status =
+              reconciledStatus = session.status;
+            } else
+              reconciledStatus =
                 refund.status === "COMPLETED" ? "refunded" : "refund_pending";
           } else if (
             previousStatus.startsWith("refund_") &&
             capture.status !== "REFUNDED"
           )
-            session.status = previousStatus;
+            reconciledStatus = previousStatus;
         }
         if (!auth && !session.captureId)
-          session.status =
+          reconciledStatus =
             order.status === "APPROVED"
               ? "buyer_approved"
               : "approval_required";
+        session.status = reconciledStatus;
         if (session.status === "refunded") {
           session.refundReferenceMissing = !session.refundId;
           session.refundEvidence = session.refundId

@@ -1,5 +1,6 @@
 import {
   paymentSummary,
+  receiptSummary,
   organizerRecovery,
   participantCheckouts,
   recoveryMessage,
@@ -221,7 +222,10 @@ const receiptLines = (state, personId) =>
       return {
         id: p.id,
         amount: p.amount,
-        what: i === 0 ? `Share approved on v${p.version}` : `Top-up approved on v${p.version}`,
+        what:
+          i === 0
+            ? `Share approved on v${p.version}`
+            : `Top-up approved on v${p.version}`,
         status: p.status,
         ref:
           p.captureId ||
@@ -237,12 +241,7 @@ function Receipt({ state, person, listing, compact = false }) {
   const sandbox = state.provider === "paypal-sandbox";
   const lines = receiptLines(state, person.id);
   if (!lines.length) return null;
-  const paid = lines
-    .filter((l) => l.status === "captured")
-    .reduce((n, l) => n + l.amount, 0);
-  const returned = lines
-    .filter((l) => l.status === "refunded")
-    .reduce((n, l) => n + l.amount, 0);
+  const summary = receiptSummary(lines);
   const when = (at) =>
     at
       ? new Date(at).toLocaleDateString("en-US", {
@@ -257,8 +256,7 @@ function Receipt({ state, person, listing, compact = false }) {
         <ReceiptText size={18} />
         <div>
           <strong>
-            {compact ? first : "Your receipt"} ·{" "}
-            {paid ? `${usd(paid)} paid` : `${usd(returned)} returned`}
+            {compact ? first : "Your receipt"} · {summary}
           </strong>
           <span>
             To {listing.name} (sample listing;{" "}
@@ -592,23 +590,21 @@ function App() {
             ? "This link doesn’t match anyone on the current trip. It may be from an earlier round. Ask your organizer for a new link, or choose your name if you’re on this trip."
             : error || "Opening your trip…"}
         </p>
-        {unknownLink ? (
-          roster?.length > 0 && (
-            <nav className="role-chooser" aria-label="Who are you?">
-              {roster.map((p) => (
-                <a
-                  key={p.id}
-                  className="secondary"
-                  href={`/?participant=${encodeURIComponent(p.id)}`}
-                >
-                  I’m {p.name.split(" ")[0]}
-                </a>
-              ))}
-            </nav>
-          )
-        ) : (
-          error && <button onClick={() => load()}>Try again</button>
-        )}
+        {unknownLink
+          ? roster?.length > 0 && (
+              <nav className="role-chooser" aria-label="Who are you?">
+                {roster.map((p) => (
+                  <a
+                    key={p.id}
+                    className="secondary"
+                    href={`/?participant=${encodeURIComponent(p.id)}`}
+                  >
+                    I’m {p.name.split(" ")[0]}
+                  </a>
+                ))}
+              </nav>
+            )
+          : error && <button onClick={() => load()}>Try again</button>}
       </main>
     );
   const listing = state.catalog.find((c) => c.id === state.listingId),
@@ -1244,11 +1240,23 @@ function App() {
                   <textarea
                     rows={7}
                     value={notes}
+                    readOnly={actor !== "organizer"}
                     onChange={(e) => setNotes(e.target.value)}
                     maxLength={8000}
                   />
                 </label>
-                {state.status === "revision_required" ? (
+                {actor !== "organizer" ? (
+                  <div className="notes-actions">
+                    <span>
+                      Sample planning notes in this browser. Send changes to
+                      your organizer in the group chat; they prepare and publish
+                      the plan.
+                    </span>
+                    <button className="primary" onClick={() => setTab("board")}>
+                      Back to your trip <ArrowRight size={16} />
+                    </button>
+                  </div>
+                ) : state.status === "revision_required" ? (
                   // One chat reader at a time: during a revision, the options read these notes.
                   <div className="notes-actions">
                     <span>
@@ -1989,15 +1997,15 @@ function App() {
             {(() => {
               const share = shareFor(modalPerson.id);
               const typed = Math.round(Number(budget) * 100);
-              const valid = Boolean(budget) && Number.isFinite(typed) && typed > 0;
+              const valid =
+                Boolean(budget) && Number.isFinite(typed) && typed > 0;
               // An edited ceiling is saved by the same tap that approves, never as a hidden step.
               const edited = valid && typed !== modalPerson.budget;
-              const extra = Math.max(0, share - heldFor(modalPerson.id)) || share;
+              const extra =
+                Math.max(0, share - heldFor(modalPerson.id)) || share;
               const canEdit = isOpen && actor === modalPerson.id;
               const saveOnly = async () => {
-                if (
-                  await act("budget", { amount: typed }, modalPerson.id)
-                )
+                if (await act("budget", { amount: typed }, modalPerson.id))
                   setNotice(
                     "Budget saved. No share was approved and no payment was authorized.",
                   );
@@ -2021,9 +2029,7 @@ function App() {
                     <div className="dialog-sticky">
                       <button
                         className="primary full"
-                        disabled={
-                          busy || !canEdit || !valid || typed < share
-                        }
+                        disabled={busy || !canEdit || !valid || typed < share}
                         onClick={async () => {
                           if (
                             edited &&
@@ -2141,7 +2147,10 @@ function App() {
                   myRequests.find((r) => r.kind === "ask");
                 let saved =
                   "Saved. Your organizer will publish new shares that fit. You can change it again until then.";
-                if (open && (open.kind === "ask" || open.amountCents === cents)) {
+                if (
+                  open &&
+                  (open.kind === "ask" || open.amountCents === cents)
+                ) {
                   if (
                     !(await act(
                       "confirm-limit",
@@ -2292,7 +2301,11 @@ function App() {
                 receipts leave with it, so export them first if you want a copy.
                 The new trip’s Activity starts with a note that this one was
                 booked and paid.{" "}
-                <button type="button" className="text-button" onClick={download}>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={download}
+                >
                   <Download size={13} /> Export this trip’s receipts
                 </button>
               </p>
@@ -2361,7 +2374,9 @@ function App() {
           <>
             <span className="eyebrow">ONE TRIP AT A TIME</span>
             <h2>
-              {isOpen ? "Finish or cancel this trip first." : "Finish recovery first."}
+              {isOpen
+                ? "Finish or cancel this trip first."
+                : "Finish recovery first."}
             </h2>
             <p>
               {held > 0
@@ -2395,10 +2410,7 @@ function App() {
                 Review recovery actions <ArrowRight size={16} />
               </button>
             )}
-            <button
-              className="secondary full"
-              onClick={() => setModal(null)}
-            >
+            <button className="secondary full" onClick={() => setModal(null)}>
               Keep this trip
             </button>
           </>

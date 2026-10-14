@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   paymentSummary,
+  receiptSummary,
   organizerRecovery,
   participantCheckouts,
   recoveryMessage,
@@ -201,10 +202,7 @@ function trip(payments) {
 
 test("the funding breakdown follows the plan's state", () => {
   const rows = (status, payments, provider = "simulated") =>
-    fundingRows({ status, provider, payments }).map((r) => [
-      r.label,
-      r.amount,
-    ]);
+    fundingRows({ status, provider, payments }).map((r) => [r.label, r.amount]);
   const paid = [
     { amount: 15000, status: "captured" },
     { amount: 45000, status: "captured" },
@@ -271,7 +269,10 @@ test("a released hold has one name, and a recovery waiting on refunds says so", 
     ],
   });
   assert.equal(stopped.onlyRefunds, true);
-  assert.match(stopped.guidance, /^Holds released\. Waiting for .*Maya’s \$150 refund/);
+  assert.match(
+    stopped.guidance,
+    /^Holds released\. Waiting for .*Maya’s \$150 refund/,
+  );
 });
 test("participant checkout actions require the current open plan and never reappear during recovery", () => {
   const state = trip([
@@ -356,4 +357,22 @@ test("uncertain checkout creation and authorization offer reconciliation without
     assert.equal(checkout.canConfirm, false, status);
     assert.equal(checkout.approvalUrl, null, status);
   }
+});
+
+test("receipts preserve unsettled refunds and mixed top-ups instead of reporting zero returned", () => {
+  for (const [status, expected] of [
+    ["captured", "$200 paid"],
+    ["refunded", "$200 returned"],
+    ["refund_pending", "$200 refund pending"],
+    ["refund_failed", "$200 refund failed · still charged"],
+    ["refund_unknown", "$200 refund unconfirmed"],
+  ])
+    assert.equal(receiptSummary([{ status, amount: 20000 }]), expected);
+  assert.equal(
+    receiptSummary([
+      { status: "refunded", amount: 15000 },
+      { status: "refund_pending", amount: 6500 },
+    ]),
+    "$65 refund pending · $150 returned",
+  );
 });
