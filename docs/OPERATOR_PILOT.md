@@ -40,4 +40,4 @@ Record eligible inquiries, started collections, completed bookings, dropout revi
 
 For each path, calculate completed-booking contribution after agreed variable booking costs, processing fees, recovery costs, support labor and platform fees. Normalize by eligible inquiry and include any inventory opportunity cost. A pilot succeeds when completed-booking contribution improves while every guest retains explicit control of their approved share. Record conversion and support changes separately so the operator can see the tradeoff.
 
-Before recruitment, agree on the observation window, number of eligible inquiries and minimum worthwhile improvement. Retain reasons for incomplete trips as well as successful bookings. The owner will choose when to begin organizer and operator conversations; this document is the proposed operating agreement and measurement plan.
+Before recruitment, agree on the observation window, number of eligible inquiries and minimum worthwhile improvement. Retain reasons for incomplete trips as well as successful bookings. This document defines a proposed operating agreement and measurement plan.
