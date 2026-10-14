@@ -153,6 +153,22 @@ export class SandboxLab {
           !CAPTURE_NOT_TAKEN.includes(orderCapture.status)
         )
           session.captureId = orderCapture.id;
+        // Discovering a capture invalidates an old hold-only view even if the next read fails.
+        if (
+          session.captureId &&
+          ![
+            "captured",
+            "refunded",
+            "capture_pending",
+            "capture_unknown",
+            "refund_pending",
+            "refund_unknown",
+            "refund_failed",
+          ].includes(previousStatus)
+        ) {
+          session.status = "capture_unknown";
+          this.save();
+        }
         // The order lists its refunds too, so a refund whose response was lost still gets its ID.
         const orderRefund = order.purchase_units
           ?.flatMap((u) => u.payments?.refunds ?? [])

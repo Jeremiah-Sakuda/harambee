@@ -168,3 +168,53 @@ test("a capture read outage preserves the pending outcome through persistence an
   assert.equal(f.e.state.payments[0].status, "capture_pending");
   assert.equal(f.refunds.size, 0);
 });
+
+test("a failed refund GET preserves pending refund evidence across restart", async () => {
+  const f = fixture();
+  for (const person of f.e.active) await f.approve(person.id);
+  await assert.rejects(
+    f.g.book("organizer", { version: 1, fault: "reservation_failure" }),
+  );
+  const refund = f.client.refund;
+  f.client.refund = async (id, key) => {
+    const r = await refund(id, key);
+    r.status = "PENDING";
+    f.caps.get(id).status = "COMPLETED";
+    return r;
+  };
+  await f.g.recover("organizer");
+  assert.ok(f.e.state.payments.every((p) => p.status === "refund_pending"));
+  const writes = f.refunds.size;
+  f.client.getRefund = async () => {
+    throw Error("Synthetic refund read outage");
+  };
+  await f.g.recover("organizer");
+  assert.ok(
+    f.store.load().payments.every((p) => p.status === "refund_pending"),
+  );
+  const { SandboxLab } = await import("../server/sandbox-lab.mjs");
+  const restarted = new SandboxLab(f.labStore, f.client);
+  assert.ok(
+    restarted.state.sessions.every((s) => s.status === "refund_pending"),
+  );
+  assert.equal(f.refunds.size, writes);
+});
+
+test("a newly discovered capture replaces stale hold certainty when its read fails", async () => {
+  const f = fixture();
+  const p = await f.approve("maya");
+  const session = f.lab.state.sessions.find((s) => s.id === p.sandboxSessionId);
+  // Simulate a capture completed at the provider whose response the coordinator never received.
+  await f.client.capture(session.authorizationId);
+  f.client.getCapture = async () => {
+    throw Error("Synthetic capture read outage");
+  };
+  await assert.rejects(
+    f.g.lifecycle.execute(p, "reconcile"),
+    /Synthetic capture read outage/,
+  );
+  assert.equal(p.status, "capture_unknown");
+  assert.equal(f.labStore.load().sessions[0].status, "capture_unknown");
+  assert.equal(f.store.load().payments[0].status, "capture_unknown");
+  assert.equal(f.refunds.size, 0);
+});
