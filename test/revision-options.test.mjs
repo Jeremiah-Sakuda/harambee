@@ -297,7 +297,7 @@ test("injected chat instructions cannot raise anyone's share", async () => {
     ),
   );
   // A higher "limit" read from chat never raises a share: publishing uses saved budgets.
-  const alex = out.options.find((o) => o.title === "Alex limit above budget");
+  const alex = out.options.find((o) => o.index === 1);
   if (alex) {
     if (alex.ready) e.revise("organizer", resolveOption(e, alex.id));
     assert.ok(e.current.shares.every((s) => s.share <= 22000));
@@ -392,7 +392,7 @@ test("an option the group cannot afford is shown as infeasible, not as a plan", 
     },
     notes,
   );
-  const o = out.options.find((o) => o.title === "Everyone's stated limits");
+  const o = out.options.find((o) => o.index === 0);
   assert.equal(o.feasible, false);
   assert.equal(o.ready, false);
   assert.deepEqual(o.rows, []);
@@ -521,7 +521,7 @@ test("the backstop leaves firm limits alone", async () => {
     },
     notes,
   );
-  const firm = out.options.find((o) => o.title === "Firm limits");
+  const firm = out.options.find((o) => o.index === 0);
   assert.deepEqual(
     firm.confirmations.map((c) => [c.participantId, c.amountCents]),
     [
@@ -814,7 +814,7 @@ test("a reason is shown as Why only on an option it supports", async () => {
     clarifications: [],
   });
   const why = (o) => o.basis.map((b) => b.participantId);
-  const pine = out.options.find((o) => o.title.includes("Maya’s new limit"));
+  const pine = out.options.find((o) => o.index === 0);
   assert.deepEqual(why(pine), ["maya"]);
   assert.deepEqual(
     pine.considered.map((b) => b.participantId),
@@ -870,9 +870,7 @@ test("bare numbers in model prose, summaries and questions are checked too", asy
   assert.doesNotMatch(titles, /300/);
   // Any digit in model prose is replaced, even a small count: code can't tell it isn't an amount.
   assert.ok(
-    out.options.some(
-      (o) => o.listingId === "creek" && /option$/.test(o.title),
-    ),
+    out.options.some((o) => o.listingId === "creek" && /option$/.test(o.title)),
   );
   assert.equal(out.summary, "");
   assert.doesNotMatch(
@@ -1237,7 +1235,7 @@ test("a limit the model itself calls hedged, a minimum or relayed is asked about
   );
 });
 
-test("only the fields with figures are replaced, and summaries with field names are dropped", async () => {
+test("provider prose is replaced by verified facts, and model summaries are dropped", async () => {
   const { out } = await withProposals(afterDropout(), {
     summary:
       "Maya's newer limit replaces her earlier one, so no capRequest is added for Alex.",
@@ -1251,7 +1249,7 @@ test("only the fields with figures are replaced, and summaries with field names 
     clarifications: [],
   });
   const pine = out.options.find((o) => o.source === "reference");
-  assert.equal(pine.title, "Keep Pine & Still with Maya’s new limit");
+  assert.equal(pine.title, "Pine & Still Cabin option");
   assert.equal(pine.explanationReplaced, true);
   assert.doesNotMatch(pine.explanation, /others cover/);
   assert.equal(out.summary, "");
@@ -1458,8 +1456,9 @@ test("a question can only quote amounts its addressee wrote", async () => {
     (c) => c.participantId === "alex" && c.source !== "code",
   );
   assert.equal(
-    q.question,
-    "Please confirm the amount directly with this person.",
+    q,
+    undefined,
+    "Alex already stated a firm ceiling; no redundant money question",
   );
 });
 
@@ -1601,9 +1600,24 @@ test("a fragment of a sentence can't turn a refusal into a reason", async () => 
           explanation: "Keeps everyone together.",
           tradeoff: "",
           basis: [
-            { participantId: "alex", line: 7, quote: "want to pay more for Pine & Still", kind: "willing_more" },
-            { participantId: "jordan", line: 8, quote: "Pine & Still again, it was freezing", kind: "prefers_listing" },
-            { participantId: "maya", line: 9, quote: "Pine & Still is not for me this time", kind: "prefers_listing" },
+            {
+              participantId: "alex",
+              line: 7,
+              quote: "want to pay more for Pine & Still",
+              kind: "willing_more",
+            },
+            {
+              participantId: "jordan",
+              line: 8,
+              quote: "Pine & Still again, it was freezing",
+              kind: "prefers_listing",
+            },
+            {
+              participantId: "maya",
+              line: 9,
+              quote: "Pine & Still is not for me this time",
+              kind: "prefers_listing",
+            },
           ],
         }),
       ],
@@ -1611,7 +1625,7 @@ test("a fragment of a sentence can't turn a refusal into a reason", async () => 
     },
     notes,
   );
-  const card = out.options.find((o) => o.title === "Keep the cabin");
+  const card = out.options.find((o) => o.index === 0);
   assert.deepEqual(card.basis, []);
   // Each is shown as its full sentence, labelled as arguing against this option.
   assert.deepEqual(
@@ -1648,10 +1662,13 @@ test("lone number words and figure-free comparisons of people in model prose are
   const prose = out.options
     .flatMap((o) => [o.title, o.explanation, o.tradeoff])
     .join(" | ");
-  assert.doesNotMatch(prose, /twenty|forty|\b5 less|pays the most|biggest share/);
-  // A field with no figure and no comparison keeps the model's words.
-  assert.match(prose, /Keeps everyone in one cabin\./);
-  assert.match(prose, /A different cabin for the group\./);
+  assert.doesNotMatch(
+    prose,
+    /twenty|forty|\b5 less|pays the most|biggest share/,
+  );
+  // Financial and booking prose is generated from verified facts in every field.
+  assert.match(prose, /Each person reviews the new plan/);
+  assert.match(prose, /Changing cabins releases existing holds/);
 });
 
 test("a split the local planner shares with the standard rule is never labelled AI", async () => {
@@ -1661,4 +1678,109 @@ test("a split the local planner shares with the standard rule is never labelled 
   const merged = out.options.filter((o) => o.matchesRule);
   assert.ok(merged.length > 0);
   for (const o of merged) assert.equal(o.alsoSuggestedBy, "local-planner");
+});
+
+test("retracted preferences are context, never a supporting Why", async () => {
+  for (const correction of [
+    "Actually scratch that. I'd rather stay at Pine & Still, the extra space matters more to me.",
+    "I prefer Pine & Still now.",
+    "Take that back. I need to think about it.",
+  ]) {
+    const notes =
+      "Jordan: Then let's just take Creekside.\nJordan: " + correction;
+    const { out } = await withProposals(
+      afterDropout(),
+      {
+        options: [
+          option({
+            listingId: "creek",
+            basis: [
+              {
+                participantId: "jordan",
+                line: 1,
+                quote: "Then let's just take Creekside.",
+                kind: "prefers_listing",
+              },
+            ],
+          }),
+        ],
+        clarifications: [],
+      },
+      notes,
+    );
+    const creek = out.options.find((o) => o.listingId === "creek");
+    assert.equal(creek.basis.length, 0);
+    assert.equal(creek.considered[0].relation, "superseded");
+  }
+});
+
+test("proposal prose cannot claim approval or a guaranteed booking", async () => {
+  const e = afterDropout();
+  const { out } = await withProposals(
+    e,
+    {
+      options: [
+        option({
+          title: "Everyone already approved",
+          explanation:
+            "Everyone has approved this revised plan. The booking is guaranteed.",
+          tradeoff: "No payment confirmation needed",
+          basis: [
+            {
+              participantId: "maya",
+              line: 1,
+              quote: "I prefer Pine & Still.",
+              kind: "prefers_listing",
+            },
+          ],
+        }),
+      ],
+      clarifications: [],
+    },
+    "Maya: I prefer Pine & Still.",
+  );
+  for (const o of out.options) {
+    assert.doesNotMatch(
+      [o.title, o.explanation, o.tradeoff].join(" "),
+      /already approved|has approved|guaranteed|No payment confirmation/,
+    );
+  }
+  assert.equal(e.state.status, "revision_required");
+  assert.ok(out.options.some((o) => o.basis.length));
+});
+
+test("a willingness message never invites someone beyond their firm ceiling", async () => {
+  const notes =
+    "Jordan: My budget is $220.\nJordan: I can stretch to keep Pine & Still.";
+  const { out } = await withProposals(
+    afterDropout(),
+    {
+      options: [
+        option({
+          basis: [
+            {
+              participantId: "jordan",
+              line: 2,
+              quote: "I can stretch to keep Pine & Still.",
+              kind: "willing_more",
+            },
+          ],
+        }),
+      ],
+      clarifications: [
+        {
+          participantId: "jordan",
+          line: 2,
+          topic: "limit",
+          question: "Jordan, how much beyond $220 can you pay?",
+        },
+      ],
+    },
+    notes,
+  );
+  assert.ok(out.options.every((o) => o.rows.every((r) => r.share <= 22000)));
+  assert.equal(
+    out.clarifications.filter((q) => q.participantId === "jordan").length,
+    0,
+  );
 });

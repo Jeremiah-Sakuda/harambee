@@ -290,8 +290,28 @@ const PUSHBACK =
   /\b(?:don['’]?t|do not|won['’]?t|can['’]?t|cannot|rather not|not|no more)\b[^.!?]{0,30}\b(?:pay|spend|more|stretch|afford)\b/i;
 const FINE =
   /\b(?:don['’]?t mind|no problem|happy to|can stretch|could stretch)\b/i;
+// Later corrections and cabin choices invalidate earlier supporting quotes, even without money.
+function preferenceReplaced(b, lines) {
+  const first = body(lines[b.line - 1] ?? "");
+  if (!b.name) return false;
+  return lines.slice(b.line).some((line) => {
+    if (!speakerMatches(line, { name: b.name })) return false;
+    const text = body(line);
+    return (
+      /\b(?:scratch that|changed my mind|change of mind|take that back|forget (?:that|what I said)|actually[, ]+(?:no|instead))\b/i.test(
+        text,
+      ) ||
+      (catalog.some((l) => first.toLowerCase().includes(cabinWord(l))) &&
+        catalog.some((l) => text.toLowerCase().includes(cabinWord(l))) &&
+        /\b(?:prefer|rather|instead|stay|switch|take|choose|want|not|avoid)\b/i.test(
+          text,
+        ))
+    );
+  });
+}
 function relation(b, listing, shares, previous, lines, latestLine) {
   const text = b.quote.toLowerCase();
+  if (preferenceReplaced(b, lines)) return "superseded";
   const own = cabinWord(listing);
   if (negates(text, own)) return "opposes";
   const others = catalog.filter(
@@ -656,13 +676,16 @@ function finish(engine, ctx, lines, proposed, meta) {
       ? `${p.listingId}|${result.rows.map((r) => r.share).join(",")}`
       : `${p.listingId}|infeasible|${[...result.caps.keys()].join(",")}`;
     const earlier = seen.get(key);
-    // If a limit was removed, the suggestion's own words may describe it, so code rewrites all of
-    // them. Otherwise each field is checked on its own: the model is told to write no figures, and
-    // code can't tell whose amount a figure is ("Maya pays $215 while Jordan pays $170" uses real
-    // amounts on the wrong people), so a field with any figure is replaced by code's own text.
-    const all = result.removed.length > 0;
+    // Provider prose is untrusted. Render titles and summaries from verified listing/shares;
+    // source quotes carry the reasoning, and approval state comes only from the domain.
+    const external = !["rule", "local-planner"].includes(
+      p.source ?? meta.provider,
+    );
     const unchecked = (t) =>
-      all || hasFigure(t) || comparesPeople(t, ctx.active);
+      external ||
+      result.removed.length > 0 ||
+      hasFigure(t) ||
+      comparesPeople(t, ctx.active);
     const replace = {
       title: unchecked(p.title),
       explanation: unchecked(p.explanation),
@@ -676,7 +699,11 @@ function finish(engine, ctx, lines, proposed, meta) {
       explanation: replace.explanation
         ? describe(result)
         : String(p.explanation).slice(0, 600),
-      tradeoff: replace.tradeoff ? "" : String(p.tradeoff ?? "").slice(0, 300),
+      tradeoff: replace.tradeoff
+        ? result.listing.id !== ctx.listingId
+          ? "Changing cabins releases existing holds and requires fresh agreement."
+          : "Each person reviews the new plan and approves any additional amount."
+        : String(p.tradeoff ?? "").slice(0, 300),
       explanationReplaced: Object.values(replace).some(Boolean),
       removedLimits: result.removed,
       source: p.source ?? meta.provider,
@@ -752,7 +779,10 @@ function finish(engine, ctx, lines, proposed, meta) {
         !catalog.some((l) => b.quote.toLowerCase().includes(cabinWord(l)))
       )
         continue;
-      const shares = o.rows.map((r) => ({ id: r.participantId, share: r.share }));
+      const shares = o.rows.map((r) => ({
+        id: r.participantId,
+        share: r.share,
+      }));
       const rel = relation(b, listing, shares, ctx.shares, lines, latestLine);
       if (rel === "elsewhere" || rel === "opposes")
         o.considered.push({ ...b, relation: rel, attachedBy: "code" });
@@ -816,6 +846,7 @@ function finish(engine, ctx, lines, proposed, meta) {
     for (const b of o.basis)
       if (
         b.kind === "willing_more" &&
+        !firm.has(b.participantId) &&
         !literalAmounts(body(lines[b.line - 1])).length &&
         // "I don't want to pay more" is a refusal whatever the model labelled it.
         !(PUSHBACK.test(b.quote) && !FINE.test(b.quote)) &&
@@ -865,7 +896,19 @@ function finish(engine, ctx, lines, proposed, meta) {
     });
   }
   // Questions code raised while checking limits join the model's, without repeats.
-  const clarifications = [...(meta.clarifications ?? [])];
+  // A firm stated ceiling already answers how far someone can stretch. Do not turn a
+  // generic willingness message into a request to exceed it, even when the model does.
+  const clarifications = (meta.clarifications ?? []).filter(
+    (q) =>
+      !firm.has(q.participantId) ||
+      !(
+        q.topic === "limit" ||
+        /\b(?:pay|spend|budget|limit|afford|cost|cover|more|extra|stretch|share|max)\w*\b|\$/i.test(
+          q.question,
+        )
+      ),
+  );
+
   for (const q of codeQuestions)
     if (
       !clarifications.some(
@@ -1267,6 +1310,7 @@ async function suggest(ctx, notes, lines, source) {
             )),
       )
       .map((c) => ({
+        topic: c.topic ?? null,
         participantId: ctx.active.some((p) => p.id === c.participantId)
           ? c.participantId
           : null,
