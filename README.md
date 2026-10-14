@@ -25,14 +25,14 @@ Holds are collected within a 48-hour window and captured as soon as the group bo
 | --- | --- |
 | Separate buyers approve their shares, a dropout releases a hold, and the group books with exact-difference top-ups | [Recorded PayPal sandbox booking](docs/evidence/2026-10-04-sandbox-booking/README.md): three buyers, two $100 top-ups, $600 captured |
 | Booking failure returns each person's money | [Recorded group refund](docs/evidence/2026-10-08-sandbox-group-refund/README.md): three $200 captures refunded, independently confirmed through PayPal |
-| Versioned consent, payment recovery and source-grounded planning | 176 automated tests, a 28-case notes benchmark, 26 revision fixtures and a 16-scenario offline PayPal matrix |
-| AI turns chat into options, source-linked reasons and questions | On 16 briefs written without seeing our fixtures, gpt-4.1-mini plus code checks passed 10/16, against 6/16 for a rules comparator. [Results and methodology](docs/REVISION_OPTIONS.md) |
+| Versioned consent, payment recovery and source-grounded planning | 185 automated tests, a 28-case notes benchmark, 26 revision fixtures and a 16-scenario offline PayPal matrix |
+| AI turns chat into options, source-linked reasons and questions | In the October 13 frozen run on 16 briefs written without seeing our fixtures, gpt-4.1-mini plus code checks passed 10/16, against 6/16 for a rules comparator. [Results and methodology](docs/REVISION_OPTIONS.md) |
 
 **Demo setup:** PayPal sandbox uses test funds; cabin availability and reservations use local sample inventory. The default credential-free mode uses simulated payments and a local planner. Provider evidence identifies the source and configuration used in each run.
 
 ![After Sam leaves: a live gpt-4.1-mini option for $170 / $215 / $215 with quoted reasons, Maya confirming her $170 limit on her phone, and Jordan approving only the extra $65](docs/preview.png)
 
-*Captured on October 13, 2026 from the current build with a live gpt-4.1-mini run and simulated payments. The PayPal sandbox runs are in [Demonstrated end to end](#demonstrated-end-to-end).*
+*Captured on October 13, 2026 from that day’s build with a live gpt-4.1-mini run and simulated payments. The PayPal sandbox runs are in [Demonstrated end to end](#demonstrated-end-to-end).*
 
 ## How this differs
 

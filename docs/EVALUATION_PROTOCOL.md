@@ -28,3 +28,22 @@ Use unique case IDs and preserve the supplied `chat` and `expect` objects. Recor
 | Budget and consent checks | Recomputed from confirmed budgets | Same allocator | Same allocator |
 
 Populate this table from the frozen comparison run; the existing development results remain in [Revision options](REVISION_OPTIONS.md). A participant-form session collects attendance, firm spending limit and cabin preference directly. Compare that observed interaction with the assistance workflows on the same task; successful fixture scoring alone does not supply participant effort measurements.
+
+
+## Reproducible evidence and question review
+
+Fresh no-amount runs retain `acquisition.request` and `acquisition.response` for each provider call, plus the complete `verifiedOutput`. Reports include source hashes, corpus hash, requested and returned model, token limit, timeout, usage, elapsed time and fallback reason. The strict scorer embeds this original report in `originalRun`, keeps per-case outputs and fingerprints its own source. `--write` uses a timestamped filename. A rescore preserves the original source identity and never reconstructs missing acquisition data.
+
+The October 13 strict artifacts are frozen score records. Use fresh dated runs for the expanded evidence format; the original score records retain their original provenance.
+
+Review question meaning separately from recipient routing. For each saved emitted question record: grounded premise, unresolved need, consistency with the latest stated ceiling/preference, and whether an answer would change the decision. A question to the right person that asks beyond an already firm ceiling does not count as useful. Preserve the question and the reviewer’s reason; do not infer semantic correctness from recipient precision. Report these annotations alongside, rather than replacing, the frozen automated score.
+
+```bash
+node scripts/evaluate-noamount-strict.mjs --cases eval/revision-cases-independent.json --write
+# On the selected model-validation day, with credentials configured:
+node --env-file-if-exists=.env scripts/evaluate-noamount-strict.mjs --cases eval/revision-cases-independent.json --live --write
+# Recompute scores from a saved acquisition run without calling the provider:
+node scripts/evaluate-noamount-strict.mjs --cases eval/revision-cases-independent.json --rescore path/to/original-run.json
+```
+
+For a strict report, `originalRun` is the acquisition report to extract for rescoring. Keep all cases, including fallbacks, in both reports.
