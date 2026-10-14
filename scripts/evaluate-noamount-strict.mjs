@@ -58,6 +58,7 @@ const results = source.results.map((r) => {
       : {}),
   };
   return {
+    ...r,
     id: r.id,
     pass: Object.values(checks).every(Boolean),
     checks,
@@ -84,7 +85,14 @@ const results = source.results.map((r) => {
   };
 });
 const precise = results.filter((r) => r.questionPrecision);
+const scoredAt = new Date().toISOString();
 const report = {
+  scoredAt,
+  originalRun: source,
+  scorerSource: sourceFingerprint([
+    "scripts/evaluate-noamount-strict.mjs",
+    "scripts/evaluate-noamount.mjs",
+  ]),
   // Which code produced these results: commit, uncommitted changes, file hashes.
   source:
     source.source ??
@@ -114,7 +122,7 @@ const report = {
       0,
     ),
     total: precise.reduce((n, r) => n + r.questionPrecision.total, 0),
-    note: "Model questions in briefs that name who to ask; code-raised questions excluded.",
+    note: "Recipient precision only; question meaning and usefulness require separate review of the preserved outputs. Code-raised questions excluded.",
   },
   questionRecall: {
     required: results.reduce(
@@ -137,7 +145,7 @@ console.log(JSON.stringify(report, null, 2));
 if (process.argv.includes("--write"))
   writeFileSync(
     new URL(
-      `../eval/revision-noamount-strict-${rescore > 0 ? "rescore" : source.mode === "live-model" ? "live" : "local"}.json`,
+      `../eval/revision-noamount-strict-${rescore > 0 ? "rescore" : source.mode === "live-model" ? "live" : "local"}-${scoredAt.replaceAll(":", "-")}.json`,
       import.meta.url,
     ),
     JSON.stringify(report, null, 2) + "\n",

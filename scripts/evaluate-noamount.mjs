@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { sourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { Engine } from "../server/domain.mjs";
+import { openAIProposalSource } from "../server/proposal-source.mjs";
 import { proposeRevisions } from "../server/revision-options.mjs";
 
 const live = process.argv.includes("--live");
@@ -28,14 +29,32 @@ const memory = () => {
     },
   };
 };
+const startedAt = new Date().toISOString();
 const results = [];
 for (const c of cases) {
   const e = new Engine(memory());
   for (const p of e.active) e.approve(p.id, 1);
   e.withdraw("organizer", "sam");
+  const provider = live ? openAIProposalSource() : null;
+  let acquisition = null;
+  const started = Date.now();
   const out = await proposeRevisions(e, {
     notes: c.chat.join("\n"),
-    source: live ? undefined : null,
+    source: provider
+      ? async (request) => {
+          acquisition = { request, response: null, outcome: "started" };
+          try {
+            const response = await provider(request);
+            acquisition.response = structuredClone(response);
+            acquisition.outcome = "completed";
+            return response;
+          } catch (error) {
+            acquisition.outcome = "failed";
+            acquisition.error = error.name;
+            throw error;
+          }
+        }
+      : null,
   });
   const whyOn = (listingId, participantId) =>
     out.options.some(
@@ -72,6 +91,11 @@ for (const c of cases) {
     id: c.id,
     pass: Object.values(checks).every(Boolean),
     checks,
+    acquisition,
+    verifiedOutput: out,
+    elapsedMs: Date.now() - started,
+    usage: out.usage ?? null,
+    fallbackReason: out.fallbackReason ?? null,
     provider: out.provider,
     model: out.model,
     latencyMs: out.latencyMs,
@@ -89,6 +113,10 @@ for (const c of cases) {
   });
 }
 const report = {
+  startedAt,
+  completedAt: new Date().toISOString(),
+  requestedModel: live ? process.env.OPENAI_MODEL || "gpt-4.1-mini" : null,
+  acquisitionFormat: 1,
   // Which code produced these results: commit, uncommitted changes, file hashes.
   source: sourceFingerprint([
     "server/revision-options.mjs",
@@ -105,14 +133,14 @@ const report = {
   passed: results.filter((r) => r.pass).length,
   total: results.length,
   fallbacks: results.filter((r) => live && r.provider !== "openai").length,
-  note: "Briefs written and committed before any run. Small synthetic set written by the developer; not user data.",
+  note: "Synthetic fixture comparison. Corpus authorship and freeze history are documented alongside the case file. Full acquisition and verified outputs are retained per case.",
   results,
 };
 console.log(JSON.stringify(report, null, 2));
 if (process.argv.includes("--write"))
   writeFileSync(
     new URL(
-      `../eval/revision-noamount-results-${live ? "live" : "local"}.json`,
+      `../eval/revision-noamount-results-${live ? "live" : "local"}-${startedAt.replaceAll(":", "-")}.json`,
       import.meta.url,
     ),
     JSON.stringify(report, null, 2) + "\n",
